@@ -1,0 +1,37 @@
+{
+  "status": "success",
+  "results": [
+    {
+      "status": "success",
+      "filename": "hero-home-services-trust.jpg",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2evqcaizq/hero-home-services-trust.png",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2evqcaizq/hero-home-services-trust.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2evqcaizq/hero-home-services-trust.png"
+    },
+    {
+      "status": "success",
+      "filename": "service-cleaning-professional.jpg",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2foycaiyq/service-cleaning-professional.png",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2foycaiyq/service-cleaning-professional.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2foycaiyq/service-cleaning-professional.png"
+    },
+    {
+      "status": "success",
+      "filename": "service-repair-handyman.jpg",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2f5qcaiza/service-repair-handyman.png",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2f5qcaiza/service-repair-handyman.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2f5qcaiza/service-repair-handyman.png"
+    },
+    {
+      "status": "success",
+      "filename": "harish-city-aerial.jpg",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2gmicaizq/harish-city-aerial.png",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2gmicaizq/harish-city-aerial.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2gmicaizq/harish-city-aerial.png"
+    }
+  ],
+  "success_count": 4,
+  "failed_count": 0,
+  "running_count": 0,
+  "message": "Generated 4/4 images total"
+}

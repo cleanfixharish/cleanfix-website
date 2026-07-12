@@ -1,0 +1,62 @@
+[
+    {
+        "name": "CleanFixHarish Team",
+        "business_type": "General Services",
+        "description_en": "Our trusted in-house team handles cleaning, repairs, and maintenance with care and professionalism.",
+        "description_he": "הצוות הפנימי המהימן שלנו מטפל בניקיון, תיקונים ותחזוקה במקצועיות ובאכפתיות.",
+        "phone": "+972-50-000-0001",
+        "whatsapp": "+972500000001",
+        "area": "All Harish",
+        "partner_type": "internal",
+        "is_active": true,
+        "sort_order": 1
+    },
+    {
+        "name": "Avi's Plumbing",
+        "business_type": "Plumbing",
+        "description_en": "Licensed plumber with 15 years of experience in Harish. Specializes in emergency repairs and bathroom renovations.",
+        "description_he": "אינסטלטור מוסמך עם 15 שנות ניסיון בחריש. מתמחה בתיקוני חירום ושיפוצי אמבטיות.",
+        "phone": "+972-50-000-0002",
+        "whatsapp": "+972500000002",
+        "area": "Harish Center",
+        "partner_type": "partner",
+        "is_active": true,
+        "sort_order": 2
+    },
+    {
+        "name": "Bright Spark Electric",
+        "business_type": "Electrical",
+        "description_en": "Certified electrical contractor for residential and commercial projects.",
+        "description_he": "קבלן חשמל מוסמך לפרויקטים למגורים ומסחריים.",
+        "phone": "+972-50-000-0003",
+        "whatsapp": "+972500000003",
+        "area": "Harish North",
+        "partner_type": "partner",
+        "is_active": true,
+        "sort_order": 3
+    },
+    {
+        "name": "Cool Air Solutions",
+        "business_type": "AC & HVAC",
+        "description_en": "Air conditioning specialists. Installation, maintenance, and emergency repairs.",
+        "description_he": "מומחי מיזוג אוויר. התקנה, תחזוקה ותיקוני חירום.",
+        "phone": "+972-50-000-0004",
+        "whatsapp": "+972500000004",
+        "area": "All Harish",
+        "partner_type": "directory",
+        "is_active": true,
+        "sort_order": 4
+    },
+    {
+        "name": "Green Garden Harish",
+        "business_type": "Landscaping",
+        "description_en": "Professional garden design and maintenance services for Harish residents.",
+        "description_he": "שירותי עיצוב ותחזוקת גינות מקצועיים לתושבי חריש.",
+        "phone": "+972-50-000-0005",
+        "whatsapp": "+972500000005",
+        "area": "All Harish",
+        "partner_type": "directory",
+        "is_active": true,
+        "sort_order": 5
+    }
+]

@@ -1,0 +1,388 @@
+You are a senior product architect, automation strategist, full-stack builder, CRM designer, and UX expert.
+
+Build the best practical system for CleanFixHarish, a local service business in Harish, Israel. The business should look premium and trustworthy, but the system must stay simple enough for a non-technical owner to understand, edit, and manage independently.
+
+The business model is:
+
+CleanFixHarish presents its own trusted team.
+
+CleanFixHarish also works directly with strong local service providers in Harish.
+
+The platform may also include a page or section for other local businesses, including direct contact details where appropriate.
+
+The business is trust-first, fair-price, quality-first, and must avoid fake reviews, fake claims, and exaggerated promises.
+
+Design and build the system as a complete business operating platform, including whatever is needed:
+
+Public website
+
+CRM
+
+Admin/dashboard
+
+WhatsApp integration
+
+Forms
+
+Lead routing
+
+Webhooks
+
+Automations
+
+Social media connection points
+
+Content editing workflow
+
+Partner/business directory management
+
+Internal notes and status tracking
+
+Notifications
+
+Future scalability
+
+Main goal
+Create the best Phase 1 practical launch system for this business, with the shortest path to going live, while keeping the foundation strong enough to expand later. The system should prioritize real lead generation and operational clarity over unnecessary technical complexity.
+
+Core requirements
+Build a bilingual website in English and Hebrew. Structure it so English is not treated as secondary, because the audience includes multiple language groups in Harish.
+
+Make WhatsApp a primary conversion channel. Customers should be able to contact the business quickly, request a quote, ask for help, and move toward booking with minimal friction.
+
+Include a real CRM structure, not just a contact form. The CRM should track:
+
+New leads
+
+Source of lead
+
+Requested service
+
+Customer name
+
+Phone / WhatsApp
+
+Area in Harish
+
+Whether handled by CleanFixHarish team or partner
+
+Quote status
+
+Booking status
+
+Follow-up status
+
+Notes
+
+Job outcome
+
+Include an admin-friendly content management approach so the owner can easily update text, services, partner listings, business directory content, and key site sections without being technical.
+
+Include a partner/business logic layer:
+
+CleanFixHarish own team
+
+Direct partner collaboration
+
+Optional local business directory listing
+
+Clear distinction between leads handled internally vs passed to partners vs shown as direct contact listings
+
+The design should feel premium, elegant, calm, and trustworthy — described internally as a “Rolls-Royce feel” — but still practical for a local handyman / service business.
+
+Keep the system realistic for a low-technical-skill owner. Prefer solutions that are easy to operate, understand, and maintain.
+
+What I want from you
+I do not want only code. I want you to think like a business systems architect.
+
+Please produce:
+
+1. Recommended system architecture
+Explain the best stack and structure for this business, including:
+
+Website layer
+
+CRM layer
+
+Admin/content editing layer
+
+WhatsApp communication layer
+
+Automation layer
+
+Webhook layer
+
+Social media lead capture layer
+
+Analytics / tracking layer
+
+For each layer, explain:
+
+What tool/service should be used
+
+Why it fits this project
+
+Whether it is easy or hard for a non-technical owner
+
+Cost level
+
+What can be improved later
+
+2. Phase 1 vs later phases
+Split the build into:
+
+Phase 1 = fastest practical launch
+
+Phase 2 = better automation and management
+
+Phase 3 = scale and optimization
+
+Be strict about what is essential now versus later.
+
+3. Website structure
+Design the public-facing site structure, including suggested pages/sections such as:
+
+Home
+
+Services
+
+How it works
+
+Why trust us
+
+WhatsApp CTA
+
+Quote request form
+
+Partner / local businesses section
+
+About
+
+Contact
+
+Language switching
+
+Optional future app links
+
+The copy should focus on:
+
+Fair pricing
+
+Trusted people
+
+Good service quality
+
+Fast help
+
+Local Harish relevance
+
+Clear and honest communication
+
+4. CRM design
+Create the CRM pipeline and data model:
+
+Lead stages
+
+Tags
+
+Statuses
+
+Ownership
+
+Follow-up logic
+
+Customer history
+
+Quote workflow
+
+Booking workflow
+
+Completed / lost lead outcomes
+
+Include recommended fields and automations.
+
+5. WhatsApp workflow
+Design the WhatsApp system in detail:
+
+Click-to-WhatsApp entry points
+
+Pre-filled message templates
+
+Lead qualification questions
+
+Routing logic
+
+Follow-up messages
+
+Reminders
+
+Manual vs automated messages
+
+When WhatsApp should create/update CRM records
+
+When staff should take over manually
+
+6. Webhooks and automations
+Design automations for:
+
+Form submitted -> create lead
+
+WhatsApp started -> log lead
+
+New lead -> notify admin
+
+Lead status changed -> trigger follow-up
+
+Partner-assigned lead -> notify partner/admin
+
+Social media inquiry -> centralize into CRM
+
+Missed lead / stale lead -> reminder workflow
+
+Show webhook logic clearly and simply.
+
+7. Social media system
+Suggest how Facebook, Instagram, and other social channels should connect into the system:
+
+Lead capture
+
+CTA destinations
+
+WhatsApp-first actions
+
+Form fallback
+
+Tracking source attribution
+
+Content workflow
+
+8. Admin usability
+Design the system so a beginner can understand:
+
+Where to edit website content
+
+Where to manage leads
+
+Where to update partners/business listings
+
+Where to see form submissions
+
+Where WhatsApp fits
+
+What daily workflow looks like
+
+What weekly workflow looks like
+
+9. Owner training view
+Provide a plain-language explanation called:
+“How I will actually use this system day to day”
+
+Make this extremely simple and practical.
+
+10. Deliverables
+At the end, provide:
+
+Full system blueprint
+
+Recommended tool stack
+
+Sitemap
+
+CRM pipeline
+
+WhatsApp flow
+
+Automation map
+
+Admin workflow
+
+MVP build order
+
+Clear next actions
+
+Important constraints
+Do not over-engineer.
+
+Do not assume the owner is technical.
+
+Do not suggest complex developer-heavy systems unless absolutely necessary.
+
+Prefer practical launch speed.
+
+Keep the solution trustworthy, clean, scalable, and manageable.
+
+Avoid fake marketing language.
+
+Avoid generic startup jargon.
+
+Make recommendations based on a real small local business, not a venture-backed SaaS company.
+
+Output format
+Respond in this order:
+
+Executive recommendation
+
+Best system architecture
+
+Phase 1 launch plan
+
+Website structure
+
+CRM structure
+
+WhatsApp flow
+
+Automations and webhooks
+
+Social media integration
+
+Admin workflow
+
+Day-to-day owner usage
+
+Risks / tradeoffs
+
+Exact build order
+
+Be specific, opinionated, and practical.
+
+Better version
+Use this shorter version if you want Atoms AI to act faster and more decisively. It keeps the same intent with less reading overhead.
+
+text
+Build the best practical operating system for CleanFixHarish, a local service business in Harish, Israel.
+
+This is not just a website project. I need a full business system that may include:
+website, CRM, admin dashboard, WhatsApp integration, forms, webhooks, automations, social media lead capture, partner directory management, content editing, and internal workflow.
+
+Business context:
+- We have our own trusted team.
+- We also collaborate directly with strong service providers in Harish.
+- We may also list other local businesses in a directory-style section.
+- We care about trust, fair pricing, good service, honesty, and practical customer experience.
+- We want a premium “Rolls-Royce” feel, but for a real local handyman/service business.
+- The owner is not technical, so the system must be simple to understand and manage.
+
+Requirements:
+- Bilingual English + Hebrew website
+- WhatsApp-first lead flow
+- Real CRM with statuses, tags, notes, ownership, quote and booking tracking
+- Easy editing for website content and partner/business listings
+- Clear distinction between internal leads, partner-routed leads, and directory listings
+- Social media and form leads should flow into one simple system
+- Prefer fastest realistic Phase 1 launch, then improve later
+
+Please give me:
+1. Best recommended architecture
+2. Best tools/services for each layer
+3. Phase 1 vs later phases
+4. Website sitemap and page structure
+5. CRM pipeline and fields
+6. WhatsApp workflow
+7. Webhooks and automations
+8. Social media integration plan
+9. Admin workflow for a beginner
+10. Simple explanation of how I will use this system day to day
+11. Exact build order
+
+Be practical, not theoretical. Do not over-engineer. Recommend the best setup for a non-technical small business owner.

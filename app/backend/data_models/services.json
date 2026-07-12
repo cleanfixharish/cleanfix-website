@@ -1,0 +1,43 @@
+{
+    "title": "services",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "name_en": {
+            "type": "string",
+            "maxLength": 200
+        },
+        "name_he": {
+            "type": "string",
+            "maxLength": 200
+        },
+        "description_en": {
+            "type": "string"
+        },
+        "description_he": {
+            "type": "string"
+        },
+        "icon": {
+            "type": "string",
+            "maxLength": 100
+        },
+        "category": {
+            "type": "string",
+            "maxLength": 100
+        },
+        "is_active": {
+            "type": "boolean",
+            "default": true
+        },
+        "sort_order": {
+            "type": "integer",
+            "default": 0
+        }
+    },
+    "required": [
+        "name_en",
+        "name_he"
+    ]
+}

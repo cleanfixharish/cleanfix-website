@@ -1,0 +1,53 @@
+I found the repository, but it is currently empty.
+cleanfixharish/cleanfix-website
+GitHub reports:
+Default branch: main
+Repository size: 0
+Source files: none
+Codex access: public read only
+Codex GitHub App installation access: not granted
+Codex write access: unavailable
+Therefore, the actual Atoms application has not been pushed into this repository yet. I cannot honestly explain, audit, redesign or modify code that is not there.
+I recorded this repository as the only canonical code source in:
+[DECISIONS.md](C:\Users\Aviel\Desktop\Cleanfix Harish\DECISIONS.md)
+[STACK_REGISTRY.md](C:\Users\Aviel\Desktop\Cleanfix Harish\STACK_REGISTRY.md)
+[CURRENT_STATE.md](C:\Users\Aviel\Desktop\Cleanfix Harish\CURRENT_STATE.md)
+I will ignore other repositories and accounts for CleanFixHarish. I will not revoke them blindly because they may contain unrelated work.
+What you need to do in Atoms
+Open the existing CleanFixHarish project.
+
+Open its GitHub, Integrations, Export, or Source Control area.
+
+Connect the GitHub account named cleanfixharish.
+
+Select the existing repository:
+cleanfixharish/cleanfix-website
+
+Select branch main.
+
+Choose Push existing project, Sync to GitHub, or equivalent.
+
+Confirm the repository displays project files afterward.
+
+Do not upload .env files, secrets, API keys, OAuth secrets, database passwords or customer data.
+
+Grant Codex access
+In GitHub:
+Open Settings → Applications → Installed GitHub Apps.
+Find the Codex/OpenAI GitHub application.
+Select Configure.
+Grant access only to cleanfixharish/cleanfix-website.
+Allow repository contents and pull-request access needed for reviewing and publishing controlled changes.
+Once completed, tell me: “Atoms pushed and Codex granted.”
+Then I will:
+Inventory every file and dependency.
+Explain the complete architecture in plain language.
+Audit security, authentication, admin permissions and customer data.
+Audit PWA installation, caching and updates.
+Audit accessibility, Hebrew RTL and English LTR.
+Audit Cloudflare and deployment configuration.
+Review UX/UI, responsiveness and every visual state.
+Identify outdated technology using current official documentation.
+Prepare local code changes and reusable components.
+Generate only the missing graphic assets after identifying existing ones.
+Test changes before sending one precise implementation prompt to Atoms.

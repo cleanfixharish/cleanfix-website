@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 15% 20%;
+    --card: 210 20% 98%;
+    --card-foreground: 220 15% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 20%;
+    --primary: 205 65% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 25% 92%;
+    --secondary-foreground: 150 30% 25%;
+    --muted: 210 12% 94%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 150 35% 48%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 65% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 12% 90%;
+    --input: 210 12% 90%;
+    --ring: 205 65% 55%;
+    --radius: 0.5rem;
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 220 15% 20%;
+    --sidebar-primary: 205 65% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 25% 92%;
+    --sidebar-accent-foreground: 150 30% 25%;
+    --sidebar-border: 210 12% 90%;
+    --sidebar-ring: 205 65% 55%;
+  }
+
+  .dark {
+    --background: 220 15% 8%;
+    --foreground: 210 15% 92%;
+    --card: 220 13% 11%;
+    --card-foreground: 210 15% 92%;
+    --popover: 220 13% 11%;
+    --popover-foreground: 210 15% 92%;
+    --primary: 205 60% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 20% 15%;
+    --secondary-foreground: 150 25% 85%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 210 10% 55%;
+    --accent: 150 30% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 60% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 12% 16%;
+    --input: 220 12% 16%;
+    --ring: 205 60% 58%;
+    --sidebar-background: 220 13% 10%;
+    --sidebar-foreground: 210 15% 92%;
+    --sidebar-primary: 205 60% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 20% 14%;
+    --sidebar-accent-foreground: 150 25% 85%;
+    --sidebar-border: 220 12% 16%;
+    --sidebar-ring: 205 60% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-kerning: normal;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Lora', serif;
+    text-wrap: balance;
+  }
+  h1 {
+    @apply text-4xl font-bold leading-tight tracking-tight;
+  }
+  h2 {
+    @apply text-2xl font-semibold leading-snug;
+  }
+  h3 {
+    @apply text-xl font-semibold;
+  }
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}

@@ -1,0 +1,60 @@
+{
+    "title": "partners",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "name": {
+            "type": "string",
+            "maxLength": 200
+        },
+        "business_type": {
+            "type": "string",
+            "maxLength": 100
+        },
+        "description_en": {
+            "type": "string"
+        },
+        "description_he": {
+            "type": "string"
+        },
+        "phone": {
+            "type": "string",
+            "maxLength": 50
+        },
+        "whatsapp": {
+            "type": "string",
+            "maxLength": 50
+        },
+        "email": {
+            "type": "string",
+            "maxLength": 200
+        },
+        "address": {
+            "type": "string",
+            "maxLength": 300
+        },
+        "area": {
+            "type": "string",
+            "maxLength": 100
+        },
+        "partner_type": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "internal, partner, directory"
+        },
+        "is_active": {
+            "type": "boolean",
+            "default": true
+        },
+        "sort_order": {
+            "type": "integer",
+            "default": 0
+        }
+    },
+    "required": [
+        "name",
+        "partner_type"
+    ]
+}

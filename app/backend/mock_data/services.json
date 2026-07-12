@@ -1,0 +1,62 @@
+[
+    {
+        "name_en": "Home Cleaning",
+        "name_he": "ניקיון בתים",
+        "description_en": "Professional deep cleaning for homes and apartments. Thorough, reliable, and affordable.",
+        "description_he": "ניקיון יסודי ומקצועי לבתים ודירות. יסודי, אמין ובמחיר הוגן.",
+        "icon": "sparkles",
+        "category": "cleaning",
+        "is_active": true,
+        "sort_order": 1
+    },
+    {
+        "name_en": "Plumbing",
+        "name_he": "אינסטלציה",
+        "description_en": "Expert plumbing repairs and installations. Fast response, fair pricing.",
+        "description_he": "תיקוני אינסטלציה והתקנות מקצועיות. תגובה מהירה, מחיר הוגן.",
+        "icon": "wrench",
+        "category": "repair",
+        "is_active": true,
+        "sort_order": 2
+    },
+    {
+        "name_en": "Electrical Work",
+        "name_he": "עבודות חשמל",
+        "description_en": "Licensed electricians for all electrical needs. Safe, certified, and professional.",
+        "description_he": "חשמלאים מוסמכים לכל צורכי החשמל. בטוח, מוסמך ומקצועי.",
+        "icon": "zap",
+        "category": "repair",
+        "is_active": true,
+        "sort_order": 3
+    },
+    {
+        "name_en": "Painting",
+        "name_he": "צביעה",
+        "description_en": "Interior and exterior painting services. Clean work, quality materials.",
+        "description_he": "שירותי צביעה פנימית וחיצונית. עבודה נקייה, חומרים איכותיים.",
+        "icon": "paintbrush",
+        "category": "renovation",
+        "is_active": true,
+        "sort_order": 4
+    },
+    {
+        "name_en": "AC Services",
+        "name_he": "שירותי מיזוג",
+        "description_en": "Air conditioning installation, repair, and maintenance.",
+        "description_he": "התקנה, תיקון ותחזוקה של מערכות מיזוג אוויר.",
+        "icon": "thermometer",
+        "category": "repair",
+        "is_active": true,
+        "sort_order": 5
+    },
+    {
+        "name_en": "Handyman",
+        "name_he": "איש תחזוקה",
+        "description_en": "General repairs, assembly, and maintenance for your home.",
+        "description_he": "תיקונים כלליים, הרכבות ותחזוקה לבית שלך.",
+        "icon": "hammer",
+        "category": "general",
+        "is_active": true,
+        "sort_order": 6
+    }
+]

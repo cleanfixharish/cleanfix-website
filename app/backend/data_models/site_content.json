@@ -1,0 +1,34 @@
+{
+    "title": "site_content",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "section_key": {
+            "type": "string",
+            "maxLength": 100
+        },
+        "title_en": {
+            "type": "string",
+            "maxLength": 300
+        },
+        "title_he": {
+            "type": "string",
+            "maxLength": 300
+        },
+        "content_en": {
+            "type": "string"
+        },
+        "content_he": {
+            "type": "string"
+        },
+        "is_active": {
+            "type": "boolean",
+            "default": true
+        }
+    },
+    "required": [
+        "section_key"
+    ]
+}

@@ -1,0 +1,34 @@
+[
+    {
+        "section_key": "hero",
+        "title_en": "Your Trusted Home Services in Harish",
+        "title_he": "שירותי הבית המהימנים שלך בחריש",
+        "content_en": "Fair prices. Trusted people. Quality work. Fast help when you need it.",
+        "content_he": "מחירים הוגנים. אנשים מהימנים. עבודה איכותית. עזרה מהירה כשאתה צריך.",
+        "is_active": true
+    },
+    {
+        "section_key": "about",
+        "title_en": "About CleanFixHarish",
+        "title_he": "אודות CleanFixHarish",
+        "content_en": "We are a local service team in Harish, built on trust and quality. We work with our own team and collaborate with the best local professionals to bring you reliable, fairly-priced home services.",
+        "content_he": "אנחנו צוות שירות מקומי בחריש, שנבנה על אמון ואיכות. אנחנו עובדים עם הצוות שלנו ומשתפים פעולה עם המקצוענים המקומיים הטובים ביותר כדי להביא לך שירותי בית אמינים במחיר הוגן.",
+        "is_active": true
+    },
+    {
+        "section_key": "why_trust",
+        "title_en": "Why Trust Us",
+        "title_he": "למה לסמוך עלינו",
+        "content_en": "No fake reviews. No exaggerated promises. Just honest, quality service from people who live and work in Harish. We stand behind every job.",
+        "content_he": "בלי ביקורות מזויפות. בלי הבטחות מוגזמות. רק שירות כנה ואיכותי מאנשים שגרים ועובדים בחריש. אנחנו עומדים מאחורי כל עבודה.",
+        "is_active": true
+    },
+    {
+        "section_key": "how_it_works",
+        "title_en": "How It Works",
+        "title_he": "איך זה עובד",
+        "content_en": "1. Tell us what you need via WhatsApp or our form. 2. We match you with the right professional. 3. Get a fair quote. 4. Job done right.",
+        "content_he": "1. ספרו לנו מה אתם צריכים דרך וואטסאפ או הטופס שלנו. 2. אנחנו מתאימים לכם את המקצוען הנכון. 3. קבלו הצעת מחיר הוגנת. 4. העבודה נעשית נכון.",
+        "is_active": true
+    }
+]

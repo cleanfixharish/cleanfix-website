@@ -1,0 +1,205 @@
+# CleanFixHarish Visual System
+
+## Brand Personality
+
+CleanFixHarish should feel dependable, premium, calm, precise, and local. The visual identity communicates that every detail is noticed and every home is treated with respect. The brand avoids loud marketing aesthetics and instead projects quiet confidence, cleanliness, and professionalism.
+
+---
+
+## Logo Direction
+
+The logo should feel modern, minimal, and highly legible.
+
+Visual characteristics:
+
+* Clean geometric typography with slightly rounded edges to create approachability.
+* A subtle visual reference to care, precision, or home services without becoming generic.
+* Minimal use of symbols such as:
+
+  * a refined check mark,
+  * a simplified house outline,
+  * a subtle sparkle element,
+  * or an abstract cleaning motion integrated into the typography.
+
+Color use:
+
+* Primary: soft professional blue.
+* Secondary: fresh green accent.
+* Neutral support: warm gray and white.
+
+The logo should work equally well on:
+
+* white backgrounds,
+* vehicles,
+* uniforms,
+* invoices,
+* WhatsApp profile images,
+* and website navigation bars.
+
+The feeling should sit somewhere between healthcare cleanliness and premium home services.
+
+---
+
+## Photography Style
+
+Photography is the core of the visual language.
+
+Characteristics:
+
+* Photorealistic imagery only.
+* Bright natural daylight.
+* Soft shadows with high visibility and clarity.
+* Clean white interiors with subtle warmth.
+* Real Israeli homes and small offices rather than luxury mansions.
+* Visible attention to detail and organization.
+* Human presence should feel authentic and professional rather than posed.
+
+Preferred subjects:
+
+* Carefully cleaned kitchens.
+* Fresh bathrooms.
+* Organized living rooms.
+* Bright office desks.
+* Professional technicians performing meticulous work.
+* Small details that communicate care and precision.
+
+Avoid:
+
+* Overly staged stock photography.
+* Artificial HDR effects.
+* Excessive contrast.
+* Dark interiors.
+* Heavy color grading.
+* Smiling models looking directly at the camera unnecessarily.
+
+Images should feel quiet, fresh, and trustworthy.
+
+---
+
+## Icon Style
+
+Icons should use a minimal flat design language.
+
+Characteristics:
+
+* Rounded corners.
+* Simple geometry.
+* Consistent line thickness.
+* Soft color fills.
+* Minimal detail.
+
+Icon categories:
+
+* Cleaning services.
+* Handyman services.
+* Air conditioning cleaning.
+* Move-in and move-out cleaning.
+* Window cleaning.
+* Offices and apartments.
+* Booking and scheduling.
+
+Color application:
+
+* Primary blue for structure.
+* Fresh green for confirmations and positive actions.
+* Warm neutral gray for supporting information.
+
+Icons should remain readable even at very small sizes.
+
+---
+
+## Color System
+
+Primary colors:
+
+* Clean White
+* Soft Sky Blue
+* Fresh Sage Green
+
+Supporting colors:
+
+* Warm Beige
+* Light Stone Gray
+* Soft Silver
+
+Accent usage:
+
+* Blue communicates trust and professionalism.
+* Green communicates freshness and hygiene.
+* Warm neutrals prevent the interface from feeling clinical.
+
+Colors should remain soft and restrained.
+
+---
+
+## Golden Ratio Implementation
+
+### Hero Sections
+
+Hero sections follow a 1:1.618 composition.
+
+Typical layout:
+
+* Main headline positioned near a golden-ratio intersection.
+* Supporting text occupies approximately 38% of the horizontal space.
+* Hero image occupies approximately 62%.
+* Primary call-to-action positioned near the lower golden-ratio line.
+
+This naturally guides the eye:
+Headline → Value Proposition → Action Button → Supporting Image.
+
+---
+
+### Service Cards
+
+Cards follow golden-ratio spacing relationships.
+
+Typical proportions:
+
+* Icon or image area: approximately 38%.
+* Text and call-to-action area: approximately 62%.
+
+Internal spacing follows the same relationship:
+
+* Title spacing.
+* Description spacing.
+* Button placement.
+
+The result feels balanced without appearing mathematically rigid.
+
+---
+
+### Banners
+
+Promotional banners place the visual subject near a golden-ratio intersection rather than directly centered.
+
+Layout example:
+
+* Cleaner or service detail positioned on the right golden intersection.
+* Headline aligned on the opposite side.
+* Supporting information aligned to secondary ratio lines.
+
+This creates visual flow and improves scanning speed.
+
+---
+
+## Consistency Rules
+
+Every visual asset should share:
+
+* identical lighting philosophy,
+* identical color temperature,
+* identical blue and green values,
+* identical cleanliness standards,
+* identical emotional tone.
+
+The entire website should feel as though every image was photographed during the same morning, in the same city, by the same photographer, for the same family of services.
+
+The final impression should be:
+
+Reliable.
+Precise.
+Clean.
+Local.
+Professional.
+Calm.

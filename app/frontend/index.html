@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link data-mgx-overview="icon" rel="icon" type="image/png" href="/icons/icon-192x192.png" />
+    <link data-mgx-overview="dark-icon" rel="icon" media="(prefers-color-scheme: dark)" href="/icons/icon-192x192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title data-mgx-overview="title">CleanFix Harish | Professional Cleaning & Repairs</title>
+    <meta data-mgx-overview="description" name="description" content="Professional cleaning and repair services in Harish, Israel. Quality home maintenance you can trust." />
+    <meta name="author" content="CleanFix Harish" />
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3b8fd4" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="CleanFix" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Open Graph -->
+    <meta data-mgx-overview="og:title" property="og:title" content="CleanFix Harish | Professional Cleaning & Repairs" />
+    <meta data-mgx-overview="og:description" property="og:description" content="Professional cleaning and repair services in Harish, Israel. Quality home maintenance you can trust." />
+    <meta data-mgx-overview="og:image" property="og:image" content="/icons/icon-512x512.png" />
+    <meta property="og:type" content="website" />
+
+    <!-- Twitter Card -->
+    <meta data-mgx-overview="twitter:title" name="twitter:title" content="CleanFix Harish | Professional Cleaning & Repairs" />
+    <meta data-mgx-overview="twitter:description" name="twitter:description" content="Professional cleaning and repair services in Harish, Israel. Quality home maintenance you can trust." />
+    <meta data-mgx-overview="twitter:image" name="twitter:image" content="/icons/icon-512x512.png" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>
