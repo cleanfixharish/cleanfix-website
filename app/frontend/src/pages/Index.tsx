@@ -76,7 +76,7 @@ export default function Index() {
             <div className="lg:col-span-3">
               <div className="rounded-2xl overflow-hidden shadow-lg">
                 <img
-                  src="https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2evqcaizq/hero-home-services-trust.png"
+                  src="/assets/images/hero-home-services-trust.png"
                   alt="Professional home services"
                   className="w-full h-64 md:h-[420px] object-cover"
                 />
@@ -166,7 +166,7 @@ export default function Index() {
             </div>
             <div className="rounded-xl overflow-hidden shadow-lg">
               <img
-                src="https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2gmicaizq/harish-city-aerial.png"
+                src="/assets/images/harish-city-aerial.png"
                 alt="Harish community"
                 className="w-full h-64 md:h-80 object-cover"
               />

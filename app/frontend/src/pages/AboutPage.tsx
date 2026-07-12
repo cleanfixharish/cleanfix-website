@@ -39,7 +39,7 @@ export default function AboutPage() {
               </div>
               <div className="rounded-xl overflow-hidden">
                 <img
-                  src="https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2gmicaizq/harish-city-aerial.png"
+                  src="/assets/images/harish-city-aerial.png"
                   alt="Harish"
                   className="w-full h-64 md:h-80 object-cover"
                 />

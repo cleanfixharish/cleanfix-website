@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from dependencies.auth import get_admin_user
 from services.leads import LeadsService
 
 # Set up logging
@@ -120,7 +121,7 @@ class LeadsBatchDeleteRequest(BaseModel):
 
 
 # ---------- Routes ----------
-@router.get("", response_model=LeadsListResponse)
+@router.get("", response_model=LeadsListResponse, dependencies=[Depends(get_admin_user)])
 async def query_leadss(
     query: str = Query(None, description="Query conditions (JSON string)"),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
@@ -157,7 +158,7 @@ async def query_leadss(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/all", response_model=LeadsListResponse)
+@router.get("/all", response_model=LeadsListResponse, dependencies=[Depends(get_admin_user)])
 async def query_leadss_all(
     query: str = Query(None, description="Query conditions (JSON string)"),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
@@ -194,7 +195,7 @@ async def query_leadss_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/{id}", response_model=LeadsResponse)
+@router.get("/{id}", response_model=LeadsResponse, dependencies=[Depends(get_admin_user)])
 async def get_leads(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
@@ -224,7 +225,7 @@ async def create_leads(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new leads"""
-    logger.debug(f"Creating new leads with data: {data}")
+    logger.debug("Creating a new lead")
     
     service = LeadsService(db)
     try:
@@ -242,7 +243,7 @@ async def create_leads(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/batch", response_model=List[LeadsResponse], status_code=201)
+@router.post("/batch", response_model=List[LeadsResponse], status_code=201, dependencies=[Depends(get_admin_user)])
 async def create_leadss_batch(
     request: LeadsBatchCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -267,7 +268,7 @@ async def create_leadss_batch(
         raise HTTPException(status_code=500, detail=f"Batch create failed: {str(e)}")
 
 
-@router.put("/batch", response_model=List[LeadsResponse])
+@router.put("/batch", response_model=List[LeadsResponse], dependencies=[Depends(get_admin_user)])
 async def update_leadss_batch(
     request: LeadsBatchUpdateRequest,
     db: AsyncSession = Depends(get_db),
@@ -294,14 +295,14 @@ async def update_leadss_batch(
         raise HTTPException(status_code=500, detail=f"Batch update failed: {str(e)}")
 
 
-@router.put("/{id}", response_model=LeadsResponse)
+@router.put("/{id}", response_model=LeadsResponse, dependencies=[Depends(get_admin_user)])
 async def update_leads(
     id: int,
     data: LeadsUpdateData,
     db: AsyncSession = Depends(get_db),
 ):
     """Update an existing leads"""
-    logger.debug(f"Updating leads {id} with data: {data}")
+    logger.debug("Updating lead %s", id)
 
     service = LeadsService(db)
     try:
@@ -324,7 +325,7 @@ async def update_leads(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.delete("/batch")
+@router.delete("/batch", dependencies=[Depends(get_admin_user)])
 async def delete_leadss_batch(
     request: LeadsBatchDeleteRequest,
     db: AsyncSession = Depends(get_db),
@@ -349,7 +350,7 @@ async def delete_leadss_batch(
         raise HTTPException(status_code=500, detail=f"Batch delete failed: {str(e)}")
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(get_admin_user)])
 async def delete_leads(
     id: int,
     db: AsyncSession = Depends(get_db),

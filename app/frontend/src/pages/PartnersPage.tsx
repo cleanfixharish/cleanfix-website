@@ -8,6 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Phone, MessageCircle, MapPin } from 'lucide-react';
 import { client } from '@/lib/api';
+import { getWhatsAppLink } from '@/lib/whatsapp';
+
+const OFFICIAL_PHONE_DISPLAY = '050-827-5505';
+const OFFICIAL_PHONE_LINK = '+972508275505';
 
 interface Partner {
   id: number;
@@ -49,6 +53,11 @@ export default function PartnersPage() {
   const directPartners = partners.filter((p) => p.partner_type === 'partner');
   const directory = partners.filter((p) => p.partner_type === 'directory');
 
+  const getPartnerMessage = (partner: Partner) =>
+    lang === 'he'
+      ? `שלום CleanFixHarish, אני מעוניין/ת בשירות של ${partner.name}.`
+      : `Hello CleanFixHarish, I am interested in a service from ${partner.name}.`;
+
   const PartnerCard = ({ partner }: { partner: Partner }) => (
     <Card className="border-border/50">
       <CardContent className="p-5">
@@ -74,7 +83,7 @@ export default function PartnersPage() {
         )}
         <div className="flex gap-2">
           {partner.phone && (
-            <a href={`tel:${partner.phone}`}>
+            <a href={`tel:${OFFICIAL_PHONE_LINK}`} aria-label={`${t.partners.callNow}: ${OFFICIAL_PHONE_DISPLAY}`}>
               <Button size="sm" variant="outline" className="gap-1.5">
                 <Phone className="h-3.5 w-3.5" />
                 {t.partners.callNow}
@@ -82,7 +91,7 @@ export default function PartnersPage() {
             </a>
           )}
           {partner.whatsapp && (
-            <a href={`https://wa.me/${partner.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
+            <a href={getWhatsAppLink(getPartnerMessage(partner))} target="_blank" rel="noopener noreferrer">
               <Button size="sm" variant="outline" className="gap-1.5 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10">
                 <MessageCircle className="h-3.5 w-3.5" />
                 {t.partners.whatsapp}

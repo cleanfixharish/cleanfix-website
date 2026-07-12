@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Optional
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from core.auth import (
@@ -57,7 +57,28 @@ def get_dynamic_backend_url(request: Request) -> str:
         logger.warning("[get_dynamic_backend_url] No host found, fallback to %s", settings.backend_url)
         return settings.backend_url
 
-    dynamic_url = _local_patch(f"{scheme}://{effective_host}")
+    # Forwarded and Host headers are attacker-controlled unless explicitly trusted.
+    # Only use them for OAuth redirects when the hostname is configured.
+    configured_hosts = {
+        item.strip().lower()
+        for item in os.getenv("ALLOWED_DOMAINS", "").split(",")
+        if item.strip()
+    }
+    backend_host = urlparse(settings.backend_url).hostname
+    if backend_host:
+        configured_hosts.add(backend_host.lower())
+
+    candidate_host = effective_host.split(",", 1)[0].strip()
+    candidate_hostname = urlparse(f"//{candidate_host}").hostname
+    if not candidate_hostname or candidate_hostname.lower() not in configured_hosts:
+        logger.warning("[get_dynamic_backend_url] Rejected untrusted callback host")
+        return settings.backend_url.rstrip("/")
+
+    trusted_scheme = "http" if os.getenv("LOCAL_PATCH", "").lower() in ("true", "1") else "https"
+    if scheme == "http" and trusted_scheme != "http":
+        scheme = "https"
+
+    dynamic_url = _local_patch(f"{scheme}://{candidate_host}").rstrip("/")
     logger.debug(
         "[get_dynamic_backend_url] mgx-external-domain=%s, x-forwarded-host=%s, host=%s, scheme=%s, dynamic_url=%s",
         mgx_external_domain,

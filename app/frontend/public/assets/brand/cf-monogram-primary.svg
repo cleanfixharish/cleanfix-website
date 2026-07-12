@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">CleanFixHarish CF monogram</title>
+  <desc id="desc">Interlocking C and F monogram representing a cared-for home</desc>
+  <defs><linearGradient id="g" x1="36" y1="30" x2="218" y2="226" gradientUnits="userSpaceOnUse"><stop stop-color="#174E57"/><stop offset="1" stop-color="#0E343B"/></linearGradient></defs>
+  <rect x="8" y="8" width="240" height="240" rx="70" fill="#F2E9DC"/>
+  <path d="M177 63c-14-12-32-19-52-19-47 0-84 37-84 84s37 84 84 84c20 0 38-7 52-19" fill="none" stroke="url(#g)" stroke-width="25" stroke-linecap="round"/>
+  <path d="M118 84h76M118 84v91M118 127h58" fill="none" stroke="#B8905B" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M180 57l14-14 14 14" fill="none" stroke="#174E57" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

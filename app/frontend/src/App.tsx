@@ -14,7 +14,7 @@ import QuotePage from './pages/QuotePage';
 import AdminPage from './pages/AdminPage';
 import AuthCallback from './pages/AuthCallback';
 import AuthError from './pages/AuthError';
-import InstallPrompt from './components/InstallPrompt';
+import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 
 const queryClient = new QueryClient();
 
@@ -27,7 +27,14 @@ const AppRoutes = () => (
     <Route path="/partners" element={<PartnersPage />} />
     <Route path="/about" element={<AboutPage />} />
     <Route path="/quote" element={<QuotePage />} />
-    <Route path="/admin" element={<AdminPage />} />
+    <Route
+      path="/admin"
+      element={
+        <ProtectedAdminRoute>
+          <AdminPage />
+        </ProtectedAdminRoute>
+      }
+    />
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/auth/error" element={<AuthError />} />
   </Routes>
@@ -41,7 +48,6 @@ const App = () => (
           <Toaster />
           <BrowserRouter>
             <AppRoutes />
-            <InstallPrompt />
           </BrowserRouter>
         </TooltipProvider>
       </LanguageProvider>
