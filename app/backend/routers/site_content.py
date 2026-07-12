@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from dependencies.auth import get_admin_user
 from services.site_content import Site_contentService
 
 # Set up logging
@@ -182,7 +183,7 @@ async def get_site_content(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("", response_model=Site_contentResponse, status_code=201)
+@router.post("", response_model=Site_contentResponse, status_code=201, dependencies=[Depends(get_admin_user)])
 async def create_site_content(
     data: Site_contentData,
     db: AsyncSession = Depends(get_db),
@@ -206,7 +207,7 @@ async def create_site_content(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/batch", response_model=List[Site_contentResponse], status_code=201)
+@router.post("/batch", response_model=List[Site_contentResponse], status_code=201, dependencies=[Depends(get_admin_user)])
 async def create_site_contents_batch(
     request: Site_contentBatchCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -231,7 +232,7 @@ async def create_site_contents_batch(
         raise HTTPException(status_code=500, detail=f"Batch create failed: {str(e)}")
 
 
-@router.put("/batch", response_model=List[Site_contentResponse])
+@router.put("/batch", response_model=List[Site_contentResponse], dependencies=[Depends(get_admin_user)])
 async def update_site_contents_batch(
     request: Site_contentBatchUpdateRequest,
     db: AsyncSession = Depends(get_db),
@@ -258,7 +259,7 @@ async def update_site_contents_batch(
         raise HTTPException(status_code=500, detail=f"Batch update failed: {str(e)}")
 
 
-@router.put("/{id}", response_model=Site_contentResponse)
+@router.put("/{id}", response_model=Site_contentResponse, dependencies=[Depends(get_admin_user)])
 async def update_site_content(
     id: int,
     data: Site_contentUpdateData,
@@ -288,7 +289,7 @@ async def update_site_content(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.delete("/batch")
+@router.delete("/batch", dependencies=[Depends(get_admin_user)])
 async def delete_site_contents_batch(
     request: Site_contentBatchDeleteRequest,
     db: AsyncSession = Depends(get_db),
@@ -313,7 +314,7 @@ async def delete_site_contents_batch(
         raise HTTPException(status_code=500, detail=f"Batch delete failed: {str(e)}")
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(get_admin_user)])
 async def delete_site_content(
     id: int,
     db: AsyncSession = Depends(get_db),

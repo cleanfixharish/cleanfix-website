@@ -85,12 +85,12 @@ export default function ServicesPage() {
           <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 rounded-xl overflow-hidden">
               <img
-                src="https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2foycaiyq/service-cleaning-professional.png"
+                src="/assets/images/service-cleaning-professional.png"
                 alt="Professional cleaning"
                 className="w-full h-64 object-cover rounded-xl"
               />
               <img
-                src="https://mgx-backend-cdn.metadl.com/generate/images/575787/2026-07-08/scx2f5qcaiza/service-repair-handyman.png"
+                src="/assets/images/service-repair-handyman.png"
                 alt="Professional repairs"
                 className="w-full h-64 object-cover rounded-xl"
               />

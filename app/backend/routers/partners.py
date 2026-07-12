@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from dependencies.auth import get_admin_user
 from services.partners import PartnersService
 
 # Set up logging
@@ -200,7 +201,7 @@ async def get_partners(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("", response_model=PartnersResponse, status_code=201)
+@router.post("", response_model=PartnersResponse, status_code=201, dependencies=[Depends(get_admin_user)])
 async def create_partners(
     data: PartnersData,
     db: AsyncSession = Depends(get_db),
@@ -224,7 +225,7 @@ async def create_partners(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/batch", response_model=List[PartnersResponse], status_code=201)
+@router.post("/batch", response_model=List[PartnersResponse], status_code=201, dependencies=[Depends(get_admin_user)])
 async def create_partnerss_batch(
     request: PartnersBatchCreateRequest,
     db: AsyncSession = Depends(get_db),
@@ -249,7 +250,7 @@ async def create_partnerss_batch(
         raise HTTPException(status_code=500, detail=f"Batch create failed: {str(e)}")
 
 
-@router.put("/batch", response_model=List[PartnersResponse])
+@router.put("/batch", response_model=List[PartnersResponse], dependencies=[Depends(get_admin_user)])
 async def update_partnerss_batch(
     request: PartnersBatchUpdateRequest,
     db: AsyncSession = Depends(get_db),
@@ -276,7 +277,7 @@ async def update_partnerss_batch(
         raise HTTPException(status_code=500, detail=f"Batch update failed: {str(e)}")
 
 
-@router.put("/{id}", response_model=PartnersResponse)
+@router.put("/{id}", response_model=PartnersResponse, dependencies=[Depends(get_admin_user)])
 async def update_partners(
     id: int,
     data: PartnersUpdateData,
@@ -306,7 +307,7 @@ async def update_partners(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.delete("/batch")
+@router.delete("/batch", dependencies=[Depends(get_admin_user)])
 async def delete_partnerss_batch(
     request: PartnersBatchDeleteRequest,
     db: AsyncSession = Depends(get_db),
@@ -331,7 +332,7 @@ async def delete_partnerss_batch(
         raise HTTPException(status_code=500, detail=f"Batch delete failed: {str(e)}")
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(get_admin_user)])
 async def delete_partners(
     id: int,
     db: AsyncSession = Depends(get_db),

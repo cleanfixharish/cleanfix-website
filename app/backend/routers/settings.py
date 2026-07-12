@@ -8,6 +8,19 @@ from schemas.auth import UserResponse
 
 router = APIRouter(prefix="/api/v1/admin/settings", tags=["admin-settings"])
 
+SENSITIVE_KEY_PARTS = ("SECRET", "TOKEN", "PASSWORD", "PRIVATE", "API_KEY", "DATABASE_URL")
+MASKED_VALUE = "********"
+
+
+def is_sensitive_key(key: str) -> bool:
+    normalized = key.upper()
+    return any(part in normalized for part in SENSITIVE_KEY_PARTS)
+
+
+def display_value(key: str, value: str) -> str:
+    """Never return stored secrets to the browser, even to an administrator."""
+    return MASKED_VALUE if value and is_sensitive_key(key) else value
+
 
 class EnvVariable(BaseModel):
     key: str
@@ -96,11 +109,19 @@ async def get_settings(current_user: UserResponse = Depends(get_admin_user)):
         # Build response data
         backend_config = {}
         for key, value in backend_vars.items():
-            backend_config[key] = EnvVariable(key=key, value=value, description=backend_descriptions.get(key, ""))
+            backend_config[key] = EnvVariable(
+                key=key,
+                value=display_value(key, value),
+                description=backend_descriptions.get(key, ""),
+            )
 
         frontend_config = {}
         for key, value in frontend_vars.items():
-            frontend_config[key] = EnvVariable(key=key, value=value, description=frontend_descriptions.get(key, ""))
+            frontend_config[key] = EnvVariable(
+                key=key,
+                value=display_value(key, value),
+                description=frontend_descriptions.get(key, ""),
+            )
 
         return EnvConfig(backend_vars=backend_config, frontend_vars=frontend_config)
     except Exception as e:
