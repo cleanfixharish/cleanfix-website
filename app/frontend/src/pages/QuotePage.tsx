@@ -9,16 +9,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, MessageCircle } from 'lucide-react';
-import { client } from '@/lib/api';
+import { cleanfixApi } from '@/lib/cleanfixApi';
 import { getWhatsAppLink, getWhatsAppQuoteMessage } from '@/lib/whatsapp';
 
 const serviceOptions = [
-  { en: 'Home Cleaning', he: 'ניקיון בתים' },
-  { en: 'Plumbing', he: 'אינסטלציה' },
-  { en: 'Electrical Work', he: 'עבודות חשמל' },
-  { en: 'Painting', he: 'צביעה' },
-  { en: 'AC Services', he: 'שירותי מיזוג' },
-  { en: 'Handyman', he: 'איש תחזוקה' },
+  { en: 'Handyman', he: 'הנדימן' },
+  { en: 'Post-renovation cleaning', he: 'ניקיון אחרי שיפוץ' },
+  { en: 'Move-in / move-out cleaning', he: 'ניקיון כניסה / יציאה' },
+  { en: 'AC cleaning', he: 'ניקוי מזגנים' },
+  { en: 'Window cleaning', he: 'ניקוי חלונות' },
   { en: 'Other', he: 'אחר' },
 ];
 
@@ -30,6 +29,7 @@ export default function QuotePage() {
   const { t, lang } = useLanguage();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
     customer_name: '',
     phone: '',
@@ -43,9 +43,9 @@ export default function QuotePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     try {
-      await client.entities.leads.create({
-        data: {
+      await cleanfixApi.createLead({
           customer_name: form.customer_name,
           phone: form.phone,
           whatsapp: form.whatsapp || form.phone,
@@ -59,11 +59,13 @@ export default function QuotePage() {
           booking_status: 'pending',
           follow_up_status: 'none',
           priority: 'normal',
-        },
       });
       setSubmitted(true);
     } catch (err) {
       console.error('Failed to submit quote request:', err);
+      setError(lang === 'en'
+        ? 'The form could not be sent. Your details were not lost—please contact us on WhatsApp below.'
+        : 'לא הצלחנו לשלוח את הטופס. אפשר לפנות אלינו ישירות בוואטסאפ למטה.');
     } finally {
       setLoading(false);
     }
@@ -201,6 +203,7 @@ export default function QuotePage() {
                   <Button type="submit" className="w-full" size="lg" disabled={loading}>
                     {loading ? (lang === 'en' ? 'Sending...' : 'שולח...') : t.quote.submit}
                   </Button>
+                  {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
                 </form>
               </CardContent>
             </Card>

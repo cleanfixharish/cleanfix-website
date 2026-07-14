@@ -13,6 +13,7 @@ from core.auth import (
     generate_nonce,
     generate_state,
     validate_id_token,
+    get_oidc_endpoint,
 )
 from core.config import settings
 from core.database import get_db
@@ -94,6 +95,11 @@ def derive_name_from_email(email: str) -> str:
     return email.split("@", 1)[0] if email else ""
 
 
+def get_frontend_url(backend_url: str) -> str:
+    """Use the configured public frontend for post-login redirects."""
+    return os.environ.get("FRONTEND_URL", backend_url).rstrip("/")
+
+
 @router.get("/login")
 async def login(request: Request, db: AsyncSession = Depends(get_db)):
     """Start OIDC login flow with PKCE."""
@@ -129,11 +135,12 @@ async def callback(
 ):
     """Handle OIDC callback."""
     backend_url = get_dynamic_backend_url(request)
+    frontend_url = get_frontend_url(backend_url)
 
     def redirect_with_error(message: str) -> RedirectResponse:
         fragment = urlencode({"msg": message})
         return RedirectResponse(
-            url=f"{backend_url}/auth/error?{fragment}",
+            url=f"{frontend_url}/auth/error?{fragment}",
             status_code=status.HTTP_302_FOUND,
         )
 
@@ -170,7 +177,7 @@ async def callback(
         if code_verifier:
             token_data["code_verifier"] = code_verifier
 
-        token_url = f"{settings.oidc_issuer_url}/token"
+        token_url = get_oidc_endpoint("token")
         try:
             async with httpx.AsyncClient() as client:
                 token_response = await client.post(
@@ -225,7 +232,7 @@ async def callback(
             }
         )
 
-        redirect_url = f"{backend_url}/auth/callback?{fragment}"
+        redirect_url = f"{frontend_url}/auth/callback?{fragment}"
         logger.info("[callback] OIDC callback successful, redirecting to %s", redirect_url)
         redirect_response = RedirectResponse(
             url=redirect_url,

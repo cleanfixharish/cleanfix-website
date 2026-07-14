@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import logging
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
@@ -11,6 +12,34 @@ from jose import JWTError, jwt
 from jose.exceptions import ExpiredSignatureError, JWSSignatureError, JWTClaimsError
 
 logger = logging.getLogger(__name__)
+
+
+def get_oidc_endpoint(kind: str) -> str:
+    """Resolve standard OIDC endpoints, including Google's non-path-based endpoints."""
+    explicit = {
+        "authorization": "OIDC_AUTHORIZATION_ENDPOINT",
+        "token": "OIDC_TOKEN_ENDPOINT",
+        "jwks": "OIDC_JWKS_URL",
+        "logout": "OIDC_LOGOUT_ENDPOINT",
+    }
+    configured = os.environ.get(explicit[kind])
+    if configured:
+        return configured.rstrip("/")
+
+    issuer = settings.oidc_issuer_url.rstrip("/")
+    if issuer in {"https://accounts.google.com", "accounts.google.com"}:
+        return {
+            "authorization": "https://accounts.google.com/o/oauth2/v2/auth",
+            "token": "https://oauth2.googleapis.com/token",
+            "jwks": "https://www.googleapis.com/oauth2/v3/certs",
+            "logout": settings.frontend_url,
+        }[kind]
+    return {
+        "authorization": f"{issuer}/authorize",
+        "token": f"{issuer}/token",
+        "jwks": f"{issuer}/.well-known/jwks.json",
+        "logout": f"{issuer}/logout",
+    }[kind]
 
 
 def generate_state() -> str:
@@ -36,7 +65,7 @@ def generate_code_challenge(code_verifier: str) -> str:
 
 async def get_jwks() -> Dict[str, Any]:
     """Get JWKS (JSON Web Key Set) from OIDC provider."""
-    jwks_url = f"{settings.oidc_issuer_url}/.well-known/jwks.json"
+    jwks_url = get_oidc_endpoint("jwks")
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             logger.info(f"Fetching JWKS from: {jwks_url}")
@@ -250,7 +279,7 @@ def build_authorization_url(
         params["code_challenge"] = code_challenge
         params["code_challenge_method"] = "S256"
 
-    auth_url = f"{settings.oidc_issuer_url}/authorize?" + urllib.parse.urlencode(params)
+    auth_url = f"{get_oidc_endpoint('authorization')}?" + urllib.parse.urlencode(params)
     return auth_url
 
 
@@ -263,5 +292,5 @@ def build_logout_url(id_token: Optional[str] = None) -> str:
     if id_token:
         params["id_token_hint"] = id_token
 
-    logout_url = f"{settings.oidc_issuer_url}/logout?" + urllib.parse.urlencode(params)
+    logout_url = f"{get_oidc_endpoint('logout')}?" + urllib.parse.urlencode(params)
     return logout_url

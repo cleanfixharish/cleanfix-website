@@ -19,10 +19,11 @@ import {
   MessageCircle, MoreHorizontal, PencilLine, Phone, Plus, Search, Send, Settings2, ShieldCheck,
   Sparkles, Star, Users, Wrench, X,
 } from 'lucide-react';
-import { client } from '@/lib/api';
+import { cleanfixApi } from '@/lib/cleanfixApi';
 import { activity, DashboardLead, jobs, LeadStatus, providers, services, starterLeads } from '@/data/adminStarterData';
 
 type Section = 'overview' | 'leads' | 'whatsapp' | 'jobs' | 'providers' | 'services' | 'content' | 'followups' | 'internal';
+type CmsItem = { id: number; section_key: string; title_en?: string; title_he?: string; content_en?: string; content_he?: string; is_active?: boolean };
 
 const navigation: { id: Section; label: string; icon: typeof LayoutDashboard; count?: number }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -72,8 +73,8 @@ export default function AdminPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const response = await client.entities.leads.query({ query: {}, sort: '-created_at', limit: 100 });
-        const items = response.data?.items || [];
+        const response = await cleanfixApi.listLeads(100);
+        const items = response?.items || [];
         if (!items.length) return setApiMode('starter');
         setLeads(items.map((lead: any) => ({
           id: lead.id, customerName: lead.customer_name, phone: lead.phone, service: lead.service_requested,
@@ -97,7 +98,7 @@ export default function AdminPage() {
     setLeads((current) => current.map((item) => item.id === lead.id ? { ...item, status, needsReply: false } : item));
     setSelectedLead((current) => current?.id === lead.id ? { ...current, status, needsReply: false } : current);
     if (apiMode === 'live') {
-      try { await client.entities.leads.update({ id: String(lead.id), data: { status } }); }
+      try { await cleanfixApi.updateLead(lead.id, { status }); }
       catch { toast.error('The local view changed, but the server did not save it.'); return; }
     }
     toast.success(`${lead.customerName} moved to ${status}`);
@@ -155,7 +156,38 @@ function Providers() { return <><SectionTitle eyebrow="Trusted network" title="P
 
 function Services() { const [items, setItems] = useState(services); return <><SectionTitle eyebrow="Offer management" title="Services & pricing" description="Keep public promises separate from internal quoting guidance."/><div className="space-y-4">{items.map((service, index) => <Card key={service.name} className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start"><div className="flex-1"><div className="flex items-center gap-2"><h3 className="font-sans text-base font-semibold text-[#173F46]">{service.name}</h3><Badge variant="outline">{service.priority}</Badge></div><p className="mt-2 text-sm text-[#625B53]">{service.publicCopy}</p><p className="mt-3 rounded-xl bg-[#F0EAE1] p-3 text-xs text-[#756D64]"><strong>Internal guidance:</strong> {service.guidance}</p></div><div className="flex items-center gap-3"><span className="text-xs text-[#786F65]">Public</span><Switch checked={service.active} onCheckedChange={(active) => setItems((current) => current.map((item, i) => i === index ? {...item, active} : item))}/><Button variant="outline" size="sm"><PencilLine className="mr-1.5 h-3.5 w-3.5"/>Edit</Button></div></div></CardContent></Card>)}</div></> }
 
-function ContentControl() { const content = [{page:'Homepage',status:'Published',updated:'Today',items:'Hero, trust strip, services, CTA'},{page:'Services',status:'Published',updated:'10 Jul',items:'5 active categories'},{page:'FAQ',status:'Draft changes',updated:'9 Jul',items:'12 questions · EN/HE'},{page:'Accessibility statement',status:'Disabled',updated:'Not reviewed',items:'Enable after compliance review'}]; return <><SectionTitle eyebrow="Website control" title="Content & visuals" description="Edit structured content without touching code. Publishing and media replacement will retain rollback history." action={<Button variant="outline" asChild><a href="/" target="_blank">Preview website<ExternalLink className="ml-2 h-4 w-4"/></a></Button>}/><div className="grid gap-6 xl:grid-cols-[1.62fr_1fr]"><Panel title="Pages and content blocks" subtitle="English and Hebrew are managed together">{content.map((item) => <div key={item.page} className="flex items-center gap-3 border-b border-[#E5DDD3] py-4 last:border-0"><div className="rounded-xl bg-[#DDE9E7] p-2"><FileText className="h-4 w-4 text-[#174E57]"/></div><div className="flex-1"><p className="text-sm font-medium">{item.page}</p><p className="text-xs text-[#786F65]">{item.items} · {item.updated}</p></div><Badge variant="outline" className={item.status === 'Disabled' ? 'text-[#854D37]' : ''}>{item.status}</Badge><Button variant="ghost" size="icon"><ChevronRight className="h-4 w-4"/></Button></div>)}</Panel><Panel title="Visual system" subtitle="Approved brand assets and image assignments"><div className="rounded-2xl bg-[#173F46] p-5 text-white"><div className="flex items-center gap-3"><img src="/assets/brand/cf-monogram-outline.svg" className="h-14 w-14" alt="CF monogram"/><div><p className="font-medium">CF premium editorial</p><p className="text-xs text-white/60">Teal · ivory · stone · brass</p></div></div><div className="mt-5 flex gap-2">{['#173F46','#F7F2EA','#E5DACC','#B8905B','#D8E5E1'].map((color) => <span key={color} className="h-8 flex-1 rounded-lg border border-white/10" style={{background:color}} title={color}/>)}</div></div><Button variant="outline" className="mt-4 w-full"><Sparkles className="mr-2 h-4 w-4"/>Manage visual assignments</Button></Panel></div></> }
+function ContentControl() {
+  const [items, setItems] = useState<CmsItem[]>([]);
+  const [selected, setSelected] = useState<CmsItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    cleanfixApi.listSiteContent().then((result) => setItems(result?.items || []))
+      .catch(() => toast.error('Website content could not be loaded.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const updated = await cleanfixApi.updateSiteContent(selected.id, {
+        title_en: selected.title_en, title_he: selected.title_he,
+        content_en: selected.content_en, content_he: selected.content_he,
+        is_active: selected.is_active,
+      });
+      setItems((current) => current.map((item) => item.id === updated.id ? updated : item));
+      setSelected(null);
+      toast.success('Website content published. The public page will use it on refresh.');
+    } catch { toast.error('The content was not saved.'); }
+    finally { setSaving(false); }
+  };
+
+  return <><SectionTitle eyebrow="Website control" title="Content & visuals" description="Edit the live English and Hebrew content stored by the CleanFixHarish backend." action={<Button variant="outline" asChild><a href="/" target="_blank">Preview website<ExternalLink className="ml-2 h-4 w-4"/></a></Button>}/><div className="grid gap-6 xl:grid-cols-[1.62fr_1fr]"><Panel title="Live content blocks" subtitle={loading ? 'Connecting to content storage…' : `${items.length} bilingual blocks available`}>{items.map((item) => <button key={item.id} onClick={() => setSelected({...item})} className="flex w-full items-center gap-3 border-b border-[#E5DDD3] py-4 text-left last:border-0"><div className="rounded-xl bg-[#DDE9E7] p-2"><FileText className="h-4 w-4 text-[#174E57]"/></div><div className="flex-1"><p className="text-sm font-medium">{title(item.section_key)}</p><p className="line-clamp-1 text-xs text-[#786F65]">{item.title_en || 'Untitled'} · EN/HE</p></div><Badge variant="outline" className={item.is_active === false ? 'text-[#854D37]' : 'text-[#2E6840]'}>{item.is_active === false ? 'Hidden' : 'Published'}</Badge><ChevronRight className="h-4 w-4"/></button>)}{!loading && !items.length && <p className="py-8 text-center text-sm text-[#786F65]">No content blocks are stored yet.</p>}</Panel><Panel title="Visual system" subtitle="Approved brand assets and image assignments"><div className="rounded-2xl bg-[#173F46] p-5 text-white"><div className="flex items-center gap-3"><img src="/assets/brand/cf-monogram-outline.svg" className="h-14 w-14" alt="CF monogram"/><div><p className="font-medium">CF premium editorial</p><p className="text-xs text-white/60">Teal · ivory · stone · brass</p></div></div><div className="mt-5 flex gap-2">{['#173F46','#F7F2EA','#E5DACC','#B8905B','#D8E5E1'].map((color) => <span key={color} className="h-8 flex-1 rounded-lg border border-white/10" style={{background:color}} title={color}/>)}</div></div><p className="mt-4 text-xs leading-5 text-[#786F65]">Logo, background vectors, and seven reviewed service/hero images are installed in the website asset library.</p></Panel></div><Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}><DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto bg-[#FBF8F3]">{selected && <><DialogHeader><DialogTitle>Edit {title(selected.section_key)}</DialogTitle></DialogHeader><div className="grid gap-5 sm:grid-cols-2"><FieldArea label="English title" value={selected.title_en || ''} onChange={(value) => setSelected({...selected,title_en:value})}/><FieldArea label="Hebrew title" value={selected.title_he || ''} onChange={(value) => setSelected({...selected,title_he:value})} rtl/><FieldArea label="English content" value={selected.content_en || ''} onChange={(value) => setSelected({...selected,content_en:value})} large/><FieldArea label="Hebrew content" value={selected.content_he || ''} onChange={(value) => setSelected({...selected,content_he:value})} large rtl/></div><div className="flex items-center justify-between rounded-xl bg-[#F0EAE1] p-4"><div><p className="text-sm font-medium">Published on website</p><p className="text-xs text-[#786F65]">Hidden blocks fall back to the safe built-in copy.</p></div><Switch checked={selected.is_active !== false} onCheckedChange={(value) => setSelected({...selected,is_active:value})}/></div><Button onClick={save} disabled={saving} className="w-full bg-[#174E57]">{saving ? 'Publishing…' : 'Publish content'}</Button></>}</DialogContent></Dialog></>;
+}
+
+function FieldArea({ label, value, onChange, large, rtl }: { label: string; value: string; onChange: (value: string) => void; large?: boolean; rtl?: boolean }) { return <div><Label>{label}</Label>{large ? <Textarea value={value} onChange={(event) => onChange(event.target.value)} rows={6} dir={rtl ? 'rtl' : 'ltr'} className="mt-1.5 bg-white"/> : <Input value={value} onChange={(event) => onChange(event.target.value)} dir={rtl ? 'rtl' : 'ltr'} className="mt-1.5 bg-white"/>}</div>; }
 
 function FollowUps({ leads, openWhatsApp }: { leads: DashboardLead[]; openWhatsApp: (l: DashboardLead, m?: string) => void }) { const followups = leads.filter((l) => l.status === 'follow-up' || l.status === 'completed' || l.status === 'quoted'); return <><SectionTitle eyebrow="Customer care" title="Follow-ups & reviews" description="Close the loop calmly and ask for honest reviews only after completed work."/><Panel title="Follow-up queue" subtitle="Prioritized by next useful customer action">{followups.map((lead) => <div key={lead.id} className="flex flex-col gap-3 border-b border-[#E5DDD3] py-4 last:border-0 sm:flex-row sm:items-center"><div className="flex-1"><div className="flex items-center gap-2"><p className="text-sm font-medium">{lead.customerName}</p><Badge className={statusStyle[lead.status]}>{lead.status}</Badge></div><p className="mt-1 text-xs text-[#786F65]">{lead.service} · {lead.notes}</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => openWhatsApp(lead, lead.status === 'completed' ? templates[3].body : templates[2].body)}><MessageCircle className="mr-1.5 h-3.5 w-3.5"/>{lead.status === 'completed' ? 'Request review' : 'Follow up'}</Button><Button variant="ghost" size="sm" onClick={() => toast.success('Follow-up marked complete')}><Check className="h-4 w-4"/></Button></div></div>)}</Panel></> }
 

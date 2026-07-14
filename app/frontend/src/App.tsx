@@ -14,6 +14,9 @@ import QuotePage from './pages/QuotePage';
 import AdminPage from './pages/AdminPage';
 import AuthCallback from './pages/AuthCallback';
 import AuthError from './pages/AuthError';
+import AccountPage from './pages/AccountPage';
+import AccessibilityPage from './pages/AccessibilityPage';
+import AccessibilityMenu from './components/AccessibilityMenu';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 
 const queryClient = new QueryClient();
@@ -27,12 +30,18 @@ const AppRoutes = () => (
     <Route path="/partners" element={<PartnersPage />} />
     <Route path="/about" element={<AboutPage />} />
     <Route path="/quote" element={<QuotePage />} />
+    <Route path="/account" element={<AccountPage />} />
+    <Route path="/accessibility" element={<AccessibilityPage />} />
     <Route
       path="/admin"
       element={
-        <ProtectedAdminRoute>
+        import.meta.env.DEV ? (
           <AdminPage />
-        </ProtectedAdminRoute>
+        ) : (
+          <ProtectedAdminRoute>
+            <AdminPage />
+          </ProtectedAdminRoute>
+        )
       }
     />
     <Route path="/auth/callback" element={<AuthCallback />} />
@@ -48,6 +57,7 @@ const App = () => (
           <Toaster />
           <BrowserRouter>
             <AppRoutes />
+            <AccessibilityMenu />
           </BrowserRouter>
         </TooltipProvider>
       </LanguageProvider>

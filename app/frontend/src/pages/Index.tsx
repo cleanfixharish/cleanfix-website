@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -8,10 +9,9 @@ import {
   MessageCircle,
   Sparkles,
   Wrench,
-  Zap,
-  Paintbrush,
   Thermometer,
-  Hammer,
+  Wind,
+  KeyRound,
   ArrowRight,
   Shield,
   Clock,
@@ -19,43 +19,63 @@ import {
   Heart,
 } from 'lucide-react';
 import { getWhatsAppLink, getWhatsAppQuoteMessage } from '@/lib/whatsapp';
+import { cleanfixApi } from '@/lib/cleanfixApi';
+
+type ContentBlock = { title_en?: string; title_he?: string; content_en?: string; content_he?: string; is_active?: boolean };
 
 const serviceIcons: Record<string, React.ReactNode> = {
   sparkles: <Sparkles className="h-6 w-6" />,
   wrench: <Wrench className="h-6 w-6" />,
-  zap: <Zap className="h-6 w-6" />,
-  paintbrush: <Paintbrush className="h-6 w-6" />,
   thermometer: <Thermometer className="h-6 w-6" />,
-  hammer: <Hammer className="h-6 w-6" />,
+  wind: <Wind className="h-6 w-6" />,
+  key: <KeyRound className="h-6 w-6" />,
 };
 
 const services = [
-  { icon: 'sparkles', name_en: 'Home Cleaning', name_he: 'ניקיון בתים' },
-  { icon: 'wrench', name_en: 'Plumbing', name_he: 'אינסטלציה' },
-  { icon: 'zap', name_en: 'Electrical Work', name_he: 'עבודות חשמל' },
-  { icon: 'paintbrush', name_en: 'Painting', name_he: 'צביעה' },
-  { icon: 'thermometer', name_en: 'AC Services', name_he: 'שירותי מיזוג' },
-  { icon: 'hammer', name_en: 'Handyman', name_he: 'איש תחזוקה' },
+  { icon: 'wrench', name_en: 'Handyman', name_he: 'הנדימן', desc_en: 'Small repairs, installations, mounting, adjustments, and practical apartment fixes.', desc_he: 'תיקונים קטנים, התקנות, תלייה, התאמות ועבודות מעשיות בדירה.', featured: true },
+  { icon: 'sparkles', name_en: 'Post-renovation cleaning', name_he: 'ניקיון אחרי שיפוץ', desc_en: 'Detailed dust and surface cleaning that helps the home feel truly finished.', desc_he: 'ניקוי יסודי של אבק ומשטחים, כדי שהבית ירגיש באמת מוכן.' },
+  { icon: 'key', name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A clean reset before entering a home or handing it over.', desc_he: 'התחלה נקייה לפני כניסה לבית או מסירה שלו.' },
+  { icon: 'thermometer', name_en: 'AC cleaning', name_he: 'ניקוי מזגנים', desc_en: 'Practical cleaning for a fresher, more comfortable home environment.', desc_he: 'ניקוי מעשי לסביבה ביתית רעננה ונעימה יותר.' },
+  { icon: 'wind', name_en: 'Window cleaning', name_he: 'ניקוי חלונות', desc_en: 'Glass, frames, and tracks cleaned for a brighter, more polished space.', desc_he: 'ניקוי זכוכית, מסגרות ומסילות לחלל בהיר ומטופח יותר.' },
 ];
 
 export default function Index() {
   const { t, lang } = useLanguage();
+  const [cms, setCms] = useState<Record<string, ContentBlock>>({});
+
+  useEffect(() => {
+    cleanfixApi.listSiteContent().then((result) => {
+      const blocks = (result?.items || []).reduce((acc: Record<string, ContentBlock>, item: ContentBlock & { section_key: string }) => {
+        if (item.is_active !== false) acc[item.section_key] = item;
+        return acc;
+      }, {});
+      setCms(blocks);
+    }).catch(() => undefined);
+  }, []);
+
+  const cmsValue = (section: string, field: 'title' | 'content', fallback: string) => {
+    const value = cms[section]?.[`${field}_${lang}` as keyof ContentBlock];
+    return typeof value === 'string' && value.trim() ? value : fallback;
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
 
       {/* Hero Section - Golden Ratio Layout (38% text / 62% image) */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-white via-sky-50/30 to-green-50/20">
+      <section className="relative overflow-hidden bg-[#f3efe7]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12 items-center">
             {/* Text - ~38% */}
             <div className="lg:col-span-2">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#0f514b]">
+                {t.hero.eyebrow}
+              </p>
               <h1 className="text-3xl sm:text-4xl md:text-[2.75rem] font-bold leading-tight mb-5 text-foreground">
-                {t.hero.title}
+                {cmsValue('hero', 'title', t.hero.title)}
               </h1>
               <p className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed">
-                {t.hero.subtitle}
+                {cmsValue('hero', 'content', t.hero.subtitle)}
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link to="/quote">
@@ -71,6 +91,9 @@ export default function Index() {
                   </Button>
                 </a>
               </div>
+              <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+                {t.hero.responseNote}
+              </p>
             </div>
             {/* Image - ~62% */}
             <div className="lg:col-span-3">
@@ -87,23 +110,27 @@ export default function Index() {
       </section>
 
       {/* Services Section */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-[#fbfaf7]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#0f514b]">{t.services.eyebrow}</p>
             <h2 className="text-3xl font-bold mb-3">{t.services.title}</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">{t.services.subtitle}</p>
+            <p className="text-muted-foreground max-w-2xl mx-auto">{t.services.subtitle}</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5">
             {services.map((service) => (
-              <Card key={service.icon} className="group hover:shadow-sm transition-all duration-300 cursor-pointer border-border/40 bg-white">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-sky-50 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+              <Card key={service.icon} className={`group hover:shadow-md transition-all duration-300 border-border/50 bg-white ${service.featured ? 'sm:col-span-2 lg:col-span-2 border-[#b79252]/50' : 'lg:col-span-1'}`}>
+                <CardContent className="p-6 h-full flex flex-col gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#e4ece8] text-[#0f514b] flex items-center justify-center shrink-0 group-hover:bg-[#0f514b] group-hover:text-white transition-colors duration-300">
                     {serviceIcons[service.icon]}
                   </div>
                   <div>
                     <h3 className="font-medium text-base text-foreground">
                       {lang === 'en' ? service.name_en : service.name_he}
                     </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {lang === 'en' ? service.desc_en : service.desc_he}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -121,10 +148,10 @@ export default function Index() {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 md:py-24 bg-slate-50/60">
+      <section className="py-16 md:py-24 bg-[#e9eee9]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">{t.howItWorks.title}</h2>
+            <h2 className="text-3xl font-bold mb-3">{cmsValue('how_it_works', 'title', t.howItWorks.title)}</h2>
             <p className="text-muted-foreground max-w-md mx-auto">{t.howItWorks.subtitle}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -135,7 +162,7 @@ export default function Index() {
               { num: '4', title: t.howItWorks.step4Title, desc: t.howItWorks.step4Desc, icon: <Heart className="h-5 w-5" /> },
             ].map((step) => (
               <div key={step.num} className="text-center">
-                <div className="w-12 h-12 rounded-full bg-green-50 text-accent flex items-center justify-center mx-auto mb-4">
+                <div className="w-12 h-12 rounded-full bg-white text-[#0f514b] flex items-center justify-center mx-auto mb-4 shadow-sm">
                   {step.icon}
                 </div>
                 <h3 className="font-semibold mb-2 text-sm">{step.title}</h3>
@@ -151,8 +178,8 @@ export default function Index() {
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl font-bold mb-3">{t.whyTrust.title}</h2>
-              <p className="text-muted-foreground mb-6">{t.whyTrust.subtitle}</p>
+              <h2 className="text-3xl font-bold mb-3">{cmsValue('why_trust', 'title', t.whyTrust.title)}</h2>
+              <p className="text-muted-foreground mb-6">{cmsValue('why_trust', 'content', t.whyTrust.subtitle)}</p>
               <div className="space-y-4">
                 {[t.whyTrust.point1, t.whyTrust.point2, t.whyTrust.point3, t.whyTrust.point4, t.whyTrust.point5, t.whyTrust.point6].map((point, i) => (
                   <div key={i} className="flex items-start gap-3">
@@ -176,19 +203,19 @@ export default function Index() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-20 bg-gradient-to-br from-sky-600 to-sky-700 text-white">
+      <section className="py-16 md:py-20 bg-[#103d3a] text-white">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4 text-white">
-            {lang === 'en' ? 'Ready to Get Started?' : 'מוכנים להתחיל?'}
+            {lang === 'en' ? 'Tell us what needs attention.' : 'ספרו לנו במה צריך לטפל.'}
           </h2>
           <p className="text-white/80 mb-8 max-w-md mx-auto">
             {lang === 'en'
-              ? 'Contact us today for a free quote. No obligations, just honest service.'
-              : 'צרו איתנו קשר היום להצעת מחיר חינם. ללא התחייבות, רק שירות כנה.'}
+              ? 'Send the service, your area in Harish, and photos if relevant. We will review the details and explain the next step.'
+              : 'שלחו את סוג השירות, האזור בחריש ותמונות אם הן רלוונטיות. נבדוק את הפרטים ונסביר מה השלב הבא.'}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" className="gap-2 text-base bg-white text-sky-700 hover:bg-white/90">
+              <Button size="lg" className="gap-2 text-base bg-[#f3efe7] text-[#103d3a] hover:bg-white">
                 <MessageCircle className="h-5 w-5" />
                 {t.hero.whatsapp}
               </Button>
