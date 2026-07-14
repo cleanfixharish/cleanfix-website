@@ -1,5 +1,4 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,8 +12,6 @@ const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({
   children,
 }) => {
   const { user, loading, isAdmin, login } = useAuth();
-  const location = useLocation();
-
   // Loading state
   if (loading) {
     return (
@@ -29,7 +26,24 @@ const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({
 
   // If the user is not logged in, redirect to the login page
   if (!user) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F2EDE5] p-4">
+        <Card className="w-full max-w-md border-[#D8D0C6] bg-[#FBF8F3]">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#DDE9E7]">
+              <Shield className="h-8 w-8 text-[#174E57]" />
+            </div>
+            <CardTitle className="text-xl text-[#173F46]">CleanFixHarish owner access</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5 text-center">
+            <p className="text-sm text-[#756D64]">Sign in with the approved administrator account to open the protected manager dashboard.</p>
+            <Button onClick={login} className="w-full bg-[#174E57] hover:bg-[#103A41]">
+              <LogIn className="mr-2 h-4 w-4" />Secure admin sign in
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   // If the user is not an admin, show an insufficient-permissions page

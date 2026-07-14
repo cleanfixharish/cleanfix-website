@@ -3,8 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Globe, MessageCircle, Download, Share, Plus, Smartphone, X } from 'lucide-react';
+import { Menu, Globe, MessageCircle, Download, Share, Plus, Smartphone, X, UserRound } from 'lucide-react';
 import { getWhatsAppLink } from '@/lib/whatsapp';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -13,6 +14,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function Header() {
   const { t, lang, setLang, dir } = useLanguage();
+  const { user } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -188,6 +190,13 @@ export default function Header() {
               </Button>
             </Link>
 
+            <Link to={user?.role === 'admin' ? '/admin' : '/account'} className="hidden sm:inline-flex">
+              <Button size="sm" variant="ghost" className="gap-1.5">
+                <UserRound className="h-4 w-4" />
+                <span className="hidden xl:inline">{user ? (lang === 'en' ? 'My account' : 'החשבון שלי') : (lang === 'en' ? 'Sign in' : 'כניסה')}</span>
+              </Button>
+            </Link>
+
             {/* Mobile Menu */}
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild className="lg:hidden">
@@ -234,6 +243,12 @@ export default function Header() {
                   <Link to="/admin" onClick={() => setOpen(false)}>
                     <Button variant="ghost" className="w-full text-muted-foreground">
                       {t.nav.admin}
+                    </Button>
+                  </Link>
+                  <Link to={user?.role === 'admin' ? '/admin' : '/account'} onClick={() => setOpen(false)}>
+                    <Button variant="ghost" className="w-full gap-2 text-muted-foreground">
+                      <UserRound className="h-4 w-4" />
+                      {user ? (lang === 'en' ? 'My account' : 'החשבון שלי') : (lang === 'en' ? 'Sign in or join' : 'כניסה או הרשמה')}
                     </Button>
                   </Link>
                 </nav>
