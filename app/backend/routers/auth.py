@@ -216,6 +216,9 @@ async def callback(
         if id_claims.get("nonce") != nonce:
             return redirect_with_error("Invalid nonce")
 
+        if settings.oidc_issuer_url.rstrip("/") == "https://accounts.google.com" and not id_claims.get("email_verified"):
+            return redirect_with_error("Google account email is not verified")
+
         # Get or create user
         email = id_claims.get("email", "")
         name = id_claims.get("name") or derive_name_from_email(email)

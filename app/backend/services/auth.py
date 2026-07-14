@@ -27,14 +27,18 @@ class AuthService:
         user = result.scalar_one_or_none()
         logger.debug(f"[DB_OP] User lookup completed in {time.time() - start_time:.4f}s - found: {user is not None}")
 
+        admin_email = getattr(settings, "admin_user_email", "").strip().lower()
+        role = "admin" if admin_email and email.strip().lower() == admin_email else "user"
+
         if user:
             # Update user info if needed
             user.email = email
             user.name = name
+            user.role = role
             user.last_login = datetime.now(timezone.utc)
         else:
             # Create new user
-            user = User(id=platform_sub, email=email, name=name, last_login=datetime.now(timezone.utc))
+            user = User(id=platform_sub, email=email, name=name, role=role, last_login=datetime.now(timezone.utc))
             self.db.add(user)
 
         start_time_commit = time.time()

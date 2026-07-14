@@ -34,8 +34,6 @@ services:
         value: HS256
       - key: JWT_EXPIRE_MINUTES
         value: "10080"
-      - key: ADMIN_USER_ID
-        sync: false
       - key: ADMIN_USER_EMAIL
         value: info@cleanfixharish.co.il
       - key: DATABASE_URL
