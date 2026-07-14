@@ -5,11 +5,12 @@ import pkgutil
 import traceback
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 
 from core.config import settings
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRouter
 
 # MODULE_IMPORTS_START
@@ -193,14 +194,46 @@ async def general_exception_handler(request: Request, exc: Exception):
         )
 
 
-@app.get("/")
-def root():
-    return {"message": "FastAPI Modular Template is running"}
+@app.get("/api")
+def api_root():
+    return {"message": "CleanFixHarish API is running"}
+
+
+@app.get("/api/config")
+def frontend_runtime_config():
+    """Same-origin production config; local development may override with Vite env."""
+    return {"API_BASE_URL": os.environ.get("VITE_API_BASE_URL", "")}
 
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_frontend(full_path: str):
+    """Serve the compiled PWA and preserve client-side routes on one origin."""
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API route not found")
+
+    requested = (FRONTEND_DIST / full_path).resolve()
+    try:
+        requested.relative_to(FRONTEND_DIST.resolve())
+    except ValueError:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    if requested.is_file():
+        return FileResponse(requested)
+    directory_index = requested / "index.html"
+    if directory_index.is_file():
+        return FileResponse(directory_index)
+    index_file = FRONTEND_DIST / "index.html"
+    if index_file.is_file():
+        return FileResponse(index_file)
+    raise HTTPException(status_code=503, detail="Frontend build is not available")
 
 
 def run_in_debug_mode(app: FastAPI):
