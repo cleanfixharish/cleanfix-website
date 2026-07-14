@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: cleanfixharish-web
+    runtime: docker
+    repo: https://github.com/cleanfixharish/cleanfix-website
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ENVIRONMENT
+        value: prod
+      - key: FRONTEND_URL
+        value: https://cleanfixharish.co.il
+      - key: PYTHON_BACKEND_URL
+        value: https://cleanfixharish.co.il
+      - key: VITE_API_BASE_URL
+        value: ""
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://cleanfixharish.co.il,https://www.cleanfixharish.co.il
+      - key: ALLOWED_DOMAINS
+        value: cleanfixharish.co.il,www.cleanfixharish.co.il
+      - key: OIDC_ISSUER_URL
+        value: https://accounts.google.com
+      - key: OIDC_SCOPE
+        value: openid email profile
+      - key: OIDC_CLIENT_ID
+        sync: false
+      - key: OIDC_CLIENT_SECRET
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRE_MINUTES
+        value: "10080"
+      - key: ADMIN_USER_ID
+        sync: false
+      - key: ADMIN_USER_EMAIL
+        value: info@cleanfixharish.co.il
+      - key: DATABASE_URL
+        sync: false
