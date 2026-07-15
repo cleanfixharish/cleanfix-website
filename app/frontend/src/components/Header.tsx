@@ -115,12 +115,12 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b border-[#b8842f]/35 bg-[#f7f2ea]/95 shadow-[0_4px_21px_rgba(8,31,40,.05)] backdrop-blur-xl">
+        <div className="mx-auto flex h-[68px] max-w-screen-xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <img src="/assets/brand/cf-home-support-emblem-128.png" alt="CleanFixHarish home support emblem" className="h-10 w-10 rounded-xl" />
-            <span className="font-semibold text-lg hidden sm:block" style={{ fontFamily: 'Lora, serif' }}>
+            <span className="cf-logo-shine"><img src="/assets/brand/cf-home-support-emblem-128.png" alt="CleanFixHarish home support emblem" className="h-11 w-11 rounded-[14px] shadow-sm" /></span>
+            <span className="hidden text-xl font-semibold text-[#102e38] sm:block" style={{ fontFamily: 'Cormorant Garamond, Noto Serif Hebrew, serif' }}>
               CleanFixHarish
             </span>
           </Link>
@@ -131,10 +131,10 @@ export default function Header() {
               <Link
                 key={item.href}
                 to={item.href}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`rounded-md border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
                   isActive(item.href)
-                    ? 'text-primary bg-primary/5'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    ? 'border-[#b8842f] bg-[#e8d8be]/60 text-[#102e38]'
+                    : 'border-transparent text-[#435a5f] hover:border-[#c49332]/60 hover:bg-[#e8d8be]/35 hover:text-[#102e38]'
                 }`}
               >
                 {item.label}
@@ -150,7 +150,7 @@ export default function Header() {
                 variant="outline"
                 size="sm"
                 onClick={handleInstallClick}
-                className="gap-1.5 border-primary/40 text-primary hover:text-primary hover:bg-primary/5 hover:border-primary/60 transition-all"
+                className="gap-1.5 border-[#b8842f]/45 bg-[#fbf8f3] text-[#102e38] transition-all hover:border-[#b8842f]/70 hover:bg-[#e8d8be]/45 hover:text-[#102e38]"
               >
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs font-semibold">
@@ -177,8 +177,8 @@ export default function Header() {
               rel="noopener noreferrer"
               className="hidden sm:inline-flex"
             >
-              <Button size="sm" className="gap-1.5 bg-[#25D366] hover:bg-[#20BD5A] text-white">
-                <MessageCircle className="h-4 w-4" />
+              <Button size="sm" className="gap-1.5 bg-[#102e38] text-[#f7f2ea] hover:bg-[#163f49]">
+                <MessageCircle className="h-4 w-4 text-[#f0c96f]" />
                 <span className="hidden md:inline">{t.hero.whatsapp}</span>
               </Button>
             </a>
@@ -204,17 +204,17 @@ export default function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side={dir === 'rtl' ? 'right' : 'left'} className="w-72">
+              <SheetContent side={dir === 'rtl' ? 'right' : 'left'} className="w-72 border-[#b8842f]/35 bg-[#f7f2ea]">
                 <nav className="flex flex-col gap-2 mt-8">
                   {navItems.map((item) => (
                     <Link
                       key={item.href}
                       to={item.href}
                       onClick={() => setOpen(false)}
-                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                      className={`rounded-lg border-s-4 px-4 py-3 text-sm font-medium transition-colors ${
                         isActive(item.href)
-                          ? 'text-primary bg-primary/5'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          ? 'border-[#b8842f] bg-[#e8d8be]/55 text-[#102e38]'
+                          : 'border-transparent text-muted-foreground hover:border-[#c49332]/55 hover:bg-muted/50 hover:text-foreground'
                       }`}
                     >
                       {item.label}
@@ -225,7 +225,7 @@ export default function Header() {
                     <Button className="w-full">{t.nav.getQuote}</Button>
                   </Link>
                   <a href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" className="w-full gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10">
+                    <Button variant="outline" className="w-full gap-2 border-[#b8842f]/50 text-[#102e38] hover:bg-[#e8d8be]/50">
                       <MessageCircle className="h-4 w-4" />
                       {t.hero.whatsapp}
                     </Button>
@@ -261,7 +261,7 @@ export default function Header() {
       {/* Install Instructions Modal */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 relative animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-sm animate-in rounded-[21px] border border-[#b8842f]/40 bg-[#f7f2ea] p-6 shadow-2xl duration-200 zoom-in-95">
             {/* Close */}
             <button
               onClick={() => setShowModal(false)}

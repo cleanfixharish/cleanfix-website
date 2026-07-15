@@ -3,26 +3,17 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle, Sparkles, Wrench, Zap, Paintbrush, Thermometer, Hammer } from 'lucide-react';
+import { ArrowRight, MessageCircle } from 'lucide-react';
 import { getWhatsAppServiceLink } from '@/lib/whatsapp';
 import { Link } from 'react-router-dom';
 
-const serviceIcons: Record<string, React.ReactNode> = {
-  sparkles: <Sparkles className="h-8 w-8" />,
-  wrench: <Wrench className="h-8 w-8" />,
-  zap: <Zap className="h-8 w-8" />,
-  paintbrush: <Paintbrush className="h-8 w-8" />,
-  thermometer: <Thermometer className="h-8 w-8" />,
-  hammer: <Hammer className="h-8 w-8" />,
-};
-
 const services = [
-  { icon: 'sparkles', name_en: 'Home Cleaning', name_he: 'ניקיון בתים', desc_en: 'Professional deep cleaning for homes and apartments. Thorough, reliable, and affordable.', desc_he: 'ניקיון יסודי ומקצועי לבתים ודירות. יסודי, אמין ובמחיר הוגן.' },
-  { icon: 'wrench', name_en: 'Plumbing', name_he: 'אינסטלציה', desc_en: 'Expert plumbing repairs and installations. Fast response, fair pricing.', desc_he: 'תיקוני אינסטלציה והתקנות מקצועיות. תגובה מהירה, מחיר הוגן.' },
-  { icon: 'zap', name_en: 'Electrical Work', name_he: 'עבודות חשמל', desc_en: 'Licensed electricians for all electrical needs. Safe, certified, and professional.', desc_he: 'חשמלאים מוסמכים לכל צורכי החשמל. בטוח, מוסמך ומקצועי.' },
-  { icon: 'paintbrush', name_en: 'Painting', name_he: 'צביעה', desc_en: 'Interior and exterior painting services. Clean work, quality materials.', desc_he: 'שירותי צביעה פנימית וחיצונית. עבודה נקייה, חומרים איכותיים.' },
-  { icon: 'thermometer', name_en: 'AC Services', name_he: 'שירותי מיזוג', desc_en: 'Air conditioning installation, repair, and maintenance.', desc_he: 'התקנה, תיקון ותחזוקה של מערכות מיזוג אוויר.' },
-  { icon: 'hammer', name_en: 'Handyman', name_he: 'איש תחזוקה', desc_en: 'General repairs, assembly, and maintenance for your home.', desc_he: 'תיקונים כלליים, הרכבות ותחזוקה לבית שלך.' },
+  { id: 'handyman', mark: '/assets/brand/v2/symbol-handyman.svg', image: 'service-handyman-v2', name_en: 'Handyman services', name_he: 'שירותי הנדימן', desc_en: 'Practical repairs, mounting, assembly, installations and adjustments—handled carefully and clearly.', desc_he: 'תיקונים מעשיים, תלייה, הרכבה, התקנות והתאמות—בעבודה זהירה וברורה.', priority: true },
+  { id: 'post-renovation', mark: '/assets/brand/v2/symbol-cleaning.svg', image: 'service-post-renovation-cleaning-v2', name_en: 'Post-renovation cleaning', name_he: 'ניקיון אחרי שיפוץ', desc_en: 'Detailed removal of construction dust and residue so the finished home can finally feel ready.', desc_he: 'ניקוי יסודי של אבק ושאריות בנייה, כדי שהבית המשופץ ירגיש מוכן באמת.' },
+  { id: 'move', mark: '/assets/brand/v2/symbol-access.svg', image: 'service-move-cleaning-v2', name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A thorough reset before receiving the key, moving in, or handing the property over.', desc_he: 'ניקיון יסודי לפני קבלת מפתח, כניסה לבית או מסירת הנכס.' },
+  { id: 'ac', mark: '/assets/brand/v2/symbol-ac.svg', image: 'service-ac-cleaning-v2', name_en: 'AC cleaning', name_he: 'ניקוי מזגנים', desc_en: 'Careful cleaning for fresher airflow and a more comfortable home environment.', desc_he: 'ניקוי זהיר לזרימת אוויר רעננה יותר ולסביבה ביתית נעימה.' },
+  { id: 'windows', mark: '/assets/brand/v2/symbol-window.svg', image: 'service-window-cleaning-v2', name_en: 'Window cleaning', name_he: 'ניקוי חלונות', desc_en: 'Glass, frames and tracks cleaned for brighter rooms and a polished finish.', desc_he: 'ניקוי זכוכית, מסגרות ומסילות לחדרים בהירים ולגימור מוקפד.' },
+  { id: 'home-cleaning', mark: '/assets/brand/v2/symbol-cleaning.svg', image: 'service-home-cleaning-v2', name_en: 'Home cleaning', name_he: 'ניקיון בתים', desc_en: 'Reliable, well-organized cleaning for homes that need careful ongoing attention.', desc_he: 'ניקיון אמין ומסודר לבתים שזקוקים לטיפול שוטף ומוקפד.' },
 ];
 
 export default function ServicesPage() {
@@ -33,70 +24,62 @@ export default function ServicesPage() {
       <Header />
       <main className="flex-1">
         {/* Hero */}
-        <section className="py-16 md:py-20 bg-card">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">{t.services.title}</h1>
-            <p className="text-muted-foreground max-w-lg mx-auto">{t.services.subtitle}</p>
+        <section className="cf-navy-panel py-[55px] md:py-[89px]">
+          <div className="cf-shell text-center">
+            <p className="cf-eyebrow">Home services in Harish</p>
+            <div className="cf-gold-rule mx-auto" />
+            <h1 className="mb-4 text-4xl font-bold text-[#f7f2ea] md:text-6xl">{t.services.title}</h1>
+            <p className="mx-auto max-w-2xl text-[#e8d8be]">{t.services.subtitle}</p>
           </div>
         </section>
 
         {/* Services Grid */}
-        <section className="py-12 md:py-16">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <section className="bg-[#f7f2ea] py-[55px] md:py-[89px]">
+          <div className="cf-shell">
+            <div className="grid grid-cols-1 gap-[21px] md:grid-cols-2 lg:grid-cols-3">
               {services.map((service) => (
-                <Card key={service.icon} className="group hover:shadow-md transition-all duration-200 border-border/50">
-                  <CardContent className="p-6">
-                    <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
-                      {serviceIcons[service.icon]}
+                <Card key={service.id} className={`group overflow-hidden border-[#b8842f]/40 bg-[#fbf8f3] transition duration-300 hover:-translate-y-1 hover:shadow-[0_21px_55px_rgba(8,31,40,.13)] ${service.priority ? 'md:col-span-2 lg:col-span-2' : ''}`}>
+                  <div className={`grid h-full ${service.priority ? 'md:grid-cols-[1.618fr_1fr]' : ''}`}>
+                    <picture className="block min-h-[240px] overflow-hidden">
+                      <source media="(max-width: 640px)" srcSet={`/assets/images/home-support-v2/web/${service.image}-384.jpg`} />
+                      <img src={`/assets/images/home-support-v2/web/${service.image}-${service.priority ? '1024' : '640'}.jpg`} alt={lang === 'en' ? service.name_en : service.name_he} className="h-full min-h-[240px] w-full object-cover transition duration-500 group-hover:scale-[1.025]" loading="lazy" />
+                    </picture>
+                  <CardContent className="flex flex-col p-6">
+                    <div className="cf-gold-icon mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
+                      <img src={service.mark} alt="" className="h-12 w-12" />
                     </div>
                     <h3 className="font-semibold text-lg mb-2">
                       {lang === 'en' ? service.name_en : service.name_he}
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="mb-5 flex-1 text-sm leading-6 text-muted-foreground">
                       {lang === 'en' ? service.desc_en : service.desc_he}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <a
                         href={getWhatsAppServiceLink(lang === 'en' ? service.name_en : service.name_he, lang)}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <Button size="sm" variant="outline" className="gap-1.5 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10">
+                        <Button size="sm" className="gap-1.5 bg-[#102e38] text-[#f7f2ea] hover:bg-[#163f49]">
                           <MessageCircle className="h-3.5 w-3.5" />
                           WhatsApp
                         </Button>
                       </a>
                       <Link to="/quote">
-                        <Button size="sm" variant="secondary">
+                        <Button size="sm" variant="outline" className="gap-1 border-[#b8842f]/55">
                           {t.nav.getQuote}
+                          <ArrowRight className="h-3.5 w-3.5" />
                         </Button>
                       </Link>
                     </div>
                   </CardContent>
+                  </div>
                 </Card>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Image Section */}
-        <section className="py-12">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 rounded-xl overflow-hidden">
-              <img
-                src="/assets/images/service-cleaning-professional.png"
-                alt="Professional cleaning"
-                className="w-full h-64 object-cover rounded-xl"
-              />
-              <img
-                src="/assets/images/service-repair-handyman.png"
-                alt="Professional repairs"
-                className="w-full h-64 object-cover rounded-xl"
-              />
-            </div>
-          </div>
-        </section>
       </main>
       <Footer />
     </div>

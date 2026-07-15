@@ -38,11 +38,11 @@ export default function AboutPage() {
                 </p>
               </div>
               <div className="rounded-xl overflow-hidden">
-                <img
-                  src="/assets/images/harish-city-aerial.png"
-                  alt="Harish"
-                  className="w-full h-64 md:h-80 object-cover"
-                />
+                <picture>
+                  <source media="(max-width: 640px)" srcSet="/assets/images/home-support-v2/web/harish-city-aerial-v2-640.jpg" />
+                  <source media="(max-width: 1100px)" srcSet="/assets/images/home-support-v2/web/harish-city-aerial-v2-960.jpg" />
+                  <img src="/assets/images/home-support-v2/web/harish-city-aerial-v2-1536.jpg" alt="Aerial view of Harish, Israel" className="h-64 w-full object-cover md:h-80" loading="lazy" />
+                </picture>
               </div>
             </div>
           </div>

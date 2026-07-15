@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "status": "review",
+  "palette": "CleanFixHarish home-support emblem",
+  "assets": [
+    {"id":"hero","file":"hero-handyman-harish-v2","shape":"landscape","placement":"Homepage hero","alt":"CleanFixHarish handyman helping in a local Harish home"},
+    {"id":"handyman","file":"service-handyman-v2","shape":"square","placement":"Handyman service","alt":"Professional handyman carefully adjusting a cabinet hinge"},
+    {"id":"post-renovation","file":"service-post-renovation-cleaning-v2","shape":"square","placement":"Post-renovation cleaning","alt":"Professional post-renovation cleaner removing fine construction dust"},
+    {"id":"move-cleaning","file":"service-move-cleaning-v2","shape":"square","placement":"Move-in and move-out cleaning","alt":"Professional cleaner preparing an empty home for a move"},
+    {"id":"ac-cleaning","file":"service-ac-cleaning-v2","shape":"square","placement":"AC cleaning","alt":"Technician safely cleaning a wall-mounted air conditioner"},
+    {"id":"window-cleaning","file":"service-window-cleaning-v2","shape":"square","placement":"Window cleaning","alt":"Professional cleaning a large window in a Harish home"},
+    {"id":"home-cleaning","file":"service-home-cleaning-v2","shape":"square","placement":"General cleaning","alt":"Professional cleaner working in a bright modern kitchen"},
+    {"id":"harish","file":"harish-city-aerial-v2","shape":"landscape","placement":"Local trust and About sections","alt":"Aerial view of Harish, Israel"},
+    {"id":"support","file":"cta-local-support-v2","shape":"landscape","placement":"WhatsApp and contact call to action","alt":"Harish homeowner receiving local service support"}
+  ]
+}

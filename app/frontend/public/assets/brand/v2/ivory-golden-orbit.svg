@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <radialGradient id="wash" cx="0" cy="0" r="1" gradientTransform="translate(980 360) rotate(145) scale(1020 760)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF8"/><stop offset="1" stop-color="#F1E7D8"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="280" y1="80" x2="1330" y2="820" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0C96F"/><stop offset=".48" stop-color="#B8842F"/><stop offset="1" stop-color="#D9A946"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#wash)"/>
+  <circle cx="1260" cy="170" r="280" fill="#D9C29E" opacity=".13" filter="url(#soft)"/>
+  <path d="M1220 40C805 115 520 385 445 800" stroke="url(#gold)" stroke-width="2" opacity=".32"/>
+  <path d="M1415 32C900 118 548 450 460 865" stroke="url(#gold)" stroke-width="1" opacity=".22"/>
+  <path d="M1298 110C955 190 720 405 645 745" stroke="#102E38" stroke-width="1" opacity=".09"/>
+  <circle cx="645" cy="745" r="8" fill="#B8905B" opacity=".58"/>
+</svg>

@@ -7,14 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   MessageCircle,
-  Sparkles,
-  Wrench,
-  Thermometer,
-  Wind,
-  KeyRound,
   ArrowRight,
   Shield,
-  Clock,
   BadgeCheck,
   Heart,
 } from 'lucide-react';
@@ -23,20 +17,12 @@ import { cleanfixApi } from '@/lib/cleanfixApi';
 
 type ContentBlock = { title_en?: string; title_he?: string; content_en?: string; content_he?: string; is_active?: boolean };
 
-const serviceIcons: Record<string, React.ReactNode> = {
-  sparkles: <Sparkles className="h-6 w-6" />,
-  wrench: <Wrench className="h-6 w-6" />,
-  thermometer: <Thermometer className="h-6 w-6" />,
-  wind: <Wind className="h-6 w-6" />,
-  key: <KeyRound className="h-6 w-6" />,
-};
-
 const services = [
-  { icon: 'wrench', name_en: 'Handyman', name_he: 'הנדימן', desc_en: 'Small repairs, installations, mounting, adjustments, and practical apartment fixes.', desc_he: 'תיקונים קטנים, התקנות, תלייה, התאמות ועבודות מעשיות בדירה.', featured: true },
-  { icon: 'sparkles', name_en: 'Post-renovation cleaning', name_he: 'ניקיון אחרי שיפוץ', desc_en: 'Detailed dust and surface cleaning that helps the home feel truly finished.', desc_he: 'ניקוי יסודי של אבק ומשטחים, כדי שהבית ירגיש באמת מוכן.' },
-  { icon: 'key', name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A clean reset before entering a home or handing it over.', desc_he: 'התחלה נקייה לפני כניסה לבית או מסירה שלו.' },
-  { icon: 'thermometer', name_en: 'AC cleaning', name_he: 'ניקוי מזגנים', desc_en: 'Practical cleaning for a fresher, more comfortable home environment.', desc_he: 'ניקוי מעשי לסביבה ביתית רעננה ונעימה יותר.' },
-  { icon: 'wind', name_en: 'Window cleaning', name_he: 'ניקוי חלונות', desc_en: 'Glass, frames, and tracks cleaned for a brighter, more polished space.', desc_he: 'ניקוי זכוכית, מסגרות ומסילות לחלל בהיר ומטופח יותר.' },
+  { icon: 'wrench', mark: '/assets/brand/v2/symbol-handyman.svg', name_en: 'Handyman', name_he: 'הנדימן', desc_en: 'Small repairs, installations, mounting, adjustments, and practical apartment fixes.', desc_he: 'תיקונים קטנים, התקנות, תלייה, התאמות ועבודות מעשיות בדירה.', featured: true },
+  { icon: 'sparkles', mark: '/assets/brand/v2/symbol-cleaning.svg', name_en: 'Post-renovation cleaning', name_he: 'ניקיון אחרי שיפוץ', desc_en: 'Detailed dust and surface cleaning that helps the home feel truly finished.', desc_he: 'ניקוי יסודי של אבק ומשטחים, כדי שהבית ירגיש באמת מוכן.' },
+  { icon: 'key', mark: '/assets/brand/v2/symbol-access.svg', name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A clean reset before entering a home or handing it over.', desc_he: 'התחלה נקייה לפני כניסה לבית או מסירה שלו.' },
+  { icon: 'thermometer', mark: '/assets/brand/v2/symbol-ac.svg', name_en: 'AC cleaning', name_he: 'ניקוי מזגנים', desc_en: 'Practical cleaning for a fresher, more comfortable home environment.', desc_he: 'ניקוי מעשי לסביבה ביתית רעננה ונעימה יותר.' },
+  { icon: 'wind', mark: '/assets/brand/v2/symbol-window.svg', name_en: 'Window cleaning', name_he: 'ניקוי חלונות', desc_en: 'Glass, frames, and tracks cleaned for a brighter, more polished space.', desc_he: 'ניקוי זכוכית, מסגרות ומסילות לחלל בהיר ומטופח יותר.' },
 ];
 
 export default function Index() {
@@ -63,15 +49,16 @@ export default function Index() {
       <Header />
 
       {/* Hero Section - Golden Ratio Layout (38% text / 62% image) */}
-      <section className="relative overflow-hidden bg-[#f3efe7]">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12 items-center">
+      <section className="relative overflow-hidden bg-[#f7f2ea]">
+        <div className="absolute inset-0 bg-[url('/assets/brand/v2/ivory-golden-orbit.svg')] bg-cover bg-center opacity-70" aria-hidden="true" />
+        <div className="cf-shell relative py-[55px] md:py-[89px]">
+          <div className="grid grid-cols-1 items-center gap-[34px] lg:grid-cols-[1fr_1.618fr] lg:gap-[55px]">
             {/* Text - ~38% */}
             <div className="lg:col-span-2">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#0f514b]">
+              <p className="cf-eyebrow mb-4">
                 {t.hero.eyebrow}
               </p>
-              <h1 className="text-3xl sm:text-4xl md:text-[2.75rem] font-bold leading-tight mb-5 text-foreground">
+              <h1 className="mb-5 text-4xl font-bold leading-[.98] text-[#081f28] sm:text-5xl md:text-[3.8rem]">
                 {cmsValue('hero', 'title', t.hero.title)}
               </h1>
               <p className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed">
@@ -79,13 +66,13 @@ export default function Index() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link to="/quote">
-                  <Button size="lg" className="gap-2 text-base shadow-sm">
+                  <Button size="lg" className="gap-2 bg-[#102e38] text-base shadow-lg hover:bg-[#163f49]">
                     {t.hero.cta}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
                 <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer">
-                  <Button size="lg" variant="outline" className="gap-2 text-base border-[#25D366] text-[#25D366] hover:bg-[#25D366]/5">
+                  <Button size="lg" variant="outline" className="gap-2 border-[#b8842f]/60 bg-[#f7f2ea]/80 text-base text-[#102e38] hover:bg-[#e8d8be]">
                     <MessageCircle className="h-5 w-5" />
                     {t.hero.whatsapp}
                   </Button>
@@ -97,12 +84,12 @@ export default function Index() {
             </div>
             {/* Image - ~62% */}
             <div className="lg:col-span-3">
-              <div className="rounded-2xl overflow-hidden shadow-lg">
-                <img
-                  src="/assets/images/hero-home-services-trust.png"
-                  alt="Professional home services"
-                  className="w-full h-64 md:h-[420px] object-cover"
-                />
+              <div className="cf-photo overflow-hidden rounded-[34px] bg-[#102e38]">
+                <picture>
+                  <source media="(max-width: 640px)" srcSet="/assets/images/home-support-v2/web/hero-handyman-harish-v2-640.jpg" />
+                  <source media="(max-width: 1100px)" srcSet="/assets/images/home-support-v2/web/hero-handyman-harish-v2-960.jpg" />
+                  <img src="/assets/images/home-support-v2/web/hero-handyman-harish-v2-1536.jpg" alt="CleanFixHarish handyman helping in a local Harish home" className="h-72 w-full object-cover md:h-[500px]" fetchPriority="high" />
+                </picture>
               </div>
             </div>
           </div>
@@ -110,19 +97,19 @@ export default function Index() {
       </section>
 
       {/* Services Section */}
-      <section className="py-16 md:py-24 bg-[#fbfaf7]">
+      <section className="bg-[#fbf8f3] py-[55px] md:py-[89px]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#0f514b]">{t.services.eyebrow}</p>
-            <h2 className="text-3xl font-bold mb-3">{t.services.title}</h2>
+            <p className="cf-eyebrow mb-3">{t.services.eyebrow}</p>
+            <h2 className="mb-3 text-4xl font-bold text-[#081f28] md:text-5xl">{t.services.title}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">{t.services.subtitle}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5">
             {services.map((service) => (
-              <Card key={service.icon} className={`group hover:shadow-md transition-all duration-300 border-border/50 bg-white ${service.featured ? 'sm:col-span-2 lg:col-span-2 border-[#b79252]/50' : 'lg:col-span-1'}`}>
+              <Card key={service.icon} className={`group overflow-hidden border-[#b8842f]/35 bg-[#f7f2ea] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_21px_55px_rgba(8,31,40,.12)] ${service.featured ? 'sm:col-span-2 lg:col-span-2 border-[#b8842f]/65' : 'lg:col-span-1'}`}>
                 <CardContent className="p-6 h-full flex flex-col gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#e4ece8] text-[#0f514b] flex items-center justify-center shrink-0 group-hover:bg-[#0f514b] group-hover:text-white transition-colors duration-300">
-                    {serviceIcons[service.icon]}
+                  <div className="cf-gold-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105">
+                    <img src={service.mark} alt="" className="h-12 w-12" />
                   </div>
                   <div>
                     <h3 className="font-medium text-base text-foreground">
@@ -148,11 +135,11 @@ export default function Index() {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 md:py-24 bg-[#e9eee9]">
+      <section className="cf-navy-panel py-[55px] md:py-[89px]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">{cmsValue('how_it_works', 'title', t.howItWorks.title)}</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">{t.howItWorks.subtitle}</p>
+            <h2 className="mb-3 text-4xl font-bold text-[#f7f2ea] md:text-5xl">{cmsValue('how_it_works', 'title', t.howItWorks.title)}</h2>
+            <p className="mx-auto max-w-md text-[#e8d8be]">{t.howItWorks.subtitle}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {[
@@ -161,12 +148,12 @@ export default function Index() {
               { num: '3', title: t.howItWorks.step3Title, desc: t.howItWorks.step3Desc, icon: <Shield className="h-5 w-5" /> },
               { num: '4', title: t.howItWorks.step4Title, desc: t.howItWorks.step4Desc, icon: <Heart className="h-5 w-5" /> },
             ].map((step) => (
-              <div key={step.num} className="text-center">
-                <div className="w-12 h-12 rounded-full bg-white text-[#0f514b] flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <div key={step.num} className="text-center text-[#f7f2ea]">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[#c49332]/65 bg-[#163f49] text-[#f0c96f] shadow-lg">
                   {step.icon}
                 </div>
                 <h3 className="font-semibold mb-2 text-sm">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+                <p className="text-sm leading-relaxed text-[#e8d8be]/80">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -174,7 +161,7 @@ export default function Index() {
       </section>
 
       {/* Why Trust Us */}
-      <section className="py-16 md:py-24 bg-background">
+      <section className="bg-[#f7f2ea] py-[55px] md:py-[89px]">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -191,31 +178,31 @@ export default function Index() {
                 ))}
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden shadow-lg">
-              <img
-                src="/assets/images/harish-city-aerial.png"
-                alt="Harish community"
-                className="w-full h-64 md:h-80 object-cover"
-              />
+            <div className="cf-photo overflow-hidden rounded-[21px]">
+              <picture><source media="(max-width: 640px)" srcSet="/assets/images/home-support-v2/web/harish-city-aerial-v2-640.jpg"/><source media="(max-width: 1100px)" srcSet="/assets/images/home-support-v2/web/harish-city-aerial-v2-960.jpg"/><img src="/assets/images/home-support-v2/web/harish-city-aerial-v2-1536.jpg" alt="Aerial view of Harish, Israel" className="h-64 w-full object-cover md:h-96" loading="lazy"/></picture>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-20 bg-[#103d3a] text-white">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4 text-white">
+      <section className="relative overflow-hidden bg-[#102e38] text-white">
+        <div className="grid min-h-[430px] lg:grid-cols-[1.618fr_1fr]">
+          <div className="flex items-center px-4 py-[55px] sm:px-8 lg:px-[89px]">
+            <div className="max-w-xl">
+          <p className="cf-eyebrow">Local support</p>
+          <div className="cf-gold-rule" />
+          <h2 className="mb-4 text-4xl font-bold text-white md:text-5xl">
             {lang === 'en' ? 'Tell us what needs attention.' : 'ספרו לנו במה צריך לטפל.'}
           </h2>
-          <p className="text-white/80 mb-8 max-w-md mx-auto">
+          <p className="mb-8 max-w-md text-white/80">
             {lang === 'en'
               ? 'Send the service, your area in Harish, and photos if relevant. We will review the details and explain the next step.'
               : 'שלחו את סוג השירות, האזור בחריש ותמונות אם הן רלוונטיות. נבדוק את הפרטים ונסביר מה השלב הבא.'}
           </p>
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-wrap gap-3">
             <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" className="gap-2 text-base bg-[#f3efe7] text-[#103d3a] hover:bg-white">
+              <Button size="lg" className="gap-2 bg-[#e8d8be] text-base text-[#102e38] hover:bg-[#f7f2ea]">
                 <MessageCircle className="h-5 w-5" />
                 {t.hero.whatsapp}
               </Button>
@@ -226,6 +213,9 @@ export default function Index() {
               </Button>
             </Link>
           </div>
+            </div>
+          </div>
+          <picture className="min-h-[320px]"><source media="(max-width: 640px)" srcSet="/assets/images/home-support-v2/web/cta-local-support-v2-640.jpg"/><source media="(max-width: 1100px)" srcSet="/assets/images/home-support-v2/web/cta-local-support-v2-960.jpg"/><img src="/assets/images/home-support-v2/web/cta-local-support-v2-1536.jpg" alt="Harish homeowner receiving local service support" className="h-full w-full object-cover" loading="lazy"/></picture>
         </div>
       </section>
 
