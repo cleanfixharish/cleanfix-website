@@ -2,6 +2,11 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { loadRuntimeConfig } from './lib/config.ts';
+import { initializePwaInstall } from './lib/pwaInstall.ts';
+
+// Capture Chromium's one-time install event before React and runtime config load.
+// This keeps the Install button reliable even on slow networks.
+initializePwaInstall();
 
 // Load runtime configuration before rendering the app
 async function initializeApp() {

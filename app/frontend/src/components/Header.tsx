@@ -6,18 +6,14 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, Globe, MessageCircle, Download, Share, Plus, Smartphone, X, UserRound } from 'lucide-react';
 import { getWhatsAppLink } from '@/lib/whatsapp';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
+import { requestPwaInstall, subscribeToPwaInstall } from '@/lib/pwaInstall';
 
 export default function Header() {
   const { t, lang, setLang, dir } = useLanguage();
   const { user } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [nativeInstallReady, setNativeInstallReady] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [platform, setPlatform] = useState<'ios' | 'android' | 'desktop'>('desktop');
   const [showModal, setShowModal] = useState(false);
@@ -32,39 +28,26 @@ export default function Header() {
     const android = /Android/.test(ua);
     setPlatform(ios ? 'ios' : android ? 'android' : 'desktop');
 
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-
-    // Listen for successful install
-    window.addEventListener('appinstalled', () => {
-      setIsInstalled(true);
-      setShowModal(false);
-      setInstallPrompt(null);
+    return subscribeToPwaInstall(({ prompt, installed }) => {
+      setNativeInstallReady(Boolean(prompt));
+      setIsInstalled(installed);
+      if (installed) setShowModal(false);
     });
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-    };
   }, []);
 
   const handleInstallClick = useCallback(async () => {
     // If we have the native prompt (Android/Desktop Chrome), use it directly — one click!
-    if (installPrompt) {
-      await installPrompt.prompt();
-      const { outcome } = await installPrompt.userChoice;
+    if (nativeInstallReady) {
+      const outcome = await requestPwaInstall();
       if (outcome === 'accepted') {
         setIsInstalled(true);
       }
-      setInstallPrompt(null);
       return;
     }
 
     // Otherwise show the instruction modal
     setShowModal(true);
-  }, [installPrompt]);
+  }, [nativeInstallReady]);
 
   // Don't show install button if already installed
   if (isInstalled && !showModal) {
