@@ -13,7 +13,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <img src="/assets/logo.png" alt="CleanFixHarish" className="w-9 h-9 rounded-full object-cover" />
+              <img src="/assets/brand/cf-home-support-emblem-128.png" alt="CleanFixHarish home support emblem" className="h-10 w-10 rounded-xl" />
               <span className="font-semibold text-lg" style={{ fontFamily: 'Lora, serif' }}>
                 CleanFixHarish
               </span>
@@ -56,7 +56,7 @@ export default function Footer() {
                 050-827-5505
               </a>
               <a
-                href="tel:+972508275505"
+                href="tel:0508275505"
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Phone className="h-4 w-4" />

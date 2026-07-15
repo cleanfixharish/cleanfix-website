@@ -1,0 +1,19 @@
+{
+  "brand": "CleanFixHarish",
+  "approved_at": "2026-07-15",
+  "official_logo": "Home Support Emblem",
+  "master": "/assets/brand/cf-home-support-emblem-master.png",
+  "website": {
+    "large": "/assets/brand/cf-home-support-emblem-512.png",
+    "standard": "/assets/brand/cf-home-support-emblem-256.png",
+    "compact": "/assets/brand/cf-home-support-emblem-128.png",
+    "small": "/assets/brand/cf-home-support-emblem-64.png"
+  },
+  "social": "/assets/brand/cleanfixharish-social-1200x630.png",
+  "palette": {
+    "deep_navy_teal": "#102E38",
+    "warm_ivory": "#F7F2EA",
+    "soft_champagne": "#E8D8BE",
+    "brushed_gold": "#C7A36B"
+  }
+}

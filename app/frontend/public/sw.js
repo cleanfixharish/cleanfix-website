@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cleanfix-harish-v1';
+const CACHE_NAME = 'cleanfix-harish-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

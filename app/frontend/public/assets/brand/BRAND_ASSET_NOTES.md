@@ -1,12 +1,13 @@
-# CleanFixHarish Brand Asset Concepts
+# CleanFixHarish Brand Assets
 
-Status: review concepts; not yet wired into production pages.
+Status: the Home Support Emblem supplied as `CleanFixIcon.png` was approved by the owner on 2026-07-15 and is wired into production pages.
 
 ## Recommended direction
 
-- Primary mark: `cf-monogram-primary.svg`
-- Dark/app-icon mark: `cf-monogram-outline.svg`
-- Navigation/invoice lockup: `cf-wordmark.svg`
+- Protected raster master: `cf-home-support-emblem-master.png`
+- Responsive website exports: `cf-home-support-emblem-1024.png` through `cf-home-support-emblem-64.png`
+- PWA, Apple, favicon, maskable, Microsoft tile, and social-sharing exports live in `/icons` and the brand directory.
+- Precision, Continuous, Atelier, and earlier monograms are archived concepts and must not replace the Home Support Emblem without owner approval.
 - Hero and VIP surfaces: `background-orbit.svg`
 - Dashboard/cards surface: `background-grid.svg`
 - Section transition: `section-wave.svg`

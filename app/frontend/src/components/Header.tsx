@@ -119,7 +119,7 @@ export default function Header() {
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <img src="/assets/logo.png" alt="CleanFixHarish" className="w-9 h-9 rounded-full object-cover" />
+            <img src="/assets/brand/cf-home-support-emblem-128.png" alt="CleanFixHarish home support emblem" className="h-10 w-10 rounded-xl" />
             <span className="font-semibold text-lg hidden sm:block" style={{ fontFamily: 'Lora, serif' }}>
               CleanFixHarish
             </span>
