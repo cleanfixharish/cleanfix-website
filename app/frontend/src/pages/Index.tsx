@@ -11,6 +11,8 @@ import {
   Shield,
   BadgeCheck,
   Heart,
+  Crown,
+  UserRound,
 } from 'lucide-react';
 import { getWhatsAppLink, getWhatsAppQuoteMessage } from '@/lib/whatsapp';
 import { cleanfixApi } from '@/lib/cleanfixApi';
@@ -52,9 +54,9 @@ export default function Index() {
       <section className="relative overflow-hidden bg-[#f7f2ea]">
         <div className="absolute inset-0 bg-[url('/assets/brand/v2/ivory-golden-orbit.svg')] bg-cover bg-center opacity-70" aria-hidden="true" />
         <div className="cf-shell relative py-[55px] md:py-[89px]">
-          <div className="grid grid-cols-1 items-center gap-[34px] lg:grid-cols-[1fr_1.618fr] lg:gap-[55px]">
+          <div className="grid grid-cols-1 items-center gap-[34px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.618fr)] lg:gap-[55px]">
             {/* Text - ~38% */}
-            <div className="lg:col-span-2">
+            <div className="relative z-10">
               <p className="cf-eyebrow mb-4">
                 {t.hero.eyebrow}
               </p>
@@ -78,18 +80,28 @@ export default function Index() {
                   </Button>
                 </a>
               </div>
+              <Link to="/account" className="mt-5 flex max-w-md items-center gap-3 rounded-2xl border border-[#b8842f]/40 bg-[#fbf8f3]/80 p-3 text-[#102e38] no-underline shadow-sm transition hover:border-[#b8842f] hover:bg-[#fbf8f3]">
+                <span className="cf-gold-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"><Crown className="h-5 w-5 text-[#f0c96f]" /></span>
+                <span className="min-w-0 flex-1"><strong className="block text-sm">Join CleanFixHarish VIP</strong><span className="block text-xs text-[#5d6b6d]">Create a customer or local-business account</span></span>
+                <UserRound className="h-5 w-5 text-[#9a681f]" />
+              </Link>
               <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
                 {t.hero.responseNote}
               </p>
             </div>
             {/* Image - ~62% */}
-            <div className="lg:col-span-3">
+            <div className="relative">
               <div className="cf-photo overflow-hidden rounded-[34px] bg-[#102e38]">
                 <picture>
                   <source media="(max-width: 640px)" srcSet="/assets/images/home-support-v2/web/hero-handyman-harish-v2-640.jpg" />
                   <source media="(max-width: 1100px)" srcSet="/assets/images/home-support-v2/web/hero-handyman-harish-v2-960.jpg" />
                   <img src="/assets/images/home-support-v2/web/hero-handyman-harish-v2-1536.jpg" alt="CleanFixHarish handyman helping in a local Harish home" className="h-72 w-full object-cover md:h-[500px]" fetchPriority="high" />
                 </picture>
+              </div>
+              <div className="absolute bottom-5 left-5 right-5 grid grid-cols-3 gap-2 rounded-2xl border border-white/20 bg-[#102e38]/92 p-3 text-center text-[#f7f2ea] shadow-2xl backdrop-blur-md sm:left-auto sm:w-[360px]">
+                <div><strong className="block text-sm text-[#f0c96f]">WhatsApp</strong><span className="text-[10px] text-white/70">First response</span></div>
+                <div className="border-x border-white/15"><strong className="block text-sm text-[#f0c96f]">Harish</strong><span className="text-[10px] text-white/70">Local service</span></div>
+                <div><strong className="block text-sm text-[#f0c96f]">Clear</strong><span className="text-[10px] text-white/70">Next steps</span></div>
               </div>
             </div>
           </div>

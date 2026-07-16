@@ -99,12 +99,13 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-[#b8842f]/35 bg-[#f7f2ea]/95 shadow-[0_4px_21px_rgba(8,31,40,.05)] backdrop-blur-xl">
-        <div className="mx-auto flex h-[68px] max-w-screen-xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-[76px] max-w-screen-xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <span className="cf-logo-shine"><img src="/assets/brand/cf-home-support-emblem-128.png" alt="CleanFixHarish home support emblem" className="h-11 w-11 rounded-[14px] shadow-sm" /></span>
-            <span className="hidden text-xl font-semibold text-[#102e38] sm:block" style={{ fontFamily: 'Cormorant Garamond, Noto Serif Hebrew, serif' }}>
-              CleanFixHarish
+          <Link to="/" className="flex shrink-0 items-center gap-3" aria-label="CleanFixHarish home">
+            <span className="cf-logo-shine"><img src="/assets/brand/cf-home-support-emblem-256.png" alt="" className="h-14 w-14 rounded-[17px] shadow-[0_5px_16px_rgba(8,31,40,.18)]" /></span>
+            <span className="hidden sm:block">
+              <span className="block text-[1.35rem] font-semibold leading-none text-[#102e38]" style={{ fontFamily: 'Cormorant Garamond, Noto Serif Hebrew, serif' }}>CleanFixHarish</span>
+              <span className="mt-1 block text-[9px] font-bold uppercase tracking-[.18em] text-[#95651f]">Home support · Harish</span>
             </span>
           </Link>
 
@@ -174,9 +175,9 @@ export default function Header() {
             </Link>
 
             <Link to={user?.role === 'admin' ? '/admin' : '/account'} className="hidden sm:inline-flex">
-              <Button size="sm" variant="ghost" className="gap-1.5">
+              <Button size="sm" variant="outline" className="gap-1.5 border-[#b8842f]/55 bg-[#fbf8f3]">
                 <UserRound className="h-4 w-4" />
-                <span className="hidden xl:inline">{user ? (lang === 'en' ? 'My account' : 'החשבון שלי') : (lang === 'en' ? 'Sign in' : 'כניסה')}</span>
+                <span className="hidden xl:inline">{user ? (lang === 'en' ? 'My dashboard' : 'האזור שלי') : (lang === 'en' ? 'Join / Sign in' : 'הרשמה / כניסה')}</span>
               </Button>
             </Link>
 
