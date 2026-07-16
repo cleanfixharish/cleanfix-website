@@ -10,6 +10,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 
 
@@ -47,7 +48,13 @@ def alembic_include_object(object, name, type_, reflected, compare_to):
 
 
 async def run_migrations_online():
-    connectable = create_async_engine(config.get_main_option("sqlalchemy.url"), poolclass=pool.NullPool)
+    database_url = make_url(config.get_main_option("sqlalchemy.url"))
+    if database_url.drivername in ("postgres", "postgresql"):
+        database_url = database_url.set(drivername="postgresql+asyncpg")
+    elif database_url.drivername == "sqlite":
+        database_url = database_url.set(drivername="sqlite+aiosqlite")
+
+    connectable = create_async_engine(database_url, poolclass=pool.NullPool)
     async with connectable.connect() as connection:
         await connection.run_sync(
             lambda sync_conn: context.configure(
