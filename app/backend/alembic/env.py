@@ -4,6 +4,7 @@
 
 import asyncio
 import importlib
+import os
 import pkgutil
 import sys
 from logging.config import fileConfig
@@ -48,7 +49,11 @@ def alembic_include_object(object, name, type_, reflected, compare_to):
 
 
 async def run_migrations_online():
-    database_url = make_url(config.get_main_option("sqlalchemy.url"))
+    raw_database_url = os.environ.get("DATABASE_URL") or config.get_main_option("sqlalchemy.url").strip().strip('"')
+    if not raw_database_url:
+        raise RuntimeError("DATABASE_URL must be set before running migrations")
+
+    database_url = make_url(raw_database_url)
     if database_url.drivername in ("postgres", "postgresql"):
         database_url = database_url.set(drivername="postgresql+asyncpg")
     elif database_url.drivername == "sqlite":
