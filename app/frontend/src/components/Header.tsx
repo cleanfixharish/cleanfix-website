@@ -208,6 +208,12 @@ export default function Header() {
                   <Link to="/quote" onClick={() => setOpen(false)}>
                     <Button className="w-full">{t.nav.getQuote}</Button>
                   </Link>
+                  <Link to="/account" onClick={() => setOpen(false)}>
+                    <Button variant="outline" className="w-full gap-2 border-[#b8842f]/50 text-[#102e38]">
+                      <UserRound className="h-4 w-4" />
+                      {user ? (lang === 'en' ? 'My dashboard' : 'האזור שלי') : (lang === 'en' ? 'Join / Sign in' : 'הרשמה / כניסה')}
+                    </Button>
+                  </Link>
                   <a href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" className="w-full gap-2 border-[#b8842f]/50 text-[#102e38] hover:bg-[#e8d8be]/50">
                       <MessageCircle className="h-4 w-4" />
