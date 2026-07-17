@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, MessageCircle, MapPin } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, Building2, ShieldCheck } from 'lucide-react';
 import { client } from '@/lib/api';
 import { getWhatsAppLink } from '@/lib/whatsapp';
 
@@ -124,6 +124,13 @@ export default function PartnersPage() {
                   </Card>
                 ))}
               </div>
+            ) : partners.length === 0 ? (
+              <Card className="mx-auto max-w-3xl border-[#B8842F]/40 bg-[#FBF8F3] shadow-[0_21px_55px_rgba(8,31,40,.09)]">
+                <CardContent className="grid gap-6 p-7 sm:grid-cols-[auto_1fr] sm:p-10">
+                  <div className="cf-gold-icon flex h-16 w-16 items-center justify-center rounded-2xl"><Building2 className="h-7 w-7 text-[#F0C96F]"/></div>
+                  <div><p className="cf-eyebrow">Verified local network</p><h2 className="mt-2 text-3xl text-[#102E38]">Local business profiles are being reviewed.</h2><p className="mt-3 leading-7 text-[#5D6B6D]">We only publish providers after owner review. No placeholder businesses, fabricated experience, or unverified claims are shown.</p><div className="mt-6 flex flex-wrap gap-3"><Button asChild className="bg-[#102E38]"><Link to="/account"><ShieldCheck className="mr-2 h-4 w-4"/>Apply as a local provider</Link></Button><Button asChild variant="outline" className="border-[#B8842F]/55"><a href={getWhatsAppLink(lang === 'he' ? 'שלום CleanFixHarish, אשמח לקבל מידע על רשת העסקים המקומיים.' : 'Hello CleanFixHarish, I would like information about the local business network.')} target="_blank" rel="noreferrer"><MessageCircle className="mr-2 h-4 w-4"/>Ask on WhatsApp</a></Button></div></div>
+                </CardContent>
+              </Card>
             ) : (
               <Tabs defaultValue="all">
                 <TabsList className="mb-6">
