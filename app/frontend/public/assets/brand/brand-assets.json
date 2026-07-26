@@ -1,16 +1,17 @@
 {
   "brand": "CleanFixHarish",
-  "approved_at": "2026-07-15",
-  "official_logo": "Home Support Emblem",
-  "master": "/assets/brand/cf-home-support-emblem-master.png",
+  "approved_at": "2026-07-26",
+  "official_logo": "CF Gold Monogram",
+  "master": "/assets/brand/cf-gold-monogram-master.png",
   "website": {
-    "large": "/assets/brand/cf-home-support-emblem-512.png",
-    "standard": "/assets/brand/cf-home-support-emblem-256.png",
-    "compact": "/assets/brand/cf-home-support-emblem-128.png",
-    "small": "/assets/brand/cf-home-support-emblem-64.png"
+    "large": "/assets/brand/cf-gold-monogram-512.png",
+    "standard": "/assets/brand/cf-gold-monogram-256.png",
+    "compact": "/assets/brand/cf-gold-monogram-128.png",
+    "small": "/assets/brand/cf-gold-monogram-64.png"
   },
   "social_profile": "/assets/brand/cleanfixharish-social-profile-512.png",
   "social_share": "/assets/brand/cleanfixharish-social-1200x630.png",
+  "wordmark": "/assets/brand/cf-gold-wordmark-master.png",
   "palette": {
     "deep_navy_teal": "#102E38",
     "warm_ivory": "#F7F2EA",

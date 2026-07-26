@@ -102,7 +102,7 @@ export default function Header() {
         <div className="mx-auto flex h-[76px] max-w-screen-2xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-3" aria-label="CleanFixHarish home">
-            <span className="cf-logo-shine"><img src="/assets/brand/cf-home-support-emblem-256.png" alt="" className="h-14 w-14 rounded-[17px] shadow-[0_5px_16px_rgba(8,31,40,.18)]" /></span>
+            <span className="cf-logo-shine"><img src="/assets/brand/cf-gold-monogram-256.png" alt="" className="h-14 w-14 rounded-[17px] shadow-[0_5px_16px_rgba(8,31,40,.18)]" /></span>
             <span className="hidden sm:block">
               <span className="block text-[1.35rem] font-semibold leading-none text-[#102e38]" style={{ fontFamily: 'Cormorant Garamond, Noto Serif Hebrew, serif' }}>CleanFixHarish</span>
               <span className="mt-1 block text-[9px] font-bold uppercase tracking-[.18em] text-[#95651f]">Home support · Harish</span>

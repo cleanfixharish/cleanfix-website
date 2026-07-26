@@ -2,7 +2,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$SourceImage,
   [Parameter(Mandatory = $true)]
-  [string]$PublicDirectory
+  [string]$PublicDirectory,
+  [string]$WordmarkImage
 )
 
 Add-Type -AssemblyName PresentationCore
@@ -84,13 +85,46 @@ $iconDirectory = Join-Path $PublicDirectory 'icons'
 [System.IO.Directory]::CreateDirectory($brandDirectory) | Out-Null
 [System.IO.Directory]::CreateDirectory($iconDirectory) | Out-Null
 
-$masterPath = Join-Path $brandDirectory 'cf-home-support-emblem-master.png'
+$masterPath = Join-Path $brandDirectory 'cf-gold-monogram-master.png'
 [System.IO.File]::Copy($SourceImage, $masterPath, $true)
 $source = Load-Bitmap -Path $masterPath
 
 foreach ($size in @(1024, 512, 256, 128, 64)) {
-  Write-Png -Source $source -Width $size -Height $size -OutputPath (Join-Path $brandDirectory "cf-home-support-emblem-$size.png")
+  $outputPath = Join-Path $brandDirectory "cf-gold-monogram-$size.png"
+  Write-Png -Source $source -Width $size -Height $size -OutputPath $outputPath
+  [System.IO.File]::Copy($outputPath, (Join-Path $brandDirectory "cf-home-support-emblem-$size.png"), $true)
 }
+
+function Write-FitPng {
+  param(
+    [System.Windows.Media.Imaging.BitmapSource]$Source,
+    [int]$Width,
+    [int]$Height,
+    [string]$OutputPath
+  )
+
+  $visual = [System.Windows.Media.DrawingVisual]::new()
+  [System.Windows.Media.RenderOptions]::SetBitmapScalingMode($visual, [System.Windows.Media.BitmapScalingMode]::Fant)
+  $context = $visual.RenderOpen()
+  $navy = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(2, 18, 29))
+  $context.DrawRectangle($navy, $null, [System.Windows.Rect]::new(0, 0, $Width, $Height))
+  $scale = [Math]::Min($Width / $Source.PixelWidth, $Height / $Source.PixelHeight)
+  $drawWidth = $Source.PixelWidth * $scale
+  $drawHeight = $Source.PixelHeight * $scale
+  $context.DrawImage($Source, [System.Windows.Rect]::new(($Width - $drawWidth) / 2, ($Height - $drawHeight) / 2, $drawWidth, $drawHeight))
+  $context.Close()
+
+  $bitmap = [System.Windows.Media.Imaging.RenderTargetBitmap]::new($Width, $Height, 96, 96, [System.Windows.Media.PixelFormats]::Pbgra32)
+  $bitmap.Render($visual)
+  $encoder = [System.Windows.Media.Imaging.PngBitmapEncoder]::new()
+  $encoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
+  $stream = [System.IO.File]::Open($OutputPath, [System.IO.FileMode]::Create)
+  try { $encoder.Save($stream) } finally { $stream.Dispose() }
+}
+
+[System.IO.File]::Copy($masterPath, (Join-Path $brandDirectory 'cf-home-support-emblem-master.png'), $true)
+[System.IO.File]::Copy((Join-Path $brandDirectory 'cf-gold-monogram-512.png'), (Join-Path $brandDirectory 'cleanfixharish-social-profile-512.png'), $true)
+[System.IO.File]::Copy((Join-Path $brandDirectory 'cf-gold-monogram-512.png'), (Join-Path $PublicDirectory 'assets\logo.png'), $true)
 
 foreach ($size in @(512, 192, 180, 150, 64, 48, 32, 16)) {
   Write-Png -Source $source -Width $size -Height $size -OutputPath (Join-Path $iconDirectory "logo-$size.png")
@@ -105,5 +139,12 @@ foreach ($size in @(512, 192, 180, 150, 64, 48, 32, 16)) {
 [System.IO.File]::Copy((Join-Path $iconDirectory 'logo-32.png'), (Join-Path $iconDirectory 'favicon-32x32.png'), $true)
 [System.IO.File]::Copy((Join-Path $iconDirectory 'logo-16.png'), (Join-Path $iconDirectory 'favicon-16x16.png'), $true)
 
-Write-Png -Source $source -Width 1200 -Height 630 -OutputPath (Join-Path $brandDirectory 'cleanfixharish-social-1200x630.png') -SocialCanvas
+if ($WordmarkImage) {
+  $wordmarkMaster = Join-Path $brandDirectory 'cf-gold-wordmark-master.png'
+  [System.IO.File]::Copy($WordmarkImage, $wordmarkMaster, $true)
+  $wordmark = Load-Bitmap -Path $wordmarkMaster
+  Write-FitPng -Source $wordmark -Width 1200 -Height 630 -OutputPath (Join-Path $brandDirectory 'cleanfixharish-social-1200x630.png')
+} else {
+  Write-Png -Source $source -Width 1200 -Height 630 -OutputPath (Join-Path $brandDirectory 'cleanfixharish-social-1200x630.png') -SocialCanvas
+}
 Write-Ico -PngPaths @((Join-Path $iconDirectory 'logo-16.png'), (Join-Path $iconDirectory 'logo-32.png'), (Join-Path $iconDirectory 'logo-48.png'), (Join-Path $iconDirectory 'logo-64.png')) -OutputPath (Join-Path $PublicDirectory 'favicon.ico')

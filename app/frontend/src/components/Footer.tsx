@@ -12,12 +12,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <img src="/assets/brand/cf-home-support-emblem-128.png" alt="CleanFixHarish home support emblem" className="h-10 w-10 rounded-xl" />
-              <span className="text-xl font-semibold text-[#f7f2ea]" style={{ fontFamily: 'Cormorant Garamond, Noto Serif Hebrew, serif' }}>
-                CleanFixHarish
-              </span>
-            </div>
+            <img
+              src="/assets/brand/cf-gold-wordmark-master.png"
+              alt="CleanFix Harish"
+              className="mb-3 h-24 w-auto max-w-[260px] rounded-2xl object-contain object-left"
+            />
             <p className="max-w-xs text-sm text-[#e8d8be]/75">
               {t.footer.tagline}
             </p>
