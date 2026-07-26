@@ -11,6 +11,25 @@ from routers.settings import MASKED_VALUE, display_value
 client = TestClient(app)
 
 
+def test_render_page_redirects_to_official_domain():
+    response = client.get(
+        "/services?source=render",
+        headers={"host": "cleanfixharish-web.onrender.com"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 308
+    assert response.headers["location"] == "https://www.cleanfixharish.co.il/services?source=render"
+
+
+def test_render_health_check_is_not_redirected():
+    response = client.get(
+        "/health",
+        headers={"host": "cleanfixharish-web.onrender.com"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 200
+
+
 def test_admin_endpoints_reject_anonymous_requests():
     protected_requests = (
         ("GET", "/api/v1/entities/leads"),

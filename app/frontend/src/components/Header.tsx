@@ -14,6 +14,7 @@ export default function Header() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [canInstall, setCanInstall] = useState(false);
   const [platform, setPlatform] = useState<'ios' | 'android' | 'desktop'>('desktop');
   const [showModal, setShowModal] = useState(false);
 
@@ -27,8 +28,9 @@ export default function Header() {
     const android = /Android/.test(ua);
     setPlatform(ios ? 'ios' : android ? 'android' : 'desktop');
 
-    return subscribeToPwaInstall(({ installed }) => {
+    return subscribeToPwaInstall(({ installed, canInstall }) => {
       setIsInstalled(installed);
+      setCanInstall(canInstall);
       if (installed) setShowModal(false);
     });
   }, []);
@@ -42,10 +44,10 @@ export default function Header() {
       return;
     }
 
-    // A dismissed native prompt should stay dismissed. Only show help when this
-    // browser does not expose web-app installation (notably iOS and some browsers).
-    if (outcome === 'unavailable') setShowModal(true);
-  }, []);
+    // iOS uses Add to Home Screen instead of beforeinstallprompt. Unsupported
+    // desktop browsers do not show a dead install control.
+    if (outcome === 'unavailable' && platform === 'ios') setShowModal(true);
+  }, [platform]);
 
   // Don't show install button if already installed
   if (isInstalled && !showModal) {
@@ -127,7 +129,7 @@ export default function Header() {
           {/* Right Actions */}
           <div className="flex items-center gap-2">
             {/* Install App Button — always visible unless installed */}
-            {!isInstalled && (
+            {!isInstalled && (canInstall || platform === 'ios') && (
               <Button
                 variant="outline"
                 size="sm"
@@ -218,7 +220,7 @@ export default function Header() {
                       {t.hero.whatsapp}
                     </Button>
                   </a>
-                  {!isInstalled && (
+                  {!isInstalled && (canInstall || platform === 'ios') && (
                     <Button
                       variant="outline"
                       className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/5"

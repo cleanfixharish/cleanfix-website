@@ -6,6 +6,7 @@ export interface BeforeInstallPromptEvent extends Event {
 type InstallState = {
   prompt: BeforeInstallPromptEvent | null;
   installed: boolean;
+  canInstall: boolean;
 };
 
 const listeners = new Set<(state: InstallState) => void>();
@@ -18,7 +19,11 @@ function isStandalone() {
 }
 
 function snapshot(): InstallState {
-  return { prompt: deferredPrompt, installed: isStandalone() };
+  return {
+    prompt: deferredPrompt,
+    installed: isStandalone(),
+    canInstall: deferredPrompt !== null,
+  };
 }
 
 function publish() {

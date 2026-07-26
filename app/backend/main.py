@@ -10,7 +10,7 @@ from pathlib import Path
 from core.config import settings
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRouter
 
 # MODULE_IMPORTS_START
@@ -105,6 +105,32 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Accept", "X-CSRF-Token"],
 )
 # MODULE_MIDDLEWARE_END
+
+
+@app.middleware("http")
+async def redirect_render_pages_to_official_domain(request: Request, call_next):
+    """Keep public visitors on the canonical, installable website origin.
+
+    Render's service URL remains available for health checks and API operations,
+    but ordinary page visits are permanently redirected to the official domain.
+    """
+    host = request.headers.get("host", "").split(":", 1)[0].lower()
+    is_public_page = not (
+        request.url.path == "/health"
+        or request.url.path == "/api"
+        or request.url.path.startswith("/api/")
+    )
+    if (
+        host == "cleanfixharish-web.onrender.com"
+        and request.method in {"GET", "HEAD"}
+        and is_public_page
+    ):
+        destination = f"https://www.cleanfixharish.co.il{request.url.path}"
+        if request.url.query:
+            destination = f"{destination}?{request.url.query}"
+        return RedirectResponse(destination, status_code=308)
+
+    return await call_next(request)
 
 
 # Auto-discover and include all routers from the local `routers` package
