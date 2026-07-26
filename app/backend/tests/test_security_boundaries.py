@@ -30,6 +30,16 @@ def test_render_health_check_is_not_redirected():
     assert response.status_code == 200
 
 
+def test_render_service_worker_is_available_for_cache_retirement():
+    response = client.get(
+        "/sw.js",
+        headers={"host": "cleanfixharish-web.onrender.com"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 200
+    assert "IS_LEGACY_RENDER_ORIGIN" in response.text
+
+
 def test_admin_endpoints_reject_anonymous_requests():
     protected_requests = (
         ("GET", "/api/v1/entities/leads"),

@@ -117,6 +117,7 @@ async def redirect_render_pages_to_official_domain(request: Request, call_next):
     host = request.headers.get("host", "").split(":", 1)[0].lower()
     is_public_page = not (
         request.url.path == "/health"
+        or request.url.path == "/sw.js"
         or request.url.path == "/api"
         or request.url.path.startswith("/api/")
     )
