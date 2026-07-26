@@ -38,7 +38,8 @@ async def auth_status():
     """Expose only whether sign-in is configured, never credential values."""
     return {
         "configured": bool(
-            settings.oidc_client_id.strip() and settings.oidc_client_secret.strip()
+            os.getenv("OIDC_CLIENT_ID", "").strip()
+            and os.getenv("OIDC_CLIENT_SECRET", "").strip()
         ),
         "provider": "google",
     }
@@ -116,7 +117,9 @@ async def login(request: Request, db: AsyncSession = Depends(get_db)):
     """Start OIDC login flow with PKCE."""
     backend_url = get_dynamic_backend_url(request)
     frontend_url = get_frontend_url(backend_url)
-    if not settings.oidc_client_id.strip() or not settings.oidc_client_secret.strip():
+    if not os.getenv("OIDC_CLIENT_ID", "").strip() or not os.getenv(
+        "OIDC_CLIENT_SECRET", ""
+    ).strip():
         message = urlencode({"msg": "Google sign-in is being connected. Please use WhatsApp for immediate service, or try again shortly."})
         return RedirectResponse(
             url=f"{frontend_url}/auth/error?{message}",
