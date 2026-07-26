@@ -232,7 +232,9 @@ async def callback(
         if not id_token:
             return redirect_with_error("No ID token received")
 
-        id_claims = await validate_id_token(id_token)
+        id_claims = await validate_id_token(
+            id_token, access_token=tokens.get("access_token")
+        )
 
         # Validate nonce
         if id_claims.get("nonce") != nonce:
