@@ -13,7 +13,6 @@ export default function Header() {
   const { user } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [nativeInstallReady, setNativeInstallReady] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [platform, setPlatform] = useState<'ios' | 'android' | 'desktop'>('desktop');
   const [showModal, setShowModal] = useState(false);
@@ -28,26 +27,25 @@ export default function Header() {
     const android = /Android/.test(ua);
     setPlatform(ios ? 'ios' : android ? 'android' : 'desktop');
 
-    return subscribeToPwaInstall(({ prompt, installed }) => {
-      setNativeInstallReady(Boolean(prompt));
+    return subscribeToPwaInstall(({ installed }) => {
       setIsInstalled(installed);
       if (installed) setShowModal(false);
     });
   }, []);
 
   const handleInstallClick = useCallback(async () => {
-    // If we have the native prompt (Android/Desktop Chrome), use it directly — one click!
-    if (nativeInstallReady) {
-      const outcome = await requestPwaInstall();
-      if (outcome === 'accepted') {
-        setIsInstalled(true);
-      }
+    // Always try the browser's native installer first. This avoids a state timing
+    // race and makes supported browsers go straight to their install confirmation.
+    const outcome = await requestPwaInstall();
+    if (outcome === 'accepted') {
+      setIsInstalled(true);
       return;
     }
 
-    // Otherwise show the instruction modal
-    setShowModal(true);
-  }, [nativeInstallReady]);
+    // A dismissed native prompt should stay dismissed. Only show help when this
+    // browser does not expose web-app installation (notably iOS and some browsers).
+    if (outcome === 'unavailable') setShowModal(true);
+  }, []);
 
   // Don't show install button if already installed
   if (isInstalled && !showModal) {
@@ -68,29 +66,29 @@ export default function Header() {
   const installText = {
     en: {
       button: 'Install App',
-      modalTitle: 'Install CleanFix',
+      modalTitle: 'One-click install is unavailable here',
       iosStep1: 'Tap the Share button at the bottom of Safari',
       iosStep2: 'Scroll down and tap "Add to Home Screen"',
       iosStep3: 'Tap "Add" to confirm',
-      chromeStep1: 'Tap the three-dot menu (⋮) at the top right',
-      chromeStep2: 'Tap "Install app" or "Add to Home Screen"',
-      desktopStep1: 'Click the install icon (⊕) in the address bar',
-      desktopStep2: 'Or use Menu → "Install CleanFix Harish..."',
-      desktopNote: 'Works in Chrome, Edge, and other Chromium browsers',
-      close: 'Close',
+      chromeStep1: 'Open this page in Chrome, then press Install App again',
+      chromeStep2: '',
+      desktopStep1: 'Open this page in Chrome or Edge, then press Install App again',
+      desktopStep2: '',
+      desktopNote: 'Your browser controls installation for security. CleanFix cannot bypass its confirmation.',
+      close: 'Got it',
     },
     he: {
       button: 'התקן',
-      modalTitle: 'התקן את CleanFix',
+      modalTitle: 'התקנה בלחיצה אחת אינה זמינה בדפדפן זה',
       iosStep1: 'לחץ על כפתור השיתוף בתחתית ספארי',
       iosStep2: 'גלול למטה ולחץ "הוסף למסך הבית"',
       iosStep3: 'לחץ "הוסף" לאישור',
-      chromeStep1: 'לחץ על תפריט שלוש הנקודות (⋮) למעלה',
-      chromeStep2: 'לחץ "התקן אפליקציה" או "הוסף למסך הבית"',
-      desktopStep1: 'לחץ על סמל ההתקנה (⊕) בשורת הכתובת',
-      desktopStep2: 'או השתמש בתפריט → "התקן את CleanFix Harish..."',
-      desktopNote: 'עובד בכרום, אדג\', ודפדפני כרומיום אחרים',
-      close: 'סגור',
+      chromeStep1: 'פתחו את הדף ב-Chrome ולחצו שוב על התקן',
+      chromeStep2: '',
+      desktopStep1: 'פתחו את הדף ב-Chrome או Edge ולחצו שוב על התקן',
+      desktopStep2: '',
+      desktopNote: 'הדפדפן שולט בהתקנה מטעמי אבטחה. CleanFix אינה יכולה לעקוף את האישור.',
+      close: 'הבנתי',
     },
   };
 
@@ -279,15 +277,11 @@ export default function Header() {
                 </>
               )}
               {platform === 'android' && (
-                <>
-                  <Step number={1} icon={<Menu className="h-4 w-4 text-primary" />} text={it.chromeStep1} />
-                  <Step number={2} icon={<Download className="h-4 w-4 text-primary" />} text={it.chromeStep2} />
-                </>
+                <Step number={1} icon={<Download className="h-4 w-4 text-primary" />} text={it.chromeStep1} />
               )}
               {platform === 'desktop' && (
                 <>
                   <Step number={1} icon={<Download className="h-4 w-4 text-primary" />} text={it.desktopStep1} />
-                  <Step number={2} icon={<Menu className="h-4 w-4 text-primary" />} text={it.desktopStep2} />
                   <p className="text-xs text-muted-foreground text-center mt-2 italic">{it.desktopNote}</p>
                 </>
               )}
