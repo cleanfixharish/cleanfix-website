@@ -10,6 +10,7 @@ services:
     healthCheckPath: /health
     autoDeployTrigger: commit
     domains:
+      - cleanfixharish.co.il
       - www.cleanfixharish.co.il
     envVars:
       - key: ENVIRONMENT
