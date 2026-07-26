@@ -99,7 +99,7 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-[#b8842f]/35 bg-[#f7f2ea]/95 shadow-[0_4px_21px_rgba(8,31,40,.05)] backdrop-blur-xl">
-        <div className="mx-auto flex h-[76px] max-w-screen-xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-[76px] max-w-screen-2xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-3" aria-label="CleanFixHarish home">
             <span className="cf-logo-shine"><img src="/assets/brand/cf-home-support-emblem-256.png" alt="" className="h-14 w-14 rounded-[17px] shadow-[0_5px_16px_rgba(8,31,40,.18)]" /></span>
@@ -110,12 +110,12 @@ export default function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden min-w-0 items-center gap-0.5 xl:flex">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 to={item.href}
-                className={`rounded-md border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap rounded-md border-b-2 px-2.5 py-2 text-sm font-medium transition-colors ${
                   isActive(item.href)
                     ? 'border-[#b8842f] bg-[#e8d8be]/60 text-[#102e38]'
                     : 'border-transparent text-[#435a5f] hover:border-[#c49332]/60 hover:bg-[#e8d8be]/35 hover:text-[#102e38]'
@@ -127,7 +127,7 @@ export default function Header() {
           </nav>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             {/* Install App Button — always visible unless installed */}
             {!isInstalled && (canInstall || platform === 'ios') && (
               <Button
@@ -137,7 +137,7 @@ export default function Header() {
                 className="gap-1.5 border-[#b8842f]/45 bg-[#fbf8f3] text-[#102e38] transition-all hover:border-[#b8842f]/70 hover:bg-[#e8d8be]/45 hover:text-[#102e38]"
               >
                 <Download className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs font-semibold">
+                <span className="hidden text-xs font-semibold 2xl:inline">
                   {it.button}
                 </span>
               </Button>
@@ -163,7 +163,7 @@ export default function Header() {
             >
               <Button size="sm" className="gap-1.5 bg-[#102e38] text-[#f7f2ea] hover:bg-[#163f49]">
                 <MessageCircle className="h-4 w-4 text-[#f0c96f]" />
-                <span className="hidden md:inline">{t.hero.whatsapp}</span>
+                <span className="hidden 2xl:inline">{t.hero.whatsapp}</span>
               </Button>
             </a>
 
@@ -183,7 +183,7 @@ export default function Header() {
 
             {/* Mobile Menu */}
             <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild className="lg:hidden">
+              <SheetTrigger asChild className="xl:hidden">
                 <Button variant="ghost" size="icon">
                   <Menu className="h-5 w-5" />
                 </Button>
