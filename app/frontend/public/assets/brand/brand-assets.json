@@ -9,7 +9,8 @@
     "compact": "/assets/brand/cf-home-support-emblem-128.png",
     "small": "/assets/brand/cf-home-support-emblem-64.png"
   },
-  "social": "/assets/brand/cleanfixharish-social-1200x630.png",
+  "social_profile": "/assets/brand/cleanfixharish-social-profile-512.png",
+  "social_share": "/assets/brand/cleanfixharish-social-1200x630.png",
   "palette": {
     "deep_navy_teal": "#102E38",
     "warm_ivory": "#F7F2EA",

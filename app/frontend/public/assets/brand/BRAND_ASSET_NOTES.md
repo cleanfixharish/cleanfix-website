@@ -7,6 +7,9 @@ Status: the Home Support Emblem supplied as `CleanFixIcon.png` was approved by t
 - Protected raster master: `cf-home-support-emblem-master.png`
 - Responsive website exports: `cf-home-support-emblem-1024.png` through `cf-home-support-emblem-64.png`
 - PWA, Apple, favicon, maskable, Microsoft tile, and social-sharing exports live in `/icons` and the brand directory.
+- Facebook and Instagram profile image: `cleanfixharish-social-profile-512.png`
+- Legacy `/assets/logo.png` now contains the same approved Home Support Emblem for compatibility.
+- The unused generic SVG favicon was removed so no browser can fall back to an unrelated mark.
 - Precision, Continuous, Atelier, and earlier monograms are archived concepts and must not replace the Home Support Emblem without owner approval.
 - Hero and VIP surfaces: `background-orbit.svg`
 - Dashboard/cards surface: `background-grid.svg`
