@@ -113,8 +113,8 @@ export default function Footer() {
           </p>
           <p className="mt-1 text-xs text-[#e8d8be]/60">
             {lang === 'en' ? 'Harish, Israel' : 'חריש, ישראל'} •{' '}
-            <a href="https://www.cleanfix.co.il" className="hover:text-primary transition-colors">
-              www.cleanfix.co.il
+            <a href="https://www.cleanfixharish.co.il" className="hover:text-primary transition-colors">
+              www.cleanfixharish.co.il
             </a>
           </p>
         </div>
