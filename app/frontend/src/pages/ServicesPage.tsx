@@ -13,7 +13,6 @@ const services = [
   { id: 'move', mark: '/assets/brand/v2/symbol-access.svg', image: 'service-move-cleaning-v2', name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A thorough reset before receiving the key, moving in, or handing the property over.', desc_he: 'ניקיון יסודי לפני קבלת מפתח, כניסה לבית או מסירת הנכס.' },
   { id: 'ac', mark: '/assets/brand/v2/symbol-ac.svg', image: 'service-ac-cleaning-v2', name_en: 'AC cleaning', name_he: 'ניקוי מזגנים', desc_en: 'Careful cleaning for fresher airflow and a more comfortable home environment.', desc_he: 'ניקוי זהיר לזרימת אוויר רעננה יותר ולסביבה ביתית נעימה.' },
   { id: 'windows', mark: '/assets/brand/v2/symbol-window.svg', image: 'service-window-cleaning-v2', name_en: 'Window cleaning', name_he: 'ניקוי חלונות', desc_en: 'Glass, frames and tracks cleaned for brighter rooms and a polished finish.', desc_he: 'ניקוי זכוכית, מסגרות ומסילות לחדרים בהירים ולגימור מוקפד.' },
-  { id: 'home-cleaning', mark: '/assets/brand/v2/symbol-cleaning.svg', image: 'service-home-cleaning-v2', name_en: 'Home cleaning', name_he: 'ניקיון בתים', desc_en: 'Reliable, well-organized cleaning for homes that need careful ongoing attention.', desc_he: 'ניקיון אמין ומסודר לבתים שזקוקים לטיפול שוטף ומוקפד.' },
 ];
 
 export default function ServicesPage() {

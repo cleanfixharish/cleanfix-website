@@ -42,6 +42,11 @@ class RPApi {
     window.location.assign(`${this.getBaseURL()}/api/v1/auth/login`);
   }
 
+  async getStatus(): Promise<{ configured: boolean; provider: string }> {
+    const response = await this.client.get(`${this.getBaseURL()}/api/v1/auth/status`);
+    return response.data;
+  }
+
   async logout() {
     localStorage.removeItem('cleanfix_access_token');
     localStorage.removeItem('cleanfix_token_expires_at');

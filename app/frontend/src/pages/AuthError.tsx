@@ -1,85 +1,13 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, MessageCircle, RefreshCw } from 'lucide-react';
+import { getWhatsAppLink } from '@/lib/whatsapp';
 
 export default function AuthErrorPage() {
   const [searchParams] = useSearchParams();
-  const [countdown, setCountdown] = useState(3);
-  const errorMessage =
-    searchParams.get('msg') ||
-    'Sorry, your authentication information is invalid or has expired';
+  const errorMessage = searchParams.get('msg') || 'The secure sign-in could not be completed. Please try again.';
 
-  useEffect(() => {
-    // Countdown logic
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // Redirect to home page
-          window.location.href = '/';
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    // Clean up timer
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleReturnHome = () => {
-    window.location.href = '/';
-  };
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50 p-6 text-center">
-      <div className="space-y-6 max-w-md">
-        <div className="space-y-4">
-          {/* Error icon */}
-          <div className="flex justify-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-red-500/20 blur-xl rounded-full"></div>
-              <AlertCircle
-                className="relative h-12 w-12 text-red-500"
-                strokeWidth={1.5}
-              />
-            </div>
-          </div>
-
-          {/* Error title */}
-          <h1 className="text-2xl font-bold text-gray-800">
-            Authentication Error
-          </h1>
-
-          {/* Error description */}
-          <p className="text-base text-muted-foreground">{errorMessage}</p>
-
-          {/* Countdown message */}
-          <div className="pt-2">
-            <p className="text-sm text-gray-500">
-              {countdown > 0 ? (
-                <>
-                  Will automatically return to the home page in{' '}
-                  <span className="text-blue-600 font-semibold text-base">
-                    {countdown}
-                  </span>{' '}
-                  seconds
-                </>
-              ) : (
-                'Redirecting...'
-              )}
-            </p>
-          </div>
-        </div>
-
-        {/* Return to home button */}
-        <div className="flex justify-center pt-2">
-          <Button onClick={handleReturnHome} className="px-6">
-            Return to Home
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="min-h-screen bg-[#F3EFE7] text-[#173F46]"><Header/><main className="cf-ivory-orbit flex min-h-[65vh] items-center justify-center px-4 py-16"><div className="cf-panel max-w-xl p-7 text-center sm:p-10"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F1E3D5] text-[#9B4B36]"><AlertCircle className="h-8 w-8"/></div><p className="cf-eyebrow mt-6">Secure account connection</p><h1 className="mt-3 text-4xl">We could not complete sign-in.</h1><p className="mt-4 leading-7 text-[#6F675F]">{errorMessage}</p><div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row"><Button asChild className="bg-[#174E57] hover:bg-[#103A41]"><Link to="/account"><RefreshCw className="mr-2 h-4 w-4"/>Return to account</Link></Button><Button asChild variant="outline" className="border-[#B8842F]/55"><a href={getWhatsAppLink()} target="_blank" rel="noreferrer"><MessageCircle className="mr-2 h-4 w-4"/>Use WhatsApp</a></Button></div><p className="mt-6 text-xs text-[#81786F]">Your customer information was not submitted.</p></div></main><Footer/></div>;
 }

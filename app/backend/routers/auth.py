@@ -33,6 +33,17 @@ router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
 logger = logging.getLogger(__name__)
 
 
+@router.get("/status")
+async def auth_status():
+    """Expose only whether sign-in is configured, never credential values."""
+    return {
+        "configured": bool(
+            settings.oidc_client_id.strip() and settings.oidc_client_secret.strip()
+        ),
+        "provider": "google",
+    }
+
+
 def _local_patch(url: str) -> str:
     """Patch URL for local development."""
     if os.getenv("LOCAL_PATCH", "").lower() not in ("true", "1"):
@@ -103,6 +114,15 @@ def get_frontend_url(backend_url: str) -> str:
 @router.get("/login")
 async def login(request: Request, db: AsyncSession = Depends(get_db)):
     """Start OIDC login flow with PKCE."""
+    backend_url = get_dynamic_backend_url(request)
+    frontend_url = get_frontend_url(backend_url)
+    if not settings.oidc_client_id.strip() or not settings.oidc_client_secret.strip():
+        message = urlencode({"msg": "Google sign-in is being connected. Please use WhatsApp for immediate service, or try again shortly."})
+        return RedirectResponse(
+            url=f"{frontend_url}/auth/error?{message}",
+            status_code=status.HTTP_302_FOUND,
+        )
+
     state = generate_state()
     nonce = generate_nonce()
     code_verifier = generate_code_verifier()
@@ -113,7 +133,6 @@ async def login(request: Request, db: AsyncSession = Depends(get_db)):
     await auth_service.store_oidc_state(state, nonce, code_verifier)
 
     # Build redirect_uri dynamically from request
-    backend_url = get_dynamic_backend_url(request)
     redirect_uri = f"{backend_url}/api/v1/auth/callback"
     logger.info("[login] Starting OIDC flow with redirect_uri=%s", redirect_uri)
 
