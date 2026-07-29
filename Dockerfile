@@ -18,4 +18,4 @@ COPY app/backend/ /app/app/backend/
 COPY --from=frontend-build /build/frontend/dist /app/app/frontend/dist
 WORKDIR /app/app/backend
 EXPOSE 10000
-CMD ["sh", "-c", "if [ -z \"${RAILWAY_ENVIRONMENT:-}\" ]; then python -m alembic upgrade head; fi && exec uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "python -m alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
