@@ -40,14 +40,6 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
-def alembic_include_object(object, name, type_, reflected, compare_to):
-    # type_ can be 'table', 'index', 'column', 'constraint'
-    # ignore particular table_name
-    if type_ == "table" and name in ["users", "sessions", "oidc_states"]:
-        return False
-    return True
-
-
 async def run_migrations_online():
     raw_database_url = os.environ.get("DATABASE_URL") or config.get_main_option("sqlalchemy.url").strip().strip('"')
     if not raw_database_url:
@@ -67,7 +59,6 @@ async def run_migrations_online():
                 target_metadata=target_metadata,
                 compare_type=True,
                 compare_server_default=True,
-                include_object=alembic_include_object,
             )
         )
         async with connection.begin():

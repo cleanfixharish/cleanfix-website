@@ -27,7 +27,12 @@ async def check_database_health() -> bool:
 
 
 async def initialize_database():
-    """Initialize database and create tables"""
+    """Initialize the database connection and optionally create missing tables.
+
+    Railway runs Alembic in a dedicated pre-deploy container, so runtime table
+    creation is disabled there. Existing platforms keep the legacy behavior
+    until the migration is complete, unless AUTO_CREATE_TABLES is set explicitly.
+    """
     if "MGX_IGNORE_INIT_DB" in os.environ:
         logger.info("Ignore creating tables")
         return
@@ -36,9 +41,18 @@ async def initialize_database():
     try:
         logger.info("🔧 Starting database initialization...")
         await db_manager.init_db()
-        logger.info("🔧 Database connection initialized, now creating tables if tables not exist...")
-        await db_manager.create_tables()
-        logger.info("🔧 Table creation completed")
+        auto_create_value = os.getenv("AUTO_CREATE_TABLES")
+        if auto_create_value is None:
+            auto_create_tables = not bool(os.getenv("RAILWAY_ENVIRONMENT"))
+        else:
+            auto_create_tables = auto_create_value.lower() in ("true", "1", "yes")
+
+        if auto_create_tables:
+            logger.info("Creating missing tables at runtime for legacy/local compatibility")
+            await db_manager.create_tables()
+            logger.info("Table creation completed")
+        else:
+            logger.info("Runtime table creation disabled; schema is managed by Alembic")
         logger.info("Database initialized successfully")
         logger.debug(f"[DB_OP] Database initialization completed in {time.time() - start_time:.4f}s")
     except Exception as e:

@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRouter
 
 # MODULE_IMPORTS_START
-from services.database import initialize_database, close_database
+from services.database import check_database_health, initialize_database, close_database
 from services.mock_data import initialize_mock_data
 from services.auth import initialize_admin_user
 # MODULE_IMPORTS_END
@@ -25,40 +25,34 @@ def setup_logging():
     if os.environ.get("IS_LAMBDA") == "true":
         return
 
-    # Create the logs directory
-    log_dir = "logs"
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-
-    # Generate log filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = f"{log_dir}/app_{timestamp}.log"
-
-    # Configure log format
+    environment = os.environ.get("ENVIRONMENT", "prod").lower()
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
 
-    # Configure the root logger
+    # Local development may keep timestamped files. Production platforms collect
+    # stdout/stderr and use ephemeral filesystems, so file logging is disabled.
+    log_file = None
+    if environment == "dev":
+        log_dir = "logs"
+        os.makedirs(log_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = f"{log_dir}/app_{timestamp}.log"
+        handlers.insert(0, logging.FileHandler(log_file, encoding="utf-8"))
+
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.DEBUG if environment == "dev" else logging.INFO,
         format=log_format,
-        handlers=[
-            # File handler
-            logging.FileHandler(log_file, encoding="utf-8"),
-            # Console handler
-            logging.StreamHandler(),
-        ],
+        handlers=handlers,
     )
 
-    # Set log levels for specific modules
-    logging.getLogger("uvicorn").setLevel(logging.DEBUG)
-    logging.getLogger("fastapi").setLevel(logging.DEBUG)
+    logging.getLogger("uvicorn").setLevel(logging.INFO)
+    logging.getLogger("fastapi").setLevel(logging.INFO)
 
     # Log configuration details
     logger = logging.getLogger(__name__)
     logger.info("=== Logging system initialized ===")
-    logger.info(f"Log file: {log_file}")
-    logger.info("Log level: INFO")
-    logger.info(f"Timestamp: {timestamp}")
+    logger.info("Environment: %s", environment)
+    logger.info("Log destination: %s", log_file or "stdout/stderr")
 
 
 @asynccontextmanager
@@ -234,7 +228,16 @@ def frontend_runtime_config():
 
 @app.get("/health")
 def health_check():
+    """Lightweight liveness check that does not depend on external services."""
     return {"status": "healthy"}
+
+
+@app.get("/health/ready")
+async def readiness_check():
+    """Report ready only when the application can reach PostgreSQL."""
+    if not await check_database_health():
+        raise HTTPException(status_code=503, detail="Database is unavailable")
+    return {"status": "ready", "database": "healthy"}
 
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
