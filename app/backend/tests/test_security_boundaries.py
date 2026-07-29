@@ -3,6 +3,7 @@ import os
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
+import main
 from main import app
 from routers.auth import get_dynamic_backend_url
 from routers.settings import MASKED_VALUE, display_value
@@ -30,7 +31,8 @@ def test_render_health_check_is_not_redirected():
     assert response.status_code == 200
 
 
-def test_render_service_worker_is_available_for_cache_retirement():
+def test_render_service_worker_is_available_for_cache_retirement(monkeypatch):
+    monkeypatch.setattr(main, "FRONTEND_DIST", main.FRONTEND_DIST.parent / "public")
     response = client.get(
         "/sw.js",
         headers={"host": "cleanfixharish-web.onrender.com"},
