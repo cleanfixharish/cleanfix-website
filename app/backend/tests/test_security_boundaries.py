@@ -5,7 +5,7 @@ from starlette.requests import Request
 
 import main
 from main import app
-from routers.auth import get_dynamic_backend_url
+from routers.auth import build_frontend_callback_url, get_dynamic_backend_url
 from routers.settings import MASKED_VALUE, display_value
 
 
@@ -87,3 +87,12 @@ def test_oauth_redirect_accepts_configured_host(monkeypatch):
     monkeypatch.setenv("PYTHON_BACKEND_URL", "https://api.cleanfixharish.co.il")
     monkeypatch.setenv("ALLOWED_DOMAINS", "api.cleanfixharish.co.il")
     assert get_dynamic_backend_url(_request("api.cleanfixharish.co.il")) == "https://api.cleanfixharish.co.il"
+
+
+def test_oauth_success_token_stays_out_of_server_visible_query():
+    callback_url = build_frontend_callback_url(
+        "https://staging.example", "sensitive-token", 1_800_000_000
+    )
+    assert callback_url.startswith("https://staging.example/auth/callback#")
+    assert "?" not in callback_url
+    assert "token=sensitive-token" in callback_url.split("#", 1)[1]

@@ -112,6 +112,18 @@ def get_frontend_url(backend_url: str) -> str:
     return os.environ.get("FRONTEND_URL", backend_url).rstrip("/")
 
 
+def build_frontend_callback_url(frontend_url: str, app_token: str, expires_at: int) -> str:
+    """Build a browser-only callback URL without exposing tokens to HTTP logs."""
+    fragment = urlencode(
+        {
+            "token": app_token,
+            "expires_at": expires_at,
+            "token_type": "Bearer",
+        }
+    )
+    return f"{frontend_url}/auth/callback#{fragment}"
+
+
 @router.get("/login")
 async def login(request: Request, db: AsyncSession = Depends(get_db)):
     """Start OIDC login flow with PKCE."""
@@ -251,16 +263,12 @@ async def callback(
         # Issue application JWT token encapsulating user information
         app_token, expires_at, _ = await auth_service.issue_app_token(user=user)
 
-        fragment = urlencode(
-            {
-                "token": app_token,
-                "expires_at": int(expires_at.timestamp()),
-                "token_type": "Bearer",
-            }
+        # Keep the application token in the URL fragment. Fragments are handled
+        # only by the browser and are not included in HTTP requests or access logs.
+        redirect_url = build_frontend_callback_url(
+            frontend_url, app_token, int(expires_at.timestamp())
         )
-
-        redirect_url = f"{frontend_url}/auth/callback?{fragment}"
-        logger.info("[callback] OIDC callback successful, redirecting to %s", redirect_url)
+        logger.info("[callback] OIDC callback successful")
         redirect_response = RedirectResponse(
             url=redirect_url,
             status_code=status.HTTP_302_FOUND,
