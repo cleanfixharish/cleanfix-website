@@ -27,6 +27,25 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async listPartners(limit = 200) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/entities/partners`, {
+      params: { sort: 'sort_order', limit },
+    });
+    return response.data;
+  },
+
+  async listServices(limit = 200) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/entities/services`, {
+      params: { sort: 'sort_order', limit },
+    });
+    return response.data;
+  },
+
+  async updateService(id: number | string, data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/entities/services/${id}`, data);
+    return response.data;
+  },
+
   async listSiteContent() {
     const response = await http.get(`${getAPIBaseURL()}/api/v1/entities/site_content`, {
       params: { sort: 'section_key', limit: 200 },

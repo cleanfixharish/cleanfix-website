@@ -45,6 +45,7 @@ def test_render_service_worker_is_available_for_cache_retirement(monkeypatch):
 def test_admin_endpoints_reject_anonymous_requests():
     protected_requests = (
         ("GET", "/api/v1/entities/leads"),
+        ("GET", "/api/v1/entities/partners"),
         ("GET", "/api/v1/admin/settings"),
         ("POST", "/api/v1/aihub/gentxt"),
         ("POST", "/api/v1/storage/create-bucket"),
