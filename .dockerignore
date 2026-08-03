@@ -9,5 +9,6 @@
 **/.pytest_cache
 **/dist
 **/logs
+**/*.db
 uploads
 *.zip
