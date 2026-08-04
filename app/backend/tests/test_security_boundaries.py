@@ -3,8 +3,9 @@ import os
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
+import main
 from main import app
-from routers.auth import get_dynamic_backend_url
+from routers.auth import build_frontend_callback_url, get_dynamic_backend_url
 from routers.settings import MASKED_VALUE, display_value
 
 
@@ -30,7 +31,8 @@ def test_render_health_check_is_not_redirected():
     assert response.status_code == 200
 
 
-def test_render_service_worker_is_available_for_cache_retirement():
+def test_render_service_worker_is_available_for_cache_retirement(monkeypatch):
+    monkeypatch.setattr(main, "FRONTEND_DIST", main.FRONTEND_DIST.parent / "public")
     response = client.get(
         "/sw.js",
         headers={"host": "cleanfixharish-web.onrender.com"},
@@ -43,7 +45,11 @@ def test_render_service_worker_is_available_for_cache_retirement():
 def test_admin_endpoints_reject_anonymous_requests():
     protected_requests = (
         ("GET", "/api/v1/entities/leads"),
+        ("GET", "/api/v1/entities/partners"),
         ("GET", "/api/v1/admin/settings"),
+        ("PUT", "/api/v1/site-settings"),
+        ("GET", "/api/v1/site-media"),
+        ("POST", "/api/v1/site-media"),
         ("POST", "/api/v1/aihub/gentxt"),
         ("POST", "/api/v1/storage/create-bucket"),
     )
@@ -85,3 +91,12 @@ def test_oauth_redirect_accepts_configured_host(monkeypatch):
     monkeypatch.setenv("PYTHON_BACKEND_URL", "https://api.cleanfixharish.co.il")
     monkeypatch.setenv("ALLOWED_DOMAINS", "api.cleanfixharish.co.il")
     assert get_dynamic_backend_url(_request("api.cleanfixharish.co.il")) == "https://api.cleanfixharish.co.il"
+
+
+def test_oauth_success_token_stays_out_of_server_visible_query():
+    callback_url = build_frontend_callback_url(
+        "https://staging.example", "sensitive-token", 1_800_000_000
+    )
+    assert callback_url.startswith("https://staging.example/auth/callback#")
+    assert "?" not in callback_url
+    assert "token=sensitive-token" in callback_url.split("#", 1)[1]

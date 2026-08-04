@@ -51,7 +51,7 @@ export default defineConfig(({ command }) => {
       atoms(),
       ensureBuildOutDir(),
       Sitemap({
-        hostname: 'https://atoms.template.com',
+        hostname: 'https://www.cleanfixharish.co.il',
         lastmod: getSitemapLastmod(),
         readable: true,
         generateRobotsTxt: true,

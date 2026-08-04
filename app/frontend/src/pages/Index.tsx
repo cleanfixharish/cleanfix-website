@@ -15,11 +15,11 @@ import {
   UserRound,
 } from 'lucide-react';
 import { getWhatsAppLink, getWhatsAppQuoteMessage } from '@/lib/whatsapp';
-import { cleanfixApi } from '@/lib/cleanfixApi';
+import { absoluteApiUrl, cleanfixApi } from '@/lib/cleanfixApi';
 
 type ContentBlock = { title_en?: string; title_he?: string; content_en?: string; content_he?: string; is_active?: boolean };
 
-const services = [
+const fallbackServices = [
   { icon: 'wrench', mark: '/assets/brand/v2/symbol-handyman.svg', name_en: 'Handyman', name_he: 'הנדימן', desc_en: 'Small repairs, installations, mounting, adjustments, and practical apartment fixes.', desc_he: 'תיקונים קטנים, התקנות, תלייה, התאמות ועבודות מעשיות בדירה.', featured: true },
   { icon: 'sparkles', mark: '/assets/brand/v2/symbol-cleaning.svg', name_en: 'Post-renovation cleaning', name_he: 'ניקיון אחרי שיפוץ', desc_en: 'Detailed dust and surface cleaning that helps the home feel truly finished.', desc_he: 'ניקוי יסודי של אבק ומשטחים, כדי שהבית ירגיש באמת מוכן.' },
   { icon: 'key', mark: '/assets/brand/v2/symbol-access.svg', name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A clean reset before entering a home or handing it over.', desc_he: 'התחלה נקייה לפני כניסה לבית או מסירה שלו.' },
@@ -30,14 +30,18 @@ const services = [
 export default function Index() {
   const { t, lang } = useLanguage();
   const [cms, setCms] = useState<Record<string, ContentBlock>>({});
+  const [site, setSite] = useState<any>({ primary_color: '#102E38', accent_color: '#B8842F', surface_color: '#F7F2EA', hero_layout: 'text-left' });
+  const [liveServices, setLiveServices] = useState<any[]>([]);
 
   useEffect(() => {
-    cleanfixApi.listSiteContent().then((result) => {
+    Promise.all([cleanfixApi.listSiteContent(), cleanfixApi.getSiteSettings(), cleanfixApi.listServices()]).then(([result, settings, serviceResult]) => {
       const blocks = (result?.items || []).reduce((acc: Record<string, ContentBlock>, item: ContentBlock & { section_key: string }) => {
         if (item.is_active !== false) acc[item.section_key] = item;
         return acc;
       }, {});
       setCms(blocks);
+      setSite(settings);
+      setLiveServices((serviceResult?.items || []).filter((item: any) => item.is_active !== false));
     }).catch(() => undefined);
   }, []);
 
@@ -46,17 +50,24 @@ export default function Index() {
     return typeof value === 'string' && value.trim() ? value : fallback;
   };
 
+  const services = liveServices.length ? liveServices.map((item, index) => ({
+    ...item, mark: fallbackServices[index % fallbackServices.length].mark,
+    desc_en: item.description_en, desc_he: item.description_he,
+  })) : fallbackServices;
+  const primaryButton = (lang === 'en' ? site.primary_cta_en : site.primary_cta_he) || t.hero.cta;
+  const secondaryButton = (lang === 'en' ? site.secondary_cta_en : site.secondary_cta_he) || t.hero.whatsapp;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
 
       {/* Hero Section - Golden Ratio Layout (38% text / 62% image) */}
-      <section className="relative overflow-hidden bg-[#f7f2ea]">
+      <section className="relative overflow-hidden" style={{backgroundColor: site.surface_color}}>
         <div className="absolute inset-0 bg-[url('/assets/brand/v2/ivory-golden-orbit.svg')] bg-cover bg-center opacity-70" aria-hidden="true" />
         <div className="cf-shell relative py-[55px] md:py-[89px]">
           <div className="grid grid-cols-1 items-center gap-[34px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.618fr)] lg:gap-[55px]">
             {/* Text - ~38% */}
-            <div className="relative z-10">
+            <div className={`relative z-10 ${site.hero_layout === 'image-left' ? 'lg:order-2' : ''}`}>
               <p className="cf-eyebrow mb-4">
                 {t.hero.eyebrow}
               </p>
@@ -68,15 +79,15 @@ export default function Index() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link to="/quote">
-                  <Button size="lg" className="gap-2 bg-[#102e38] text-base shadow-lg hover:bg-[#163f49]">
-                    {t.hero.cta}
+                  <Button size="lg" className="gap-2 text-base text-white shadow-lg" style={{backgroundColor: site.primary_color}}>
+                    {primaryButton}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
                 <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer">
                   <Button size="lg" variant="outline" className="gap-2 border-[#b8842f]/60 bg-[#f7f2ea]/80 text-base text-[#102e38] hover:bg-[#e8d8be]">
                     <MessageCircle className="h-5 w-5" />
-                    {t.hero.whatsapp}
+                    {secondaryButton}
                   </Button>
                 </a>
               </div>
@@ -90,13 +101,13 @@ export default function Index() {
               </p>
             </div>
             {/* Image - ~62% */}
-            <div className="relative">
+            <div className={`relative ${site.hero_layout === 'image-left' ? 'lg:order-1' : ''}`}>
               <div className="cf-photo overflow-hidden rounded-[34px] bg-[#102e38]">
-                <picture>
+                {site.hero_image_url ? <img src={absoluteApiUrl(site.hero_image_url)} alt="CleanFixHarish local home service" className="h-72 w-full object-cover md:h-[500px]" fetchPriority="high"/> : <picture>
                   <source media="(max-width: 640px)" srcSet="/assets/images/home-support-v2/web/hero-handyman-harish-v2-640.jpg" />
                   <source media="(max-width: 1100px)" srcSet="/assets/images/home-support-v2/web/hero-handyman-harish-v2-960.jpg" />
                   <img src="/assets/images/home-support-v2/web/hero-handyman-harish-v2-1536.jpg" alt="CleanFixHarish handyman helping in a local Harish home" className="h-72 w-full object-cover md:h-[500px]" fetchPriority="high" />
-                </picture>
+                </picture>}
               </div>
               <div className="absolute bottom-5 left-5 right-5 grid grid-cols-3 gap-2 rounded-2xl border border-white/20 bg-[#102e38]/92 p-3 text-center text-[#f7f2ea] shadow-2xl backdrop-blur-md sm:left-auto sm:w-[360px]">
                 <div><strong className="block text-sm text-[#f0c96f]">WhatsApp</strong><span className="text-[10px] text-white/70">First response</span></div>
@@ -117,8 +128,8 @@ export default function Index() {
             <p className="text-muted-foreground max-w-2xl mx-auto">{t.services.subtitle}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5">
-            {services.map((service) => (
-              <Card key={service.icon} className={`group overflow-hidden border-[#b8842f]/35 bg-[#f7f2ea] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_21px_55px_rgba(8,31,40,.12)] ${service.featured ? 'sm:col-span-2 lg:col-span-2 border-[#b8842f]/65' : 'lg:col-span-1'}`}>
+            {services.slice(0, 5).map((service: any, index: number) => (
+              <Card key={service.id || service.icon || index} className={`group overflow-hidden border-[#b8842f]/35 bg-[#f7f2ea] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_21px_55px_rgba(8,31,40,.12)] ${service.featured ? 'sm:col-span-2 lg:col-span-2 border-[#b8842f]/65' : 'lg:col-span-1'}`}>
                 <CardContent className="p-6 h-full flex flex-col gap-4">
                   <div className="cf-gold-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105">
                     <img src={service.mark} alt="" className="h-12 w-12" />
@@ -130,6 +141,7 @@ export default function Index() {
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                       {lang === 'en' ? service.desc_en : service.desc_he}
                     </p>
+                    {service.price_from != null && <p className="mt-3 text-sm font-semibold" style={{color: site.accent_color}}>From ₪{Number(service.price_from).toLocaleString()}{service.price_unit ? ` ${service.price_unit}` : ''}</p>}
                   </div>
                 </CardContent>
               </Card>
@@ -198,7 +210,7 @@ export default function Index() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative overflow-hidden bg-[#102e38] text-white">
+      <section className="relative overflow-hidden text-white" style={{backgroundColor: site.primary_color}}>
         <div className="grid min-h-[430px] lg:grid-cols-[1.618fr_1fr]">
           <div className="flex items-center px-4 py-[55px] sm:px-8 lg:px-[89px]">
             <div className="max-w-xl">
@@ -216,18 +228,18 @@ export default function Index() {
             <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer">
               <Button size="lg" className="gap-2 bg-[#e8d8be] text-base text-[#102e38] hover:bg-[#f7f2ea]">
                 <MessageCircle className="h-5 w-5" />
-                {t.hero.whatsapp}
+                {secondaryButton}
               </Button>
             </a>
             <Link to="/quote">
               <Button size="lg" variant="outline" className="gap-2 text-base border-white/40 text-white hover:bg-white/10">
-                {t.hero.cta}
+                {primaryButton}
               </Button>
             </Link>
           </div>
             </div>
           </div>
-          <picture className="min-h-[320px]"><source media="(max-width: 640px)" srcSet="/assets/images/home-support-v2/web/cta-local-support-v2-640.jpg"/><source media="(max-width: 1100px)" srcSet="/assets/images/home-support-v2/web/cta-local-support-v2-960.jpg"/><img src="/assets/images/home-support-v2/web/cta-local-support-v2-1536.jpg" alt="Harish homeowner receiving local service support" className="h-full w-full object-cover" loading="lazy"/></picture>
+          {site.cta_image_url ? <img src={absoluteApiUrl(site.cta_image_url)} alt="CleanFixHarish local support" className="h-full min-h-[320px] w-full object-cover" loading="lazy"/> : <picture className="min-h-[320px]"><source media="(max-width: 640px)" srcSet="/assets/images/home-support-v2/web/cta-local-support-v2-640.jpg"/><source media="(max-width: 1100px)" srcSet="/assets/images/home-support-v2/web/cta-local-support-v2-960.jpg"/><img src="/assets/images/home-support-v2/web/cta-local-support-v2-1536.jpg" alt="Harish homeowner receiving local service support" className="h-full w-full object-cover" loading="lazy"/></picture>}
         </div>
       </section>
 
