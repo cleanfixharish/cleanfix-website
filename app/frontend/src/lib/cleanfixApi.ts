@@ -84,4 +84,34 @@ export const cleanfixApi = {
     const response = await http.put(`${getAPIBaseURL()}/api/v1/entities/site_content/${id}`, data);
     return response.data;
   },
+
+  async getSiteSettings() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/site-settings`);
+    return response.data;
+  },
+
+  async updateSiteSettings(data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/site-settings`, data);
+    return response.data;
+  },
+
+  async listSiteMedia() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/site-media`);
+    return response.data;
+  },
+
+  async uploadSiteMedia(image: File, altText: string) {
+    const form = new FormData();
+    form.append('image', image);
+    form.append('alt_text', altText);
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/site-media`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };
+
+export function absoluteApiUrl(path?: string) {
+  if (!path || /^(https?:|data:|\/assets\/)/.test(path)) return path || '';
+  return `${getAPIBaseURL()}${path.startsWith('/') ? path : `/${path}`}`;
+}

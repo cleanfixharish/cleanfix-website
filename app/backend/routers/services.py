@@ -1,5 +1,6 @@
 import json
 import logging
+from decimal import Decimal
 from typing import List, Optional
 
 from datetime import datetime, date
@@ -29,6 +30,11 @@ class ServicesData(BaseModel):
     category: str = None
     is_active: bool = None
     sort_order: int = None
+    price_from: Optional[Decimal] = None
+    price_unit: Optional[str] = None
+    price_note_en: Optional[str] = None
+    price_note_he: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class ServicesUpdateData(BaseModel):
@@ -41,6 +47,11 @@ class ServicesUpdateData(BaseModel):
     category: Optional[str] = None
     is_active: Optional[bool] = None
     sort_order: Optional[int] = None
+    price_from: Optional[Decimal] = None
+    price_unit: Optional[str] = None
+    price_note_en: Optional[str] = None
+    price_note_he: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class ServicesResponse(BaseModel):
@@ -54,6 +65,11 @@ class ServicesResponse(BaseModel):
     category: Optional[str] = None
     is_active: Optional[bool] = None
     sort_order: Optional[int] = None
+    price_from: Optional[Decimal] = None
+    price_unit: Optional[str] = None
+    price_note_en: Optional[str] = None
+    price_note_he: Optional[str] = None
+    image_url: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -252,7 +268,7 @@ async def update_servicess_batch(
     try:
         for item in request.items:
             # Only include non-None values for partial updates
-            update_dict = {k: v for k, v in item.updates.model_dump().items() if v is not None}
+            update_dict = item.updates.model_dump(exclude_unset=True)
             result = await service.update(item.id, update_dict)
             if result:
                 results.append(result)
@@ -277,7 +293,7 @@ async def update_services(
     service = ServicesService(db)
     try:
         # Only include non-None values for partial updates
-        update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        update_dict = data.model_dump(exclude_unset=True)
         result = await service.update(id, update_dict)
         if not result:
             logger.warning(f"Services with id {id} not found for update")

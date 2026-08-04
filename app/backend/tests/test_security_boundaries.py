@@ -47,6 +47,9 @@ def test_admin_endpoints_reject_anonymous_requests():
         ("GET", "/api/v1/entities/leads"),
         ("GET", "/api/v1/entities/partners"),
         ("GET", "/api/v1/admin/settings"),
+        ("PUT", "/api/v1/site-settings"),
+        ("GET", "/api/v1/site-media"),
+        ("POST", "/api/v1/site-media"),
         ("POST", "/api/v1/aihub/gentxt"),
         ("POST", "/api/v1/storage/create-bucket"),
     )
