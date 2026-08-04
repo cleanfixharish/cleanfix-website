@@ -34,6 +34,33 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async createPartner(data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/entities/partners`, data);
+    return response.data;
+  },
+
+  async updatePartner(id: number | string, data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/entities/partners/${id}`, data);
+    return response.data;
+  },
+
+  async listJobs(limit = 200) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/entities/jobs`, {
+      params: { sort: '-created_at', limit },
+    });
+    return response.data;
+  },
+
+  async createJob(data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/entities/jobs`, data);
+    return response.data;
+  },
+
+  async updateJob(id: number | string, data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/entities/jobs/${id}`, data);
+    return response.data;
+  },
+
   async listServices(limit = 200) {
     const response = await http.get(`${getAPIBaseURL()}/api/v1/entities/services`, {
       params: { sort: 'sort_order', limit },

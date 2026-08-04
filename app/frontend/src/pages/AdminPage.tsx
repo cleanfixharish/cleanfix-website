@@ -23,21 +23,22 @@ import { cleanfixApi } from '@/lib/cleanfixApi';
 
 type Section = 'overview' | 'leads' | 'whatsapp' | 'jobs' | 'providers' | 'services' | 'content' | 'followups' | 'internal';
 type LeadStatus = 'new' | 'contacted' | 'quoted' | 'scheduled' | 'in progress' | 'completed' | 'follow-up' | 'cancelled';
-type DashboardLead = { id: number; customerName: string; phone: string; service: string; location: string; message: string; source: string; date: string; status: LeadStatus; provider: string; notes: string; needsReply: boolean };
+type DashboardLead = { id: number; customerName: string; phone: string; service: string; location: string; message: string; source: string; date: string; status: LeadStatus; provider: string; notes: string; needsReply: boolean; followUpStatus: string };
+type DashboardJob = { id: number; leadId?: number; customerName: string; title: string; phone: string; address: string; status: string; scheduledFor?: string; price?: number; notes: string };
 type CmsItem = { id: number; section_key: string; title_en?: string; title_he?: string; content_en?: string; content_he?: string; is_active?: boolean };
 type AdminPartner = { id: number; name: string; businessType: string; phone: string; area: string; description: string; isActive: boolean };
 type AdminService = { id: number; name: string; description: string; category: string; active: boolean };
 
 const navigation: { id: Section; label: string; icon: typeof LayoutDashboard; count?: number }[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'leads', label: 'Leads CRM', icon: Inbox },
-  { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
-  { id: 'jobs', label: 'Jobs & tasks', icon: BriefcaseBusiness },
+  { id: 'overview', label: 'Today', icon: LayoutDashboard },
+  { id: 'leads', label: 'Customers', icon: Inbox },
+  { id: 'jobs', label: 'Jobs', icon: BriefcaseBusiness },
   { id: 'providers', label: 'Providers', icon: HardHat },
-  { id: 'services', label: 'Services & pricing', icon: Wrench },
-  { id: 'content', label: 'Website content', icon: Globe2 },
+  { id: 'whatsapp', label: 'Messages', icon: MessageCircle },
+  { id: 'services', label: 'Business', icon: Wrench },
+  { id: 'content', label: 'Website', icon: Globe2 },
   { id: 'followups', label: 'Follow-ups', icon: HeartHandshake },
-  { id: 'internal', label: 'Internal OS', icon: BookOpen },
+  { id: 'internal', label: 'Settings', icon: BookOpen },
 ];
 
 const pipeline: LeadStatus[] = ['new', 'contacted', 'quoted', 'scheduled', 'in progress', 'completed', 'follow-up', 'cancelled'];
@@ -68,9 +69,12 @@ export default function AdminPage() {
   const [section, setSection] = useState<Section>('overview');
   const [mobileNav, setMobileNav] = useState(false);
   const [leads, setLeads] = useState<DashboardLead[]>([]);
+  const [jobs, setJobs] = useState<DashboardJob[]>([]);
   const [providers, setProviders] = useState<AdminPartner[]>([]);
   const [services, setServices] = useState<AdminService[]>([]);
   const [selectedLead, setSelectedLead] = useState<DashboardLead | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingLead, setSavingLead] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [apiMode, setApiMode] = useState<'loading' | 'live' | 'error'>('loading');
@@ -78,8 +82,8 @@ export default function AdminPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [leadResponse, partnerResponse, serviceResponse] = await Promise.all([
-          cleanfixApi.listLeads(100), cleanfixApi.listPartners(), cleanfixApi.listServices(),
+        const [leadResponse, jobResponse, partnerResponse, serviceResponse] = await Promise.all([
+          cleanfixApi.listLeads(100), cleanfixApi.listJobs(), cleanfixApi.listPartners(), cleanfixApi.listServices(),
         ]);
         const items = leadResponse?.items || [];
         setLeads(items.map((lead: any) => ({
@@ -87,7 +91,12 @@ export default function AdminPage() {
           location: lead.area || 'Harish', message: lead.description || '', source: lead.source || 'Website',
           date: lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-IL') : '—',
           status: normalizeStatus(lead.status), provider: lead.assignment || 'Unassigned', notes: lead.notes || '',
-          needsReply: lead.status === 'new' || lead.follow_up_status === 'pending',
+          needsReply: lead.status === 'new' || lead.follow_up_status === 'pending', followUpStatus: lead.follow_up_status || '',
+        })));
+        setJobs((jobResponse?.items || []).map((job: any) => ({
+          id: job.id, leadId: job.lead_id, customerName: job.customer_name, title: job.title,
+          phone: job.phone || '', address: job.address || '', status: job.status || 'scheduled',
+          scheduledFor: job.scheduled_for, price: job.price == null ? undefined : Number(job.price), notes: job.notes || '',
         })));
         setProviders((partnerResponse?.items || []).map((partner: any) => ({
           id: partner.id, name: partner.name, businessType: partner.business_type || partner.partner_type || 'Service provider',
@@ -107,19 +116,60 @@ export default function AdminPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    setNoteDraft(selectedLead?.notes || '');
+  }, [selectedLead?.id]);
+
   const filteredLeads = useMemo(() => leads.filter((lead) => {
     const haystack = `${lead.customerName} ${lead.phone} ${lead.service} ${lead.location} ${lead.provider}`.toLowerCase();
     return haystack.includes(query.toLowerCase()) && (statusFilter === 'all' || lead.status === statusFilter);
   }), [leads, query, statusFilter]);
 
   const changeStatus = async (lead: DashboardLead, status: LeadStatus) => {
+    try { await cleanfixApi.updateLead(lead.id, { status }); }
+    catch { toast.error('The status was not saved. Please try again.'); return; }
     setLeads((current) => current.map((item) => item.id === lead.id ? { ...item, status, needsReply: false } : item));
     setSelectedLead((current) => current?.id === lead.id ? { ...current, status, needsReply: false } : current);
-    if (apiMode === 'live') {
-      try { await cleanfixApi.updateLead(lead.id, { status }); }
-      catch { toast.error('The local view changed, but the server did not save it.'); return; }
-    }
     toast.success(`${lead.customerName} moved to ${status}`);
+  };
+
+  const saveNotes = async () => {
+    if (!selectedLead) return;
+    setSavingLead(true);
+    try {
+      await cleanfixApi.updateLead(selectedLead.id, { notes: noteDraft });
+      setLeads((current) => current.map((lead) => lead.id === selectedLead.id ? { ...lead, notes: noteDraft } : lead));
+      setSelectedLead({ ...selectedLead, notes: noteDraft });
+      toast.success('Notes saved to the database.');
+    } catch { toast.error('The notes were not saved.'); }
+    finally { setSavingLead(false); }
+  };
+
+  const createJobForLead = async (lead: DashboardLead) => {
+    if (jobs.some((job) => job.leadId === lead.id)) { setSection('jobs'); setSelectedLead(null); return; }
+    setSavingLead(true);
+    try {
+      const job = await cleanfixApi.createJob({
+        lead_id: lead.id, customer_name: lead.customerName, title: lead.service || 'Customer job',
+        phone: lead.phone, address: lead.location, status: 'scheduled', notes: lead.notes,
+      });
+      setJobs((current) => [{
+        id: job.id, leadId: job.lead_id, customerName: job.customer_name, title: job.title,
+        phone: job.phone || '', address: job.address || '', status: job.status,
+        scheduledFor: job.scheduled_for, price: job.price == null ? undefined : Number(job.price), notes: job.notes || '',
+      }, ...current]);
+      if (lead.status !== 'scheduled') await changeStatus(lead, 'scheduled');
+      setSelectedLead(null); setSection('jobs'); toast.success('A real job was created.');
+    } catch { toast.error('The job was not created.'); }
+    finally { setSavingLead(false); }
+  };
+
+  const completeFollowUp = async (lead: DashboardLead) => {
+    try {
+      await cleanfixApi.updateLead(lead.id, { follow_up_status: 'completed' });
+      setLeads((current) => current.map((item) => item.id === lead.id ? { ...item, followUpStatus: 'completed', needsReply: false } : item));
+      toast.success('Follow-up saved as complete.');
+    } catch { toast.error('The follow-up was not saved.'); }
   };
 
   const openWhatsApp = (lead: DashboardLead, message?: string) => {
@@ -138,7 +188,7 @@ export default function AdminPage() {
       <div className="border-t border-white/10 p-4"><div className="rounded-2xl bg-white/7 p-3"><div className="flex items-center gap-2 text-xs"><ShieldCheck className="h-4 w-4 text-[#D8C092]"/><span>Owner workspace</span></div><p className="mt-2 truncate text-xs text-white/55">{user?.email || 'CleanFixHarish admin'}</p></div></div>
     </aside>
 
-    <header className="sticky top-0 z-30 border-b border-[#D8D0C6] bg-[#F7F2EA]/90 backdrop-blur-xl lg:ml-64"><div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8"><div className="flex items-center gap-3"><Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileNav(true)}><Menu className="h-5 w-5"/></Button><div className="hidden sm:block"><p className="text-xs text-[#786F65]">CleanFixHarish operations</p><p className="text-sm font-medium text-[#173F46]">Welcome, {user?.name || 'Aviel'}</p></div></div><div className="flex items-center gap-2"><Badge variant="outline" className="hidden border-[#BFCFCB] bg-[#E4ECEA] text-[#31585E] sm:flex"><span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${apiMode === 'live' ? 'bg-emerald-600' : apiMode === 'error' ? 'bg-red-600' : 'bg-[#B8905B]'}`}/>{apiMode === 'live' ? 'Live data' : apiMode === 'loading' ? 'Connecting' : 'Connection error'}</Badge><Button variant="ghost" size="icon" aria-label="Notifications"><Bell className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={logout} aria-label="Sign out"><LogOut className="h-4 w-4"/></Button></div></div></header>
+    <header className="sticky top-0 z-30 border-b border-[#D8D0C6] bg-[#F7F2EA]/90 backdrop-blur-xl lg:ml-64"><div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8"><div className="flex items-center gap-3"><Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileNav(true)}><Menu className="h-5 w-5"/></Button><div className="hidden sm:block"><p className="text-xs text-[#786F65]">CleanFixHarish operations</p><p className="text-sm font-medium text-[#173F46]">Welcome, {user?.name || 'Aviel'}</p></div></div><div className="flex items-center gap-2"><Badge variant="outline" className="hidden border-[#BFCFCB] bg-[#E4ECEA] text-[#31585E] sm:flex"><span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${apiMode === 'live' ? 'bg-emerald-600' : apiMode === 'error' ? 'bg-red-600' : 'bg-[#B8905B]'}`}/>{apiMode === 'live' ? 'Live data' : apiMode === 'loading' ? 'Connecting' : 'Connection error'}</Badge><Button variant="ghost" size="icon" aria-label={`${counts.replies} items need attention`} onClick={() => counts.replies ? setSection('followups') : toast.success('Nothing needs your attention right now.')}><Bell className="h-4 w-4"/>{counts.replies > 0 && <span className="absolute ml-4 mb-4 h-2 w-2 rounded-full bg-[#B8905B]"/>}</Button><Button variant="ghost" size="icon" onClick={logout} aria-label="Sign out"><LogOut className="h-4 w-4"/></Button></div></div></header>
 
     <Sheet open={mobileNav} onOpenChange={setMobileNav}><SheetContent side="left" className="w-[290px] bg-[#153E45] p-0 text-white"><SheetHeader className="border-b border-white/10 p-5 text-left"><SheetTitle className="flex items-center gap-3 text-white"><img src="/assets/brand/cf-gold-monogram-128.png" className="h-10 w-10 rounded-xl" alt=""/>Manager OS</SheetTitle></SheetHeader><nav className="space-y-1 p-3">{navigation.map((item) => <button key={item.id} onClick={() => {setSection(item.id);setMobileNav(false);}} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm ${section === item.id ? 'bg-[#F7F2EA] text-[#173F46]' : 'text-white/75'}`}><item.icon className="h-4 w-4"/>{item.label}</button>)}</nav></SheetContent></Sheet>
 
@@ -146,15 +196,15 @@ export default function AdminPage() {
       {section === 'overview' && <Overview leads={leads} providers={providers} counts={counts} setSection={setSection} setSelectedLead={setSelectedLead} openWhatsApp={openWhatsApp}/>}
       {section === 'leads' && <Leads leads={filteredLeads} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} setSelectedLead={setSelectedLead}/>}
       {section === 'whatsapp' && <WhatsAppOps leads={leads} openWhatsApp={openWhatsApp}/>}
-      {section === 'jobs' && <Jobs leads={leads}/>}
-      {section === 'providers' && <Providers providers={providers}/>}
+      {section === 'jobs' && <Jobs jobs={jobs} setJobs={setJobs}/>}
+      {section === 'providers' && <Providers providers={providers} setProviders={setProviders}/>}
       {section === 'services' && <Services items={services} setItems={setServices}/>}
       {section === 'content' && <ContentControl/>}
-      {section === 'followups' && <FollowUps leads={leads} openWhatsApp={openWhatsApp}/>}
+      {section === 'followups' && <FollowUps leads={leads} openWhatsApp={openWhatsApp} completeFollowUp={completeFollowUp}/>}
       {section === 'internal' && <InternalOS/>}
     </main>
 
-    <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)}><DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-[#D8D0C6] bg-[#FBF8F3]">{selectedLead && <><DialogHeader><DialogTitle className="text-2xl text-[#173F46]">{selectedLead.customerName}</DialogTitle></DialogHeader><div className="space-y-5"><div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#F0EAE1] p-4 text-sm"><Info label="Phone" value={selectedLead.phone}/><Info label="Service" value={selectedLead.service}/><Info label="Location" value={selectedLead.location}/><Info label="Provider" value={selectedLead.provider}/></div><div><Label>Customer message</Label><p className="mt-1 rounded-xl border border-[#DDD3C7] bg-white p-3 text-sm">{selectedLead.message}</p></div><div><Label>Status</Label><Select value={selectedLead.status} onValueChange={(value) => changeStatus(selectedLead, value as LeadStatus)}><SelectTrigger className="mt-1 bg-white"><SelectValue/></SelectTrigger><SelectContent>{pipeline.map((status) => <SelectItem key={status} value={status}>{title(status)}</SelectItem>)}</SelectContent></Select></div><div><Label>Internal notes</Label><Textarea className="mt-1 bg-white" defaultValue={selectedLead.notes} rows={4}/></div><div className="flex flex-col gap-2 sm:flex-row"><Button className="flex-1 bg-[#174E57] hover:bg-[#0E343B]" onClick={() => openWhatsApp(selectedLead)}><MessageCircle className="mr-2 h-4 w-4"/>Open WhatsApp</Button><Button variant="outline" className="flex-1" onClick={() => toast.success('Notes saved')}><Check className="mr-2 h-4 w-4"/>Save notes</Button></div></div></>}</DialogContent></Dialog>
+    <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)}><DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-[#D8D0C6] bg-[#FBF8F3]">{selectedLead && <><DialogHeader><DialogTitle className="text-2xl text-[#173F46]">{selectedLead.customerName}</DialogTitle></DialogHeader><div className="space-y-5"><div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#F0EAE1] p-4 text-sm"><Info label="Phone" value={selectedLead.phone}/><Info label="Service" value={selectedLead.service}/><Info label="Location" value={selectedLead.location}/><Info label="Provider" value={selectedLead.provider}/></div><div><Label>Customer message</Label><p className="mt-1 rounded-xl border border-[#DDD3C7] bg-white p-3 text-sm">{selectedLead.message}</p></div><div><Label>Status</Label><Select value={selectedLead.status} onValueChange={(value) => changeStatus(selectedLead, value as LeadStatus)}><SelectTrigger className="mt-1 bg-white"><SelectValue/></SelectTrigger><SelectContent>{pipeline.map((status) => <SelectItem key={status} value={status}>{title(status)}</SelectItem>)}</SelectContent></Select></div><div><Label>Internal notes</Label><Textarea className="mt-1 bg-white" value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} rows={4}/></div><div className="grid gap-2 sm:grid-cols-3"><Button className="bg-[#174E57] hover:bg-[#0E343B]" onClick={() => openWhatsApp(selectedLead)}><MessageCircle className="mr-2 h-4 w-4"/>WhatsApp</Button><Button variant="outline" onClick={saveNotes} disabled={savingLead}><Check className="mr-2 h-4 w-4"/>{savingLead ? 'Saving…' : 'Save notes'}</Button><Button variant="outline" onClick={() => createJobForLead(selectedLead)} disabled={savingLead}><BriefcaseBusiness className="mr-2 h-4 w-4"/>{jobs.some((job) => job.leadId === selectedLead.id) ? 'View job' : 'Create job'}</Button></div></div></>}</DialogContent></Dialog>
   </div>;
 }
 
@@ -168,9 +218,37 @@ function Leads({ leads, query, setQuery, statusFilter, setStatusFilter, setSelec
 
 function WhatsAppOps({ leads, openWhatsApp }: { leads: DashboardLead[]; openWhatsApp: (l: DashboardLead, m?: string) => void }) { const pending = leads.filter((l) => l.needsReply); return <><SectionTitle eyebrow="WhatsApp-first operations" title="Customer messages" description="Use approved, calm templates and keep unanswered customers visible."/><div className="grid gap-6 xl:grid-cols-[1fr_1.62fr]"><Panel title={`${pending.length} replies needed`} subtitle="Oldest unanswered inquiries should be handled first">{pending.map((lead) => <div key={lead.id} className="flex items-center gap-3 border-b border-[#E5DDD3] py-3 last:border-0"><div className="rounded-full bg-[#DCE9EA] p-2"><MessageCircle className="h-4 w-4 text-[#174E57]"/></div><div className="flex-1"><p className="text-sm font-medium">{lead.customerName}</p><p className="text-xs text-[#786F65]">{lead.service} · {lead.date}</p></div><Button size="sm" className="bg-[#174E57]" onClick={() => openWhatsApp(lead)}>Reply</Button></div>)}</Panel><Panel title="Approved response templates" subtitle="Review the text before WhatsApp opens">{templates.map((template) => <div key={template.title} className="mb-3 rounded-2xl border border-[#E0D7CC] bg-white p-4 last:mb-0"><div className="flex items-center justify-between"><p className="text-sm font-medium text-[#173F46]">{template.title}</p><Badge variant="outline">English</Badge></div><p className="mt-2 text-xs leading-5 text-[#786F65]">{template.body}</p><div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={() => navigator.clipboard?.writeText(template.body).then(() => toast.success('Template copied'))}><FileText className="mr-1.5 h-3.5 w-3.5"/>Copy</Button>{pending[0] && <Button size="sm" className="bg-[#174E57]" onClick={() => openWhatsApp(pending[0], template.body)}><Send className="mr-1.5 h-3.5 w-3.5"/>Use for next lead</Button>}</div></div>)}</Panel></div></> }
 
-function Jobs({ leads }: { leads: DashboardLead[] }) { const active = leads.filter((lead) => ['scheduled', 'in progress'].includes(lead.status)); return <><SectionTitle eyebrow="Delivery" title="Jobs & tasks" description="This view uses real scheduled and in-progress lead records. A dedicated jobs database is not connected yet."/><div className="grid gap-4">{active.map((lead) => <Card key={lead.id} className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent className="grid gap-4 p-5 md:grid-cols-[1fr_1fr_.8fr] md:items-center"><div><p className="text-xs font-semibold text-[#A47D4A]">Lead #{lead.id}</p><p className="mt-1 font-medium text-[#173F46]">{lead.customerName}</p><p className="text-sm text-[#786F65]">{lead.service}</p></div><div><p className="text-xs text-[#786F65]">Assigned provider</p><p className="mt-1 text-sm font-medium">{lead.provider}</p><p className="text-xs text-[#786F65]">{lead.location}</p></div><Badge className={`w-fit ${statusStyle[lead.status]}`}>{lead.status}</Badge></CardContent></Card>)}{!active.length && <Card className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent><EmptyState text="No scheduled or in-progress work is recorded."/></CardContent></Card>}</div></> }
+function Jobs({ jobs, setJobs }: { jobs: DashboardJob[]; setJobs: React.Dispatch<React.SetStateAction<DashboardJob[]>> }) {
+  const changeJobStatus = async (job: DashboardJob, status: string) => {
+    try {
+      await cleanfixApi.updateJob(job.id, { status });
+      setJobs((current) => current.map((item) => item.id === job.id ? { ...item, status } : item));
+      toast.success(`${job.title} moved to ${status}`);
+    } catch { toast.error('The job status was not saved.'); }
+  };
+  return <><SectionTitle eyebrow="Delivery" title="Jobs" description="Every item here is a real job saved in the CleanFixHarish database."/><div className="grid gap-4">{jobs.map((job) => <Card key={job.id} className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent className="grid gap-4 p-5 md:grid-cols-[1.1fr_1fr_.8fr] md:items-center"><div><p className="text-xs font-semibold text-[#A47D4A]">Job #{job.id}</p><p className="mt-1 font-medium text-[#173F46]">{job.customerName}</p><p className="text-sm text-[#786F65]">{job.title}</p></div><div><p className="text-xs text-[#786F65]">Location and schedule</p><p className="mt-1 text-sm font-medium">{job.address || 'Address not added'}</p><p className="text-xs text-[#786F65]">{job.scheduledFor ? new Date(job.scheduledFor).toLocaleString('en-IL') : 'Schedule not added'}</p></div><Select value={job.status} onValueChange={(status) => changeJobStatus(job, status)}><SelectTrigger className="bg-white"><SelectValue/></SelectTrigger><SelectContent>{['scheduled','in progress','completed','cancelled'].map((status) => <SelectItem key={status} value={status}>{title(status)}</SelectItem>)}</SelectContent></Select></CardContent></Card>)}{!jobs.length && <Card className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent><EmptyState text="No jobs exist yet. Open a customer and choose Create job."/></CardContent></Card>}</div></>;
+}
 
-function Providers({ providers }: { providers: AdminPartner[] }) { return <><SectionTitle eyebrow="Trusted network" title="Provider management" description="Real provider records stored in the CleanFixHarish database."/><div className="grid gap-4 md:grid-cols-2">{providers.map((provider) => <Card key={provider.id} className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent className="p-5"><div className="flex items-start justify-between"><div className="flex gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#DDE9E7] font-semibold text-[#174E57]">{provider.name.split(' ').map((part) => part[0]).slice(0,2).join('')}</div><div><p className="font-medium text-[#173F46]">{provider.name}</p><p className="text-xs text-[#786F65]">{provider.businessType}</p></div></div><Badge variant="outline" className={provider.isActive ? 'text-[#2E6840]' : 'text-[#854D37]'}>{provider.isActive ? 'Active' : 'Inactive'}</Badge></div><div className="mt-5 rounded-xl bg-[#F0EAE1] p-3"><Info label="Area" value={provider.area}/></div>{provider.description && <p className="mt-4 text-xs leading-5 text-[#6F675F]">{provider.description}</p>}{provider.phone && <Button variant="outline" size="sm" className="mt-4" asChild><a href={`tel:${provider.phone}`}><Phone className="mr-1.5 h-3.5 w-3.5"/>{provider.phone}</a></Button>}</CardContent></Card>)}{!providers.length && <Card className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent><EmptyState text="No providers are stored yet."/></CardContent></Card>}</div></> }
+function Providers({ providers, setProviders }: { providers: AdminPartner[]; setProviders: React.Dispatch<React.SetStateAction<AdminPartner[]>> }) {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState({ name: '', businessType: '', phone: '', area: 'Harish', description: '' });
+  const toggle = async (provider: AdminPartner) => {
+    try {
+      await cleanfixApi.updatePartner(provider.id, { is_active: !provider.isActive });
+      setProviders((current) => current.map((item) => item.id === provider.id ? { ...item, isActive: !item.isActive } : item));
+      toast.success(`${provider.name} is now ${provider.isActive ? 'inactive' : 'active'}.`);
+    } catch { toast.error('The provider change was not saved.'); }
+  };
+  const add = async () => {
+    if (!draft.name.trim()) { toast.error('Please enter the provider name.'); return; }
+    try {
+      const provider = await cleanfixApi.createPartner({ name: draft.name.trim(), business_type: draft.businessType, partner_type: 'service_provider', phone: draft.phone, area: draft.area, description_en: draft.description, is_active: true });
+      setProviders((current) => [{ id: provider.id, name: provider.name, businessType: provider.business_type || provider.partner_type, phone: provider.phone || '', area: provider.area || '', description: provider.description_en || '', isActive: provider.is_active !== false }, ...current]);
+      setAdding(false); setDraft({ name: '', businessType: '', phone: '', area: 'Harish', description: '' }); toast.success('Provider saved to the database.');
+    } catch { toast.error('The provider was not created.'); }
+  };
+  return <><SectionTitle eyebrow="Trusted network" title="Providers" description="Add providers and control who is active in your real directory." action={<Button className="bg-[#174E57]" onClick={() => setAdding(true)}><Plus className="mr-2 h-4 w-4"/>Add provider</Button>}/><div className="grid gap-4 md:grid-cols-2">{providers.map((provider) => <Card key={provider.id} className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div className="flex gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#DDE9E7] font-semibold text-[#174E57]">{provider.name.split(' ').map((part) => part[0]).slice(0,2).join('')}</div><div><p className="font-medium text-[#173F46]">{provider.name}</p><p className="text-xs text-[#786F65]">{provider.businessType}</p></div></div><div className="flex items-center gap-2"><span className="text-xs text-[#786F65]">Active</span><Switch checked={provider.isActive} onCheckedChange={() => toggle(provider)}/></div></div><div className="mt-5 rounded-xl bg-[#F0EAE1] p-3"><Info label="Area" value={provider.area}/></div>{provider.description && <p className="mt-4 text-xs leading-5 text-[#6F675F]">{provider.description}</p>}{provider.phone && <Button variant="outline" size="sm" className="mt-4" asChild><a href={`tel:${provider.phone}`}><Phone className="mr-1.5 h-3.5 w-3.5"/>{provider.phone}</a></Button>}</CardContent></Card>)}{!providers.length && <Card className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent><EmptyState text="No providers are stored yet."/></CardContent></Card>}</div><Dialog open={adding} onOpenChange={setAdding}><DialogContent className="bg-[#FBF8F3]"><DialogHeader><DialogTitle>Add a provider</DialogTitle></DialogHeader><div className="space-y-4"><FieldInput label="Provider name" value={draft.name} onChange={(name) => setDraft({...draft,name})}/><FieldInput label="Business type" value={draft.businessType} onChange={(businessType) => setDraft({...draft,businessType})}/><div className="grid gap-4 sm:grid-cols-2"><FieldInput label="Phone" value={draft.phone} onChange={(phone) => setDraft({...draft,phone})}/><FieldInput label="Area" value={draft.area} onChange={(area) => setDraft({...draft,area})}/></div><FieldArea label="Description" value={draft.description} onChange={(description) => setDraft({...draft,description})} large/><Button className="w-full bg-[#174E57]" onClick={add}>Save provider</Button></div></DialogContent></Dialog></>;
+}
 
 function Services({ items, setItems }: { items: AdminService[]; setItems: React.Dispatch<React.SetStateAction<AdminService[]>> }) { const toggle = async (service: AdminService, active: boolean) => { setItems((current) => current.map((item) => item.id === service.id ? {...item, active} : item)); try { await cleanfixApi.updateService(service.id, { is_active: active }); toast.success(`${service.name} ${active ? 'published' : 'hidden'}`); } catch { setItems((current) => current.map((item) => item.id === service.id ? {...item, active: service.active} : item)); toast.error('The service change was not saved.'); } }; return <><SectionTitle eyebrow="Offer management" title="Services & pricing" description="Real public service records stored in the CleanFixHarish database."/><div className="space-y-4">{items.map((service) => <Card key={service.id} className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start"><div className="flex-1"><div className="flex items-center gap-2"><h3 className="font-sans text-base font-semibold text-[#173F46]">{service.name}</h3><Badge variant="outline">{service.category}</Badge></div><p className="mt-2 text-sm text-[#625B53]">{service.description || 'No public description is stored.'}</p></div><div className="flex items-center gap-3"><span className="text-xs text-[#786F65]">Public</span><Switch checked={service.active} onCheckedChange={(active) => toggle(service, active)}/></div></div></CardContent></Card>)}{!items.length && <Card className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent><EmptyState text="No services are stored yet."/></CardContent></Card>}</div></> }
 
@@ -206,10 +284,11 @@ function ContentControl() {
 }
 
 function FieldArea({ label, value, onChange, large, rtl }: { label: string; value: string; onChange: (value: string) => void; large?: boolean; rtl?: boolean }) { return <div><Label>{label}</Label>{large ? <Textarea value={value} onChange={(event) => onChange(event.target.value)} rows={6} dir={rtl ? 'rtl' : 'ltr'} className="mt-1.5 bg-white"/> : <Input value={value} onChange={(event) => onChange(event.target.value)} dir={rtl ? 'rtl' : 'ltr'} className="mt-1.5 bg-white"/>}</div>; }
+function FieldInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <div><Label>{label}</Label><Input value={value} onChange={(event) => onChange(event.target.value)} className="mt-1.5 bg-white"/></div>; }
 
-function FollowUps({ leads, openWhatsApp }: { leads: DashboardLead[]; openWhatsApp: (l: DashboardLead, m?: string) => void }) { const followups = leads.filter((l) => l.status === 'follow-up' || l.status === 'completed' || l.status === 'quoted'); return <><SectionTitle eyebrow="Customer care" title="Follow-ups & reviews" description="Close the loop calmly and ask for honest reviews only after completed work."/><Panel title="Follow-up queue" subtitle="Prioritized by next useful customer action">{followups.map((lead) => <div key={lead.id} className="flex flex-col gap-3 border-b border-[#E5DDD3] py-4 last:border-0 sm:flex-row sm:items-center"><div className="flex-1"><div className="flex items-center gap-2"><p className="text-sm font-medium">{lead.customerName}</p><Badge className={statusStyle[lead.status]}>{lead.status}</Badge></div><p className="mt-1 text-xs text-[#786F65]">{lead.service} · {lead.notes}</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => openWhatsApp(lead, lead.status === 'completed' ? templates[3].body : templates[2].body)}><MessageCircle className="mr-1.5 h-3.5 w-3.5"/>{lead.status === 'completed' ? 'Request review' : 'Follow up'}</Button><Button variant="ghost" size="sm" onClick={() => toast.success('Follow-up marked complete')}><Check className="h-4 w-4"/></Button></div></div>)}</Panel></> }
+function FollowUps({ leads, openWhatsApp, completeFollowUp }: { leads: DashboardLead[]; openWhatsApp: (l: DashboardLead, m?: string) => void; completeFollowUp: (l: DashboardLead) => void }) { const followups = leads.filter((l) => l.followUpStatus !== 'completed' && (l.status === 'follow-up' || l.status === 'completed' || l.status === 'quoted')); return <><SectionTitle eyebrow="Customer care" title="Follow-ups & reviews" description="Close the loop calmly and save every completed follow-up."/><Panel title="Follow-up queue" subtitle="Prioritized by next useful customer action">{followups.map((lead) => <div key={lead.id} className="flex flex-col gap-3 border-b border-[#E5DDD3] py-4 last:border-0 sm:flex-row sm:items-center"><div className="flex-1"><div className="flex items-center gap-2"><p className="text-sm font-medium">{lead.customerName}</p><Badge className={statusStyle[lead.status]}>{lead.status}</Badge></div><p className="mt-1 text-xs text-[#786F65]">{lead.service} · {lead.notes || 'No notes added'}</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => openWhatsApp(lead, lead.status === 'completed' ? templates[3].body : templates[2].body)}><MessageCircle className="mr-1.5 h-3.5 w-3.5"/>{lead.status === 'completed' ? 'Request review' : 'Follow up'}</Button><Button variant="ghost" size="sm" aria-label="Mark follow-up complete" onClick={() => completeFollowUp(lead)}><Check className="h-4 w-4"/></Button></div></div>)}{!followups.length && <EmptyState text="No follow-ups need attention."/>}</Panel></> }
 
-function InternalOS() { return <><SectionTitle eyebrow="Company headquarters" title="Internal operating system" description="Verified migration status and operating principles. No fictional tasks are displayed."/><div className="grid gap-6 lg:grid-cols-2"><Panel title="Migration readiness" subtitle="Current verified state"><Connection name="Railway application" state="Connected"/><Connection name="Google sign-in" state="Connected"/><Connection name="HA PostgreSQL" state="Connected"/><Connection name="Production DNS" state="Pending approval"/></Panel><Panel title="Operating principles" subtitle="Applied before every change"><div className="space-y-3">{['Simplicity before complexity','Trust before growth hacks','Preserve existing work','One source of truth','No DNS change without approval'].map((item) => <div key={item} className="flex items-center gap-2 text-sm"><BadgeCheck className="h-4 w-4 text-[#174E57]"/>{item}</div>)}</div></Panel></div></> }
+function InternalOS() { return <><SectionTitle eyebrow="Company headquarters" title="Settings & system" description="Verified platform status and the rules that protect your business."/><div className="grid gap-6 lg:grid-cols-2"><Panel title="System status" subtitle="Current verified state"><Connection name="Railway application" state="Connected"/><Connection name="Google sign-in" state="Connected"/><Connection name="HA PostgreSQL" state="Connected"/><Connection name="Production DNS" state="Connected"/></Panel><Panel title="Operating principles" subtitle="Applied before every change"><div className="space-y-3">{['Simplicity before complexity','Trust before growth hacks','Preserve existing work','One source of truth','No infrastructure change without approval'].map((item) => <div key={item} className="flex items-center gap-2 text-sm"><BadgeCheck className="h-4 w-4 text-[#174E57]"/>{item}</div>)}</div></Panel></div></> }
 
 function Panel({ title: heading, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) { return <Card className="border-[#D8D0C6] bg-[#FBF8F3]"><CardHeader className="pb-2"><CardTitle className="font-sans text-base font-semibold text-[#173F46]">{heading}</CardTitle><p className="text-xs text-[#786F65]">{subtitle}</p></CardHeader><CardContent>{children}</CardContent></Card> }
 function EmptyState({ text }: { text: string }) { return <div className="py-8 text-center text-sm text-[#786F65]">{text}</div> }
