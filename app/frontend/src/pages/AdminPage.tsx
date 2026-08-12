@@ -17,11 +17,11 @@ import {
   Check, CheckCircle2, ChevronRight, CircleDollarSign, ClipboardCheck, Clock3, ExternalLink,
   FileText, Gauge, Globe2, HardHat, HeartHandshake, Inbox, LayoutDashboard, LogOut, Menu,
   MessageCircle, MoreHorizontal, PencilLine, Phone, Plus, Search, Send, Settings2, ShieldCheck,
-  Image, Sparkles, Star, Upload, Users, Wrench, X,
+  Bot, Cloud, Copy, Database, Github, Image, KeyRound, RotateCcw, Sparkles, Star, Upload, Users, Wrench, X,
 } from 'lucide-react';
 import { absoluteApiUrl, cleanfixApi } from '@/lib/cleanfixApi';
 
-type Section = 'overview' | 'leads' | 'whatsapp' | 'jobs' | 'providers' | 'services' | 'content' | 'followups' | 'internal';
+type Section = 'overview' | 'assistant' | 'leads' | 'whatsapp' | 'jobs' | 'providers' | 'services' | 'content' | 'followups' | 'platforms' | 'internal';
 type LeadStatus = 'new' | 'contacted' | 'quoted' | 'scheduled' | 'in progress' | 'completed' | 'follow-up' | 'cancelled';
 type DashboardLead = { id: number; customerName: string; phone: string; service: string; location: string; message: string; source: string; date: string; status: LeadStatus; provider: string; notes: string; needsReply: boolean; followUpStatus: string };
 type DashboardJob = { id: number; leadId?: number; customerName: string; title: string; phone: string; address: string; status: string; scheduledFor?: string; price?: number; notes: string };
@@ -33,6 +33,7 @@ type MediaItem = { id: number; filename: string; alt_text?: string; url: string 
 
 const navigation: { id: Section; label: string; icon: typeof LayoutDashboard; count?: number }[] = [
   { id: 'overview', label: 'Today', icon: LayoutDashboard },
+  { id: 'assistant', label: 'AI Assistant', icon: Bot },
   { id: 'leads', label: 'Customers', icon: Inbox },
   { id: 'jobs', label: 'Jobs', icon: BriefcaseBusiness },
   { id: 'providers', label: 'Providers', icon: HardHat },
@@ -40,6 +41,7 @@ const navigation: { id: Section; label: string; icon: typeof LayoutDashboard; co
   { id: 'services', label: 'Business', icon: Wrench },
   { id: 'content', label: 'Website', icon: Globe2 },
   { id: 'followups', label: 'Follow-ups', icon: HeartHandshake },
+  { id: 'platforms', label: 'Platforms', icon: Cloud },
   { id: 'internal', label: 'Settings', icon: BookOpen },
 ];
 
@@ -197,6 +199,7 @@ export default function AdminPage() {
 
     <main className="relative z-10 p-4 sm:p-6 lg:ml-64 lg:p-8">
       {section === 'overview' && <Overview leads={leads} providers={providers} counts={counts} setSection={setSection} setSelectedLead={setSelectedLead} openWhatsApp={openWhatsApp}/>}
+      {section === 'assistant' && <BusinessAssistant leads={leads} jobs={jobs} providers={providers} services={services}/>}
       {section === 'leads' && <Leads leads={filteredLeads} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} setSelectedLead={setSelectedLead}/>}
       {section === 'whatsapp' && <WhatsAppOps leads={leads} openWhatsApp={openWhatsApp}/>}
       {section === 'jobs' && <Jobs jobs={jobs} setJobs={setJobs}/>}
@@ -204,6 +207,7 @@ export default function AdminPage() {
       {section === 'services' && <Services items={services} setItems={setServices}/>}
       {section === 'content' && <ContentControl/>}
       {section === 'followups' && <FollowUps leads={leads} openWhatsApp={openWhatsApp} completeFollowUp={completeFollowUp}/>}
+      {section === 'platforms' && <PlatformDirectory/>}
       {section === 'internal' && <InternalOS/>}
     </main>
 
@@ -230,6 +234,76 @@ function Jobs({ jobs, setJobs }: { jobs: DashboardJob[]; setJobs: React.Dispatch
     } catch { toast.error('The job status was not saved.'); }
   };
   return <><SectionTitle eyebrow="Delivery" title="Jobs" description="Every item here is a real job saved in the CleanFixHarish database."/><div className="grid gap-4">{jobs.map((job) => <Card key={job.id} className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent className="grid gap-4 p-5 md:grid-cols-[1.1fr_1fr_.8fr] md:items-center"><div><p className="text-xs font-semibold text-[#A47D4A]">Job #{job.id}</p><p className="mt-1 font-medium text-[#173F46]">{job.customerName}</p><p className="text-sm text-[#786F65]">{job.title}</p></div><div><p className="text-xs text-[#786F65]">Location and schedule</p><p className="mt-1 text-sm font-medium">{job.address || 'Address not added'}</p><p className="text-xs text-[#786F65]">{job.scheduledFor ? new Date(job.scheduledFor).toLocaleString('en-IL') : 'Schedule not added'}</p></div><Select value={job.status} onValueChange={(status) => changeJobStatus(job, status)}><SelectTrigger className="bg-white"><SelectValue/></SelectTrigger><SelectContent>{['scheduled','in progress','completed','cancelled'].map((status) => <SelectItem key={status} value={status}>{title(status)}</SelectItem>)}</SelectContent></Select></CardContent></Card>)}{!jobs.length && <Card className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent><EmptyState text="No jobs exist yet. Open a customer and choose Create job."/></CardContent></Card>}</div></>;
+}
+
+type AssistantMessage = { role: 'user' | 'assistant'; content: string };
+
+const assistantStarters = [
+  'What should I focus on today?',
+  'Create a simple 30-day growth plan.',
+  'Draft a friendly WhatsApp reply for a new customer.',
+  'Suggest improvements for my website homepage.',
+  'Help me create a professional service quote.',
+  'How can I get my first 20 paying customers?',
+];
+
+function BusinessAssistant({ leads, jobs, providers, services }: { leads: DashboardLead[]; jobs: DashboardJob[]; providers: AdminPartner[]; services: AdminService[] }) {
+  const [messages, setMessages] = useState<AssistantMessage[]>([]);
+  const [draft, setDraft] = useState('');
+  const [thinking, setThinking] = useState(false);
+
+  const businessContext = useMemo(() => JSON.stringify({
+    today: new Date().toISOString().slice(0, 10),
+    business: 'CleanFixHarish — managed local home services in Harish, Israel',
+    currentState: 'Pre-launch / owner-operated. Aviel is the only current account. There is no customer data yet unless records appear below.',
+    privacyNote: 'Only totals and non-personal business information are supplied. Customer names, phone numbers, addresses, and notes are excluded.',
+    leadSummary: { total: leads.length, byStatus: Object.fromEntries(pipeline.map((status) => [status, leads.filter((lead) => lead.status === status).length])), needsReply: leads.filter((lead) => lead.needsReply).length },
+    jobSummary: { total: jobs.length, active: jobs.filter((job) => ['scheduled', 'in progress'].includes(job.status)).length, completed: jobs.filter((job) => job.status === 'completed').length },
+    providerSummary: { total: providers.length, active: providers.filter((provider) => provider.isActive).length, businessTypes: [...new Set(providers.map((provider) => provider.businessType).filter(Boolean))] },
+    services: services.map(({ name, nameHe, description, category, active, priceFrom, priceUnit }) => ({ name, nameHe, description, category, active, priceFrom, priceUnit })),
+  }), [leads, jobs, providers, services]);
+
+  const ask = async (question?: string) => {
+    const value = (question || draft).trim();
+    if (!value || thinking) return;
+    const next = [...messages, { role: 'user' as const, content: value }];
+    setMessages(next); setDraft(''); setThinking(true);
+    try {
+      const result = await cleanfixApi.askAssistant([
+        {
+          role: 'system',
+          content: `You are the CleanFixHarish Owner Assistant. Help Aviel run and grow a trustworthy managed home-services business in Harish. Use plain, non-technical language and lead with the recommended next action. Match the language used by Aviel. Base statements about the live business only on BUSINESS CONTEXT. If there is no data, say so; never invent customers, jobs, providers, prices, reviews, revenue, or completed actions. You may analyze, explain, plan, draft quotes, draft messages, and suggest website content. You cannot send messages, publish website changes, change prices, create or alter database records, promise availability, approve expenses, or act on Aviel's behalf. Clearly label drafts and ask Aviel to review important customer-facing text, prices, dates, and commitments before using them. When suggesting a plan, give a short prioritized checklist.\n\nBUSINESS CONTEXT:\n${businessContext}`,
+        },
+        ...next,
+      ]);
+      setMessages((current) => [...current, { role: 'assistant', content: result.content }]);
+    } catch {
+      toast.error('The AI Assistant could not connect. Check the Railway AI settings and try again.');
+    } finally { setThinking(false); }
+  };
+
+  return <>
+    <SectionTitle eyebrow="Owner intelligence" title="CleanFixHarish AI Assistant" description="Ask for guidance, plans, quotes, messages, and website ideas. You review every suggestion before anything changes."/>
+    <div className="grid gap-6 xl:grid-cols-[1.7fr_.8fr]">
+      <Card className="overflow-hidden border-[#D8D0C6] bg-[#FBF8F3]">
+        <CardHeader className="border-b border-[#E5DDD3] bg-[#173F46] text-white">
+          <div className="flex items-center gap-3"><div className="rounded-2xl bg-white/10 p-2.5"><Sparkles className="h-5 w-5 text-[#D8C092]"/></div><div><CardTitle className="text-base text-white">Ask your business assistant</CardTitle><p className="mt-1 text-xs text-white/65">Advice and drafts only · You remain in control</p></div></div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="min-h-[430px] max-h-[58vh] space-y-4 overflow-y-auto p-4 sm:p-6">
+            {!messages.length && <div className="mx-auto max-w-lg py-10 text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DDE9E7]"><Bot className="h-7 w-7 text-[#174E57]"/></div><h2 className="mt-4 text-lg font-semibold text-[#173F46]">How can I help you today?</h2><p className="mt-2 text-sm text-[#786F65]">Choose a starting question or write your own. English and Hebrew are both supported.</p></div>}
+            {messages.map((message, index) => <div key={`${message.role}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 ${message.role === 'user' ? 'bg-[#174E57] text-white' : 'border border-[#E0D7CC] bg-white text-[#324346]'}`}><div className="whitespace-pre-wrap">{message.content}</div>{message.role === 'assistant' && <button onClick={() => navigator.clipboard?.writeText(message.content).then(() => toast.success('Answer copied'))} className="mt-3 flex items-center gap-1.5 text-xs text-[#786F65] hover:text-[#174E57]"><Copy className="h-3.5 w-3.5"/>Copy</button>}</div></div>)}
+            {thinking && <div className="flex justify-start"><div className="flex items-center gap-2 rounded-2xl border border-[#E0D7CC] bg-white px-4 py-3 text-sm text-[#786F65]"><Sparkles className="h-4 w-4 animate-pulse text-[#A47D4A]"/>Thinking about your business…</div></div>}
+          </div>
+          <div className="border-t border-[#E5DDD3] bg-white p-4"><div className="flex gap-2"><Textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); ask(); } }} placeholder="Ask about customers, pricing, marketing, the website, or your next step…" rows={2} className="resize-none bg-[#FBF8F3]"/><Button onClick={() => ask()} disabled={!draft.trim() || thinking} className="h-auto bg-[#174E57] px-5 hover:bg-[#0E343B]"><Send className="h-4 w-4"/><span className="sr-only">Send</span></Button></div><p className="mt-2 text-[11px] text-[#8A8177]">Press Enter to send · Shift + Enter for a new line · Check prices, dates, and promises before using a draft.</p></div>
+        </CardContent>
+      </Card>
+      <div className="space-y-6">
+        <Panel title="Try asking" subtitle="Useful places to begin">{assistantStarters.map((starter) => <button key={starter} onClick={() => ask(starter)} disabled={thinking} className="flex w-full items-center gap-3 border-b border-[#E5DDD3] py-3 text-left text-sm last:border-0 hover:text-[#174E57]"><Sparkles className="h-4 w-4 shrink-0 text-[#A47D4A]"/><span className="flex-1">{starter}</span><ChevronRight className="h-4 w-4 text-[#A49A8F]"/></button>)}</Panel>
+        <Panel title="Safety and control" subtitle="What this first version can do"><div className="space-y-3 text-sm"><div className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"/><span>Read the business summary shown in Manager OS</span></div><div className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700"/><span>Explain, plan, recommend, and prepare drafts</span></div><div className="flex gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#A47D4A]"/><span>Cannot publish, message, charge, delete, or change records</span></div></div></Panel>
+      </div>
+    </div>
+  </>;
 }
 
 function Providers({ providers, setProviders }: { providers: AdminPartner[]; setProviders: React.Dispatch<React.SetStateAction<AdminPartner[]>> }) {
@@ -268,11 +342,18 @@ function ContentControl() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [restorePoint, setRestorePoint] = useState<{ name: string; created_at: string; content_sections: number; services: number } | null>(null);
+  const [confirmRestore, setConfirmRestore] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     Promise.all([cleanfixApi.listSiteContent(), cleanfixApi.getSiteSettings(), cleanfixApi.listSiteMedia()]).then(([result, siteSettings, images]) => { setItems(result?.items || []); setSettings(siteSettings); setMedia(images || []); })
       .catch(() => toast.error('Website content could not be loaded.'))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    cleanfixApi.getDefaultRestorePoint().then(setRestorePoint).catch(() => toast.error('The protected default could not be prepared.'));
   }, []);
 
   const save = async () => {
@@ -294,7 +375,18 @@ function ContentControl() {
   const saveSettings = async () => { if (!settings) return; setSaving(true); try { setSettings(await cleanfixApi.updateSiteSettings(settings as unknown as Record<string, unknown>)); toast.success('Website design published.'); } catch { toast.error('The website design was not saved.'); } finally { setSaving(false); } };
   const upload = async (file?: File) => { if (!file) return; setUploading(true); try { const image = await cleanfixApi.uploadSiteMedia(file, file.name.replace(/\.[^.]+$/, '')); setMedia((current) => [image, ...current]); toast.success('Image uploaded. Choose where to use it.'); } catch { toast.error('Image upload failed. Use JPG, PNG, WEBP, or GIF under 5 MB.'); } finally { setUploading(false); } };
 
-  return <><SectionTitle eyebrow="Website Studio" title="Edit your website" description="Change words, colors, buttons, layout, and pictures without touching code." action={<Button variant="outline" asChild><a href="/" target="_blank">Open live preview<ExternalLink className="ml-2 h-4 w-4"/></a></Button>}/><div className="grid gap-6 xl:grid-cols-2"><Panel title="1. Words" subtitle={loading ? 'Loading…' : 'Click a section to edit English and Hebrew'}>{items.map((item) => <button key={item.id} onClick={() => setSelected({...item})} className="flex w-full items-center gap-3 border-b border-[#E5DDD3] py-4 text-left last:border-0"><div className="rounded-xl bg-[#DDE9E7] p-2"><FileText className="h-4 w-4 text-[#174E57]"/></div><div className="flex-1"><p className="text-sm font-medium">{title(item.section_key)}</p><p className="line-clamp-1 text-xs text-[#786F65]">{item.title_en || 'Untitled'} · EN/HE</p></div><Badge variant="outline">{item.is_active === false ? 'Hidden' : 'Published'}</Badge><ChevronRight className="h-4 w-4"/></button>)}</Panel>{settings && <Panel title="2. Look and buttons" subtitle="Choose safe brand colors and the homepage layout"><div className="grid gap-4 sm:grid-cols-3">{([['Main color','primary_color'],['Gold accent','accent_color'],['Page background','surface_color']] as const).map(([label,key]) => <label key={key} className="text-xs text-[#625B53]">{label}<div className="mt-2 flex items-center gap-2 rounded-xl border bg-white p-2"><input type="color" value={settings[key]} onChange={(event) => setSettings({...settings,[key]:event.target.value.toUpperCase()})} className="h-9 w-12"/><span>{settings[key]}</span></div></label>)}</div><div className="mt-4"><Label>Hero layout</Label><Select value={settings.hero_layout} onValueChange={(hero_layout) => setSettings({...settings,hero_layout})}><SelectTrigger className="mt-2 bg-white"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="text-left">Words left, picture right</SelectItem><SelectItem value="image-left">Picture left, words right</SelectItem></SelectContent></Select></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><FieldInput label="Main button — English" value={settings.primary_cta_en || ''} onChange={(primary_cta_en) => setSettings({...settings,primary_cta_en})}/><FieldInput label="Main button — Hebrew" value={settings.primary_cta_he || ''} onChange={(primary_cta_he) => setSettings({...settings,primary_cta_he})}/><FieldInput label="WhatsApp button — English" value={settings.secondary_cta_en || ''} onChange={(secondary_cta_en) => setSettings({...settings,secondary_cta_en})}/><FieldInput label="WhatsApp button — Hebrew" value={settings.secondary_cta_he || ''} onChange={(secondary_cta_he) => setSettings({...settings,secondary_cta_he})}/></div><Button onClick={saveSettings} disabled={saving} className="mt-5 w-full bg-[#174E57]">Publish design and buttons</Button></Panel>}<Panel title="3. Pictures" subtitle="Upload once, then choose Hero or Bottom banner"><label className="flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-[#CFC5B9] bg-white p-6 text-sm text-[#174E57]"><Upload className="mr-2 h-5 w-5"/>{uploading ? 'Uploading…' : 'Upload a picture (maximum 5 MB)'}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" disabled={uploading} onChange={(event) => upload(event.target.files?.[0])}/></label><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{media.map((item) => <div key={item.id} className="overflow-hidden rounded-xl border bg-white"><img src={absoluteApiUrl(item.url)} alt={item.alt_text || item.filename} className="h-28 w-full object-cover"/><div className="grid grid-cols-2 gap-1 p-2"><Button size="sm" variant={settings?.hero_image_url === item.url ? 'default' : 'outline'} onClick={() => settings && setSettings({...settings,hero_image_url:item.url})}>Hero</Button><Button size="sm" variant={settings?.cta_image_url === item.url ? 'default' : 'outline'} onClick={() => settings && setSettings({...settings,cta_image_url:item.url})}>Bottom</Button></div></div>)}{!media.length && <div className="col-span-full py-6 text-center text-sm text-[#786F65]"><Image className="mx-auto mb-2 h-6 w-6"/>No uploaded pictures yet.</div>}</div>{settings && <Button onClick={saveSettings} disabled={saving} className="mt-4 w-full bg-[#174E57]">Publish selected pictures</Button>}</Panel><Panel title="How this works" subtitle="Three simple steps"><ol className="space-y-3 text-sm text-[#625B53]"><li><strong>1.</strong> Make one change.</li><li><strong>2.</strong> Press the green Publish button in that box.</li><li><strong>3.</strong> Open live preview and refresh the page.</li></ol><div className="mt-5 rounded-2xl bg-[#173F46] p-4 text-white"><p className="font-medium">Safe by design</p><p className="mt-1 text-xs text-white/70">Your logo and essential structure stay protected. You can change the parts customers see most.</p></div></Panel></div><Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}><DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto bg-[#FBF8F3]">{selected && <><DialogHeader><DialogTitle>Edit {title(selected.section_key)}</DialogTitle></DialogHeader><div className="grid gap-5 sm:grid-cols-2"><FieldArea label="English title" value={selected.title_en || ''} onChange={(value) => setSelected({...selected,title_en:value})}/><FieldArea label="Hebrew title" value={selected.title_he || ''} onChange={(value) => setSelected({...selected,title_he:value})} rtl/><FieldArea label="English content" value={selected.content_en || ''} onChange={(value) => setSelected({...selected,content_en:value})} large/><FieldArea label="Hebrew content" value={selected.content_he || ''} onChange={(value) => setSelected({...selected,content_he:value})} large rtl/></div><div className="flex items-center justify-between rounded-xl bg-[#F0EAE1] p-4"><div><p className="text-sm font-medium">Published on website</p><p className="text-xs text-[#786F65]">Turn this off to hide this saved text.</p></div><Switch checked={selected.is_active !== false} onCheckedChange={(value) => setSelected({...selected,is_active:value})}/></div><Button onClick={save} disabled={saving} className="w-full bg-[#174E57]">{saving ? 'Publishing…' : 'Publish words'}</Button></>}</DialogContent></Dialog></>;
+  const restoreDefault = async () => {
+    setRestoring(true);
+    try {
+      await cleanfixApi.restoreDefaultWebsite();
+      toast.success('The original working website has been restored.');
+      setConfirmRestore(false);
+      window.setTimeout(() => window.location.reload(), 700);
+    } catch { toast.error('The website was not restored. Nothing was changed.'); }
+    finally { setRestoring(false); }
+  };
+
+  return <><SectionTitle eyebrow="Website Studio" title="Edit your website" description="Change words, colors, buttons, layout, and pictures without touching code." action={<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setConfirmRestore(true)} disabled={!restorePoint}><RotateCcw className="mr-2 h-4 w-4"/>Return to default</Button><Button variant="outline" asChild><a href="/" target="_blank">Open live preview<ExternalLink className="ml-2 h-4 w-4"/></a></Button></div>}/><div className="grid gap-6 xl:grid-cols-2"><Panel title="Protected default" subtitle="Your original working website is kept as a safety copy"><div className="flex items-start gap-3"><div className="rounded-2xl bg-[#DFE8DA] p-2.5"><ShieldCheck className="h-5 w-5 text-[#466049]"/></div><div><p className="text-sm font-medium text-[#173F46]">{restorePoint?.name || 'Preparing safety copy…'}</p><p className="mt-1 text-xs leading-5 text-[#786F65]">Restores website words, colors, buttons, selected pictures, services, prices, and visibility. It never changes accounts, leads, jobs, providers, payments, or uploaded files.</p></div></div></Panel><Panel title="1. Words" subtitle={loading ? 'Loading…' : 'Click a section to edit English and Hebrew'}>{items.map((item) => <button key={item.id} onClick={() => setSelected({...item})} className="flex w-full items-center gap-3 border-b border-[#E5DDD3] py-4 text-left last:border-0"><div className="rounded-xl bg-[#DDE9E7] p-2"><FileText className="h-4 w-4 text-[#174E57]"/></div><div className="flex-1"><p className="text-sm font-medium">{title(item.section_key)}</p><p className="line-clamp-1 text-xs text-[#786F65]">{item.title_en || 'Untitled'} · EN/HE</p></div><Badge variant="outline">{item.is_active === false ? 'Hidden' : 'Published'}</Badge><ChevronRight className="h-4 w-4"/></button>)}</Panel>{settings && <Panel title="2. Look and buttons" subtitle="Choose safe brand colors and the homepage layout"><div className="grid gap-4 sm:grid-cols-3">{([['Main color','primary_color'],['Gold accent','accent_color'],['Page background','surface_color']] as const).map(([label,key]) => <label key={key} className="text-xs text-[#625B53]">{label}<div className="mt-2 flex items-center gap-2 rounded-xl border bg-white p-2"><input type="color" value={settings[key]} onChange={(event) => setSettings({...settings,[key]:event.target.value.toUpperCase()})} className="h-9 w-12"/><span>{settings[key]}</span></div></label>)}</div><div className="mt-4"><Label>Hero layout</Label><Select value={settings.hero_layout} onValueChange={(hero_layout) => setSettings({...settings,hero_layout})}><SelectTrigger className="mt-2 bg-white"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="text-left">Words left, picture right</SelectItem><SelectItem value="image-left">Picture left, words right</SelectItem></SelectContent></Select></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><FieldInput label="Main button — English" value={settings.primary_cta_en || ''} onChange={(primary_cta_en) => setSettings({...settings,primary_cta_en})}/><FieldInput label="Main button — Hebrew" value={settings.primary_cta_he || ''} onChange={(primary_cta_he) => setSettings({...settings,primary_cta_he})}/><FieldInput label="WhatsApp button — English" value={settings.secondary_cta_en || ''} onChange={(secondary_cta_en) => setSettings({...settings,secondary_cta_en})}/><FieldInput label="WhatsApp button — Hebrew" value={settings.secondary_cta_he || ''} onChange={(secondary_cta_he) => setSettings({...settings,secondary_cta_he})}/></div><Button onClick={saveSettings} disabled={saving} className="mt-5 w-full bg-[#174E57]">Publish design and buttons</Button></Panel>}<Panel title="3. Pictures" subtitle="Upload once, then choose Hero or Bottom banner"><label className="flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-[#CFC5B9] bg-white p-6 text-sm text-[#174E57]"><Upload className="mr-2 h-5 w-5"/>{uploading ? 'Uploading…' : 'Upload a picture (maximum 5 MB)'}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" disabled={uploading} onChange={(event) => upload(event.target.files?.[0])}/></label><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{media.map((item) => <div key={item.id} className="overflow-hidden rounded-xl border bg-white"><img src={absoluteApiUrl(item.url)} alt={item.alt_text || item.filename} className="h-28 w-full object-cover"/><div className="grid grid-cols-2 gap-1 p-2"><Button size="sm" variant={settings?.hero_image_url === item.url ? 'default' : 'outline'} onClick={() => settings && setSettings({...settings,hero_image_url:item.url})}>Hero</Button><Button size="sm" variant={settings?.cta_image_url === item.url ? 'default' : 'outline'} onClick={() => settings && setSettings({...settings,cta_image_url:item.url})}>Bottom</Button></div></div>)}{!media.length && <div className="col-span-full py-6 text-center text-sm text-[#786F65]"><Image className="mx-auto mb-2 h-6 w-6"/>No uploaded pictures yet.</div>}</div>{settings && <Button onClick={saveSettings} disabled={saving} className="mt-4 w-full bg-[#174E57]">Publish selected pictures</Button>}</Panel><Panel title="How this works" subtitle="Three simple steps"><ol className="space-y-3 text-sm text-[#625B53]"><li><strong>1.</strong> Make one change.</li><li><strong>2.</strong> Press the green Publish button in that box.</li><li><strong>3.</strong> Open live preview and refresh the page.</li></ol><div className="mt-5 rounded-2xl bg-[#173F46] p-4 text-white"><p className="font-medium">Safe by design</p><p className="mt-1 text-xs text-white/70">Your logo and essential structure stay protected. You can change the parts customers see most.</p></div></Panel></div><Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}><DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto bg-[#FBF8F3]">{selected && <><DialogHeader><DialogTitle>Edit {title(selected.section_key)}</DialogTitle></DialogHeader><div className="grid gap-5 sm:grid-cols-2"><FieldArea label="English title" value={selected.title_en || ''} onChange={(value) => setSelected({...selected,title_en:value})}/><FieldArea label="Hebrew title" value={selected.title_he || ''} onChange={(value) => setSelected({...selected,title_he:value})} rtl/><FieldArea label="English content" value={selected.content_en || ''} onChange={(value) => setSelected({...selected,content_en:value})} large/><FieldArea label="Hebrew content" value={selected.content_he || ''} onChange={(value) => setSelected({...selected,content_he:value})} large rtl/></div><div className="flex items-center justify-between rounded-xl bg-[#F0EAE1] p-4"><div><p className="text-sm font-medium">Published on website</p><p className="text-xs text-[#786F65]">Turn this off to hide this saved text.</p></div><Switch checked={selected.is_active !== false} onCheckedChange={(value) => setSelected({...selected,is_active:value})}/></div><Button onClick={save} disabled={saving} className="w-full bg-[#174E57]">{saving ? 'Publishing…' : 'Publish words'}</Button></>}</DialogContent></Dialog><Dialog open={confirmRestore} onOpenChange={setConfirmRestore}><DialogContent className="max-w-md bg-[#FBF8F3]"><DialogHeader><DialogTitle>Return to the original working website?</DialogTitle></DialogHeader><div className="space-y-4 text-sm text-[#625B53]"><p>This will replace your current website words, design choices, selected pictures, and service presentation with the protected default.</p><div className="rounded-xl bg-[#EEE4D4] p-4 text-[#765D38]"><strong>Your business records stay safe.</strong><br/>Accounts, leads, jobs, providers, payments, and uploaded files are not changed.</div><div className="grid grid-cols-2 gap-2"><Button variant="outline" onClick={() => setConfirmRestore(false)} disabled={restoring}>Cancel</Button><Button onClick={restoreDefault} disabled={restoring} className="bg-[#8A4639] hover:bg-[#71372E]"><RotateCcw className="mr-2 h-4 w-4"/>{restoring ? 'Restoring…' : 'Yes, restore default'}</Button></div></div></DialogContent></Dialog></>;
 }
 
 function FieldArea({ label, value, onChange, large, rtl }: { label: string; value: string; onChange: (value: string) => void; large?: boolean; rtl?: boolean }) { return <div><Label>{label}</Label>{large ? <Textarea value={value} onChange={(event) => onChange(event.target.value)} rows={6} dir={rtl ? 'rtl' : 'ltr'} className="mt-1.5 bg-white"/> : <Input value={value} onChange={(event) => onChange(event.target.value)} dir={rtl ? 'rtl' : 'ltr'} className="mt-1.5 bg-white"/>}</div>; }
@@ -302,7 +394,51 @@ function FieldInput({ label, value, onChange }: { label: string; value: string; 
 
 function FollowUps({ leads, openWhatsApp, completeFollowUp }: { leads: DashboardLead[]; openWhatsApp: (l: DashboardLead, m?: string) => void; completeFollowUp: (l: DashboardLead) => void }) { const followups = leads.filter((l) => l.followUpStatus !== 'completed' && (l.status === 'follow-up' || l.status === 'completed' || l.status === 'quoted')); return <><SectionTitle eyebrow="Customer care" title="Follow-ups & reviews" description="Close the loop calmly and save every completed follow-up."/><Panel title="Follow-up queue" subtitle="Prioritized by next useful customer action">{followups.map((lead) => <div key={lead.id} className="flex flex-col gap-3 border-b border-[#E5DDD3] py-4 last:border-0 sm:flex-row sm:items-center"><div className="flex-1"><div className="flex items-center gap-2"><p className="text-sm font-medium">{lead.customerName}</p><Badge className={statusStyle[lead.status]}>{lead.status}</Badge></div><p className="mt-1 text-xs text-[#786F65]">{lead.service} · {lead.notes || 'No notes added'}</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => openWhatsApp(lead, lead.status === 'completed' ? templates[3].body : templates[2].body)}><MessageCircle className="mr-1.5 h-3.5 w-3.5"/>{lead.status === 'completed' ? 'Request review' : 'Follow up'}</Button><Button variant="ghost" size="sm" aria-label="Mark follow-up complete" onClick={() => completeFollowUp(lead)}><Check className="h-4 w-4"/></Button></div></div>)}{!followups.length && <EmptyState text="No follow-ups need attention."/>}</Panel></> }
 
-function InternalOS() { return <><SectionTitle eyebrow="Company headquarters" title="Settings & system" description="Verified platform status and the rules that protect your business."/><div className="grid gap-6 lg:grid-cols-2"><Panel title="System status" subtitle="Current verified state"><Connection name="Railway application" state="Connected"/><Connection name="Google sign-in" state="Connected"/><Connection name="HA PostgreSQL" state="Connected"/><Connection name="Production DNS" state="Connected"/></Panel><Panel title="Operating principles" subtitle="Applied before every change"><div className="space-y-3">{['Simplicity before complexity','Trust before growth hacks','Preserve existing work','One source of truth','No infrastructure change without approval'].map((item) => <div key={item} className="flex items-center gap-2 text-sm"><BadgeCheck className="h-4 w-4 text-[#174E57]"/>{item}</div>)}</div></Panel></div></> }
+type PlatformEntry = {
+  name: string;
+  role: string;
+  location: string;
+  status: 'Production' | 'Business tool' | 'Required check' | 'Retired';
+  icon: typeof Cloud;
+  url?: string;
+  protect: string;
+  check: string;
+};
+
+const platformEntries: PlatformEntry[] = [
+  { name: 'Railway', role: 'Runs the website and backend application.', location: 'CleanFixHarish production project', status: 'Production', icon: Cloud, url: 'https://railway.com/dashboard', protect: 'Environment variables and deployment access', check: 'Deployment health, logs, and monthly usage' },
+  { name: 'Railway PostgreSQL', role: 'Stores the live business records.', location: 'Database service inside the Railway project', status: 'Production', icon: Database, url: 'https://railway.com/dashboard', protect: 'DATABASE_URL and database backups', check: 'Backup status before any risky release' },
+  { name: 'Cloudflare', role: 'Controls the domain, DNS, and public connection security.', location: 'Zone: cleanfixharish.co.il', status: 'Production', icon: Globe2, url: 'https://dash.cloudflare.com/', protect: 'DNS access; never expose API tokens', check: 'www and root domain, SSL, and email DNS records' },
+  { name: 'GitHub', role: 'The single source of truth for all website code.', location: 'cleanfixharish/cleanfix-website', status: 'Production', icon: Github, url: 'https://github.com/cleanfixharish/cleanfix-website', protect: 'Account 2-step verification and repository access', check: 'Changes reviewed before they reach Railway' },
+  { name: 'Google Cloud Auth', role: 'Provides Google sign-in for the owner account.', location: 'CleanFixHarish Production · cleanfixharish-prod', status: 'Production', icon: KeyRound, url: 'https://console.cloud.google.com/auth/clients', protect: 'OAuth client secret and approved callback addresses', check: 'Login after domain or authentication changes' },
+  { name: 'Google Workspace', role: 'Runs the company email and administrator identity.', location: 'info@cleanfixharish.co.il', status: 'Production', icon: Building2, url: 'https://admin.google.com/', protect: 'Administrator recovery methods and 2-step verification', check: 'Email delivery; preserve all Google MX records' },
+  { name: 'AI Gateway', role: 'Connects Manager OS to the AI model used by the assistant.', location: 'Configured privately through Railway variables', status: 'Required check', icon: Bot, protect: 'APP_AI_BASE_URL and APP_AI_KEY', check: 'Confirm both variables before enabling the assistant live' },
+  { name: 'WhatsApp Business', role: 'Customer conversations and approved message drafts.', location: 'Owner-managed business account', status: 'Business tool', icon: MessageCircle, url: 'https://business.whatsapp.com/', protect: 'Phone access, backups, and two-step verification', check: 'Messages are still sent by you, not automatically' },
+  { name: 'Google NotebookLM', role: 'Creates internal explanations, podcasts, and training material.', location: 'CleanFixHarish business notebook', status: 'Business tool', icon: BookOpen, url: 'https://notebooklm.google.com/', protect: 'Only upload material appropriate for the notebook audience', check: 'Not part of the live website' },
+  { name: 'Canva', role: 'Creates optional branded pictures and marketing designs.', location: 'CleanFixHarish design workspace', status: 'Business tool', icon: Image, url: 'https://www.canva.com/', protect: 'Brand assets and account access', check: 'Export approved assets before adding them to the website' },
+  { name: 'Render', role: 'Previous website host; no longer the production platform.', location: 'Historical only', status: 'Retired', icon: X, protect: 'Keep only if an old backup is still needed', check: 'Do not deploy new work here' },
+];
+
+function PlatformDirectory() {
+  const statusTone: Record<PlatformEntry['status'], string> = {
+    Production: 'bg-[#DCEADF] text-[#2E6840]',
+    'Business tool': 'bg-[#DCE5F0] text-[#35546D]',
+    'Required check': 'bg-[#EEE4D4] text-[#765D38]',
+    Retired: 'bg-[#EAE7E3] text-[#746D65]',
+  };
+  return <>
+    <SectionTitle eyebrow="Owner map" title="Platforms & access" description="One simple list of the systems behind CleanFixHarish, what each one does, and what must be protected."/>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {platformEntries.map((platform) => <Card key={platform.name} className="border-[#D8D0C6] bg-[#FBF8F3]"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div className="rounded-2xl bg-[#DDE9E7] p-2.5"><platform.icon className="h-5 w-5 text-[#174E57]"/></div><Badge className={statusTone[platform.status]}>{platform.status}</Badge></div><h2 className="mt-4 font-semibold text-[#173F46]">{platform.name}</h2><p className="mt-1 text-sm leading-5 text-[#625B53]">{platform.role}</p><p className="mt-3 rounded-xl bg-[#F0EAE1] px-3 py-2 text-xs text-[#625B53]">{platform.location}</p><div className="mt-4 space-y-2 text-xs leading-5 text-[#786F65]"><p><strong className="text-[#4A4540]">Protect:</strong> {platform.protect}</p><p><strong className="text-[#4A4540]">Check:</strong> {platform.check}</p></div>{platform.url && <Button variant="outline" size="sm" className="mt-4 w-full" asChild><a href={platform.url} target="_blank" rel="noreferrer">Open {platform.name}<ExternalLink className="ml-2 h-3.5 w-3.5"/></a></Button>}</CardContent></Card>)}
+    </div>
+    <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <Panel title="Never store secrets here" subtitle="This page names secret settings but never shows their values"><div className="space-y-3 text-sm text-[#625B53]"><div className="flex gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#174E57]"/><span>Passwords, API keys, OAuth secrets, and database addresses stay inside their secure platform.</span></div><div className="flex gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#174E57]"/><span>Turn on two-step verification for GitHub, Google, Cloudflare, Railway, and WhatsApp.</span></div><div className="flex gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#174E57]"/><span>Do not change DNS, OAuth callbacks, or database settings unless a tested release requires it.</span></div></div></Panel>
+      <Panel title="Future connections" subtitle="Useful later, but not required for the current working version"><div className="space-y-3 text-sm"><Connection name="Online payment provider" state="Not activated"/><Connection name="Automatic database backup copy" state="Plan next"/><Connection name="Error monitoring and alerts" state="Plan next"/><Connection name="Website conversion analytics" state="Plan next"/></div></Panel>
+    </div>
+  </>;
+}
+
+function InternalOS() { return <><SectionTitle eyebrow="Company headquarters" title="Settings & system" description="Verified platform status and the rules that protect your business."/><div className="grid gap-6 lg:grid-cols-2"><Panel title="System status" subtitle="Current verified state"><Connection name="Railway application" state="Connected"/><Connection name="Google sign-in" state="Connected"/><Connection name="PostgreSQL database" state="Connected"/><Connection name="Production DNS" state="Connected"/></Panel><Panel title="Operating principles" subtitle="Applied before every change"><div className="space-y-3">{['Simplicity before complexity','Trust before growth hacks','Preserve existing work','One source of truth','No infrastructure change without approval'].map((item) => <div key={item} className="flex items-center gap-2 text-sm"><BadgeCheck className="h-4 w-4 text-[#174E57]"/>{item}</div>)}</div></Panel></div></> }
 
 function Panel({ title: heading, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) { return <Card className="border-[#D8D0C6] bg-[#FBF8F3]"><CardHeader className="pb-2"><CardTitle className="font-sans text-base font-semibold text-[#173F46]">{heading}</CardTitle><p className="text-xs text-[#786F65]">{subtitle}</p></CardHeader><CardContent>{children}</CardContent></Card> }
 function EmptyState({ text }: { text: string }) { return <div className="py-8 text-center text-sm text-[#786F65]">{text}</div> }

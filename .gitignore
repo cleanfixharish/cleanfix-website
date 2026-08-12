@@ -10,6 +10,7 @@
 # Dependencies and generated output
 node_modules/
 app/frontend/dist/
+app/frontend/.codex-build-check*/
 dist/
 build/
 .cache/
@@ -17,6 +18,7 @@ coverage/
 
 # Runtime data and logs
 app/backend/logs/
+app/backend/*-test.db
 *.log
 uploads/
 

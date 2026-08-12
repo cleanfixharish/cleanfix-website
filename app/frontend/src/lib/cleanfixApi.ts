@@ -109,6 +109,26 @@ export const cleanfixApi = {
     });
     return response.data;
   },
+
+  async askAssistant(messages: { role: 'system' | 'user' | 'assistant'; content: string }[]) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/aihub/gentxt`, {
+      messages,
+      stream: false,
+      temperature: 0.3,
+      max_tokens: 1800,
+    });
+    return response.data as { content: string; model?: string };
+  },
+
+  async getDefaultRestorePoint() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/website-restore/default`);
+    return response.data as { name: string; created_at: string; content_sections: number; services: number };
+  },
+
+  async restoreDefaultWebsite() {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/website-restore/default`);
+    return response.data as { name: string; restored: boolean; content_sections: number; services: number };
+  },
 };
 
 export function absoluteApiUrl(path?: string) {
