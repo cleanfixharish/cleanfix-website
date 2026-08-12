@@ -261,6 +261,19 @@
   .cf-logo-shine::after { display: none; }
 }
 
+@media (max-width: 639px) {
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .cf-shell {
+    width: min(100% - 1.5rem, 1280px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cf-gold-icon::after,
   .cf-logo-shine::after { display: none; }

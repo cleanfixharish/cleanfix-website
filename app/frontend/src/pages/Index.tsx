@@ -71,21 +71,21 @@ export default function Index() {
               <p className="cf-eyebrow mb-4">
                 {t.hero.eyebrow}
               </p>
-              <h1 className="mb-5 text-4xl font-bold leading-[.98] text-[#081f28] sm:text-5xl md:text-[3.8rem]">
+              <h1 className="mb-5 break-words text-[2.25rem] font-bold leading-[1.02] text-[#081f28] min-[390px]:text-4xl sm:text-5xl md:text-[3.8rem]">
                 {cmsValue('hero', 'title', t.hero.title)}
               </h1>
               <p className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed">
                 {cmsValue('hero', 'content', t.hero.subtitle)}
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Link to="/quote">
-                  <Button size="lg" className="gap-2 text-base text-white shadow-lg" style={{backgroundColor: site.primary_color}}>
+              <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:flex-wrap">
+                <Link to="/quote" className="w-full min-[430px]:w-auto">
+                  <Button size="lg" className="w-full gap-2 text-base text-white shadow-lg min-[430px]:w-auto" style={{backgroundColor: site.primary_color}}>
                     {primaryButton}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer">
-                  <Button size="lg" variant="outline" className="gap-2 border-[#b8842f]/60 bg-[#f7f2ea]/80 text-base text-[#102e38] hover:bg-[#e8d8be]">
+                <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="w-full min-[430px]:w-auto">
+                  <Button size="lg" variant="outline" className="w-full gap-2 border-[#b8842f]/60 bg-[#f7f2ea]/80 text-base text-[#102e38] hover:bg-[#e8d8be] min-[430px]:w-auto">
                     <MessageCircle className="h-5 w-5" />
                     {secondaryButton}
                   </Button>
@@ -109,7 +109,7 @@ export default function Index() {
                   <img src="/assets/images/home-support-v2/web/hero-handyman-harish-v2-1536.jpg" alt="CleanFixHarish handyman helping in a local Harish home" className="h-72 w-full object-cover md:h-[500px]" fetchPriority="high" />
                 </picture>}
               </div>
-              <div className="absolute bottom-5 left-5 right-5 grid grid-cols-3 gap-2 rounded-2xl border border-white/20 bg-[#102e38]/92 p-3 text-center text-[#f7f2ea] shadow-2xl backdrop-blur-md sm:left-auto sm:w-[360px]">
+              <div className="absolute bottom-3 left-3 right-3 grid grid-cols-3 gap-1 rounded-2xl border border-white/20 bg-[#102e38]/92 p-2 text-center text-[#f7f2ea] shadow-2xl backdrop-blur-md min-[390px]:bottom-5 min-[390px]:left-5 min-[390px]:right-5 min-[390px]:gap-2 min-[390px]:p-3 sm:left-auto sm:w-[360px]">
                 <div><strong className="block text-sm text-[#f0c96f]">WhatsApp</strong><span className="text-[10px] text-white/70">First response</span></div>
                 <div className="border-x border-white/15"><strong className="block text-sm text-[#f0c96f]">Harish</strong><span className="text-[10px] text-white/70">Local service</span></div>
                 <div><strong className="block text-sm text-[#f0c96f]">Clear</strong><span className="text-[10px] text-white/70">Next steps</span></div>
@@ -224,15 +224,15 @@ export default function Index() {
               ? 'Send the service, your area in Harish, and photos if relevant. We will review the details and explain the next step.'
               : 'שלחו את סוג השירות, האזור בחריש ותמונות אם הן רלוונטיות. נבדוק את הפרטים ונסביר מה השלב הבא.'}
           </p>
-          <div className="flex flex-wrap gap-3">
-            <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" className="gap-2 bg-[#e8d8be] text-base text-[#102e38] hover:bg-[#f7f2ea]">
+          <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:flex-wrap">
+            <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="w-full min-[430px]:w-auto">
+              <Button size="lg" className="w-full gap-2 bg-[#e8d8be] text-base text-[#102e38] hover:bg-[#f7f2ea] min-[430px]:w-auto">
                 <MessageCircle className="h-5 w-5" />
                 {secondaryButton}
               </Button>
             </a>
-            <Link to="/quote">
-              <Button size="lg" variant="outline" className="gap-2 text-base border-white/40 text-white hover:bg-white/10">
+            <Link to="/quote" className="w-full min-[430px]:w-auto">
+              <Button size="lg" variant="outline" className="w-full gap-2 border-white/40 text-base text-white hover:bg-white/10 min-[430px]:w-auto">
                 {primaryButton}
               </Button>
             </Link>
@@ -248,7 +248,7 @@ export default function Index() {
         href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl sm:bottom-6 sm:right-6 sm:h-14 sm:w-14"
         aria-label="Chat on WhatsApp"
       >
         <MessageCircle className="h-7 w-7 text-white" />
