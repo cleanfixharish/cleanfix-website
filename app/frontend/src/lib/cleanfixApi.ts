@@ -14,6 +14,17 @@ export const cleanfixApi = {
     const response = await http.get(`${getAPIBaseURL()}/api/v1/viewer/dashboard`);
     return response.data;
   },
+  async listViewers() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/viewers`);
+    return response.data as { id: number; email: string; is_active: boolean; created_at?: string }[];
+  },
+  async addViewer(email: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/viewers`, { email });
+    return response.data;
+  },
+  async removeViewer(id: number) {
+    await http.delete(`${getAPIBaseURL()}/api/v1/admin/viewers/${id}`);
+  },
   async createLead(data: Record<string, unknown>) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/entities/leads`, data);
     return response.data;

@@ -467,7 +467,25 @@ function PlatformDirectory() {
   </>;
 }
 
-function InternalOS() { return <><SectionTitle eyebrow="Company headquarters" title="Settings & system" description="Verified platform status and the rules that protect your business."/><div className="grid gap-6 lg:grid-cols-2"><Panel title="System status" subtitle="Current verified state"><Connection name="Railway application" state="Connected"/><Connection name="Google sign-in" state="Connected"/><Connection name="PostgreSQL database" state="Connected"/><Connection name="Production DNS" state="Connected"/></Panel><Panel title="Operating principles" subtitle="Applied before every change"><div className="space-y-3">{['Simplicity before complexity','Trust before growth hacks','Preserve existing work','One source of truth','No infrastructure change without approval'].map((item) => <div key={item} className="flex items-center gap-2 text-sm"><BadgeCheck className="h-4 w-4 text-[#174E57]"/>{item}</div>)}</div></Panel></div></> }
+function InternalOS() {
+  const [viewers, setViewers] = useState<{id:number;email:string}[]>([]);
+  const [email, setEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+  const load = () => cleanfixApi.listViewers().then(setViewers).catch(() => toast.error('Viewer access list could not be loaded.'));
+  useEffect(() => { load(); }, []);
+  const add = async () => {
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) { toast.error('Please enter a complete email address.'); return; }
+    setSaving(true);
+    try { await cleanfixApi.addViewer(email.trim()); setEmail(''); await load(); toast.success('Viewer access added. They can sign in with Google.'); }
+    catch { toast.error('Viewer access was not added.'); }
+    finally { setSaving(false); }
+  };
+  const remove = async (viewer: {id:number;email:string}) => {
+    try { await cleanfixApi.removeViewer(viewer.id); setViewers((current) => current.filter((item) => item.id !== viewer.id)); toast.success(`${viewer.email} can no longer sign in as a Viewer.`); }
+    catch { toast.error('Viewer access was not removed.'); }
+  };
+  return <><SectionTitle eyebrow="Company headquarters" title="Settings & system" description="Verified platform status and the rules that protect your business."/><div className="grid gap-6 lg:grid-cols-2"><Panel title="Viewer access" subtitle="Let trusted people explore the dashboard without changing anything"><div className="flex flex-col gap-2 sm:flex-row"><Input type="email" value={email} onChange={(event)=>setEmail(event.target.value)} onKeyDown={(event)=>event.key==='Enter'&&add()} placeholder="friend@example.com" className="bg-white"/><Button onClick={add} disabled={saving} className="shrink-0 bg-[#174E57]"><Plus className="mr-2 h-4 w-4"/>{saving?'Adding…':'Add viewer'}</Button></div><p className="mt-3 text-xs leading-5 text-[#786F65]">Viewers see a working read-only dashboard. Private areas show “Only Aviel can see this.”</p><div className="mt-4 divide-y divide-[#E5DDD3]">{viewers.map((viewer)=><div key={viewer.id} className="flex items-center gap-3 py-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#DDE9E7]"><Users className="h-4 w-4 text-[#174E57]"/></div><span className="min-w-0 flex-1 truncate text-sm">{viewer.email}</span><Button variant="ghost" size="sm" onClick={()=>remove(viewer)} className="text-[#8A4639]">Remove</Button></div>)}{!viewers.length&&<EmptyState text="No dashboard viewers have been added here yet."/>}</div></Panel><Panel title="System status" subtitle="Current verified state"><Connection name="Railway application" state="Connected"/><Connection name="Google sign-in" state="Connected"/><Connection name="PostgreSQL database" state="Connected"/><Connection name="Production DNS" state="Connected"/></Panel><Panel title="Operating principles" subtitle="Applied before every change"><div className="space-y-3">{['Simplicity before complexity','Trust before growth hacks','Preserve existing work','One source of truth','No infrastructure change without approval'].map((item) => <div key={item} className="flex items-center gap-2 text-sm"><BadgeCheck className="h-4 w-4 text-[#174E57]"/>{item}</div>)}</div></Panel></div></>;
+}
 
 function Panel({ title: heading, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) { return <Card className="border-[#D8D0C6] bg-[#FBF8F3]"><CardHeader className="pb-2"><CardTitle className="font-sans text-base font-semibold text-[#173F46]">{heading}</CardTitle><p className="text-xs text-[#786F65]">{subtitle}</p></CardHeader><CardContent>{children}</CardContent></Card> }
 function EmptyState({ text }: { text: string }) { return <div className="py-8 text-center text-sm text-[#786F65]">{text}</div> }
