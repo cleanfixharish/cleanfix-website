@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRouter
+from core.auth import AccessTokenError, decode_access_token
 
 # MODULE_IMPORTS_START
 from services.database import check_database_health, initialize_database, close_database
@@ -99,6 +100,26 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Accept", "X-CSRF-Token"],
 )
 # MODULE_MIDDLEWARE_END
+
+
+@app.middleware("http")
+async def enforce_read_only_viewer(request: Request, call_next):
+    """Reject every state-changing API request made with a viewer token."""
+    if request.url.path.startswith("/api/") and request.method not in {"GET", "HEAD", "OPTIONS"}:
+        authorization = request.headers.get("authorization", "")
+        if authorization.lower().startswith("bearer "):
+            try:
+                payload = decode_access_token(authorization.split(" ", 1)[1])
+                if payload.get("role") == "viewer":
+                    return JSONResponse(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        content={"detail": "Read-only viewer: changes are disabled."},
+                    )
+            except AccessTokenError:
+                # The normal authentication dependency will return the appropriate error.
+                pass
+
+    return await call_next(request)
 
 
 @app.middleware("http")

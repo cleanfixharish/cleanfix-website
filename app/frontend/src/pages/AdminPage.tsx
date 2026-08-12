@@ -69,7 +69,7 @@ function SectionTitle({ eyebrow, title, description, action }: { eyebrow: string
 }
 
 export default function AdminPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isViewer } = useAuth();
   const [section, setSection] = useState<Section>('overview');
   const [mobileNav, setMobileNav] = useState(false);
   const [leads, setLeads] = useState<DashboardLead[]>([]);
@@ -86,9 +86,12 @@ export default function AdminPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [leadResponse, jobResponse, partnerResponse, serviceResponse] = await Promise.all([
-          cleanfixApi.listLeads(100), cleanfixApi.listJobs(), cleanfixApi.listPartners(), cleanfixApi.listServices(),
-        ]);
+        const viewerData = isViewer ? await cleanfixApi.getViewerDashboard() : null;
+        const [leadResponse, jobResponse, partnerResponse, serviceResponse] = viewerData
+          ? [viewerData.leads, viewerData.jobs, viewerData.partners, viewerData.services]
+          : await Promise.all([
+              cleanfixApi.listLeads(100), cleanfixApi.listJobs(), cleanfixApi.listPartners(), cleanfixApi.listServices(),
+            ]);
         const items = leadResponse?.items || [];
         setLeads(items.map((lead: any) => ({
           id: lead.id, customerName: lead.customer_name, phone: lead.phone, service: lead.service_requested,
@@ -119,7 +122,7 @@ export default function AdminPage() {
       }
     };
     load();
-  }, []);
+  }, [isViewer]);
 
   useEffect(() => {
     setNoteDraft(selectedLead?.notes || '');
@@ -190,7 +193,7 @@ export default function AdminPage() {
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-[#B8842F]/45 bg-[#102E38] bg-[url('/assets/brand/v2/navy-embossed-panel.svg')] bg-cover text-white lg:flex lg:flex-col">
       <div className="flex h-20 items-center gap-3 border-b border-white/10 px-5"><img src="/assets/brand/cf-gold-monogram-128.png" alt="CleanFixHarish CF gold monogram" className="h-11 w-11 rounded-xl"/><div><p className="font-semibold">CleanFixHarish</p><p className="text-[10px] uppercase tracking-[.18em] text-white/55">Manager OS</p></div></div>
       <nav className="flex-1 space-y-1 p-3">{navigation.map((item) => <button key={item.id} onClick={() => setSection(item.id)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${section === item.id ? 'bg-[#F7F2EA] text-[#173F46] shadow-sm' : 'text-white/72 hover:bg-white/8 hover:text-white'}`}><item.icon className="h-4 w-4"/><span className="flex-1 text-left">{item.label}</span>{item.id === 'leads' && counts.new > 0 && <span className="rounded-full bg-[#B8905B] px-2 py-0.5 text-[10px] text-white">{counts.new}</span>}</button>)}</nav>
-      <div className="border-t border-white/10 p-4"><div className="rounded-2xl bg-white/7 p-3"><div className="flex items-center gap-2 text-xs"><ShieldCheck className="h-4 w-4 text-[#D8C092]"/><span>Owner workspace</span></div><p className="mt-2 truncate text-xs text-white/55">{user?.email || 'CleanFixHarish admin'}</p></div></div>
+      <div className="border-t border-white/10 p-4"><div className="rounded-2xl bg-white/7 p-3"><div className="flex items-center gap-2 text-xs"><ShieldCheck className="h-4 w-4 text-[#D8C092]"/><span>{isViewer ? 'Read-only viewer' : 'Owner workspace'}</span></div><p className="mt-2 truncate text-xs text-white/55">{user?.email || 'CleanFixHarish admin'}</p></div></div>
     </aside>
 
     <header className="sticky top-0 z-30 border-b border-[#D8D0C6] bg-[#F7F2EA]/90 backdrop-blur-xl lg:ml-64"><div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8"><div className="flex items-center gap-3"><Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileNav(true)}><Menu className="h-5 w-5"/></Button><div className="hidden sm:block"><p className="text-xs text-[#786F65]">CleanFixHarish operations</p><p className="text-sm font-medium text-[#173F46]">Welcome, {user?.name || 'Aviel'}</p></div></div><div className="flex items-center gap-2"><Badge variant="outline" className="hidden border-[#BFCFCB] bg-[#E4ECEA] text-[#31585E] sm:flex"><span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${apiMode === 'live' ? 'bg-emerald-600' : apiMode === 'error' ? 'bg-red-600' : 'bg-[#B8905B]'}`}/>{apiMode === 'live' ? 'Live data' : apiMode === 'loading' ? 'Connecting' : 'Connection error'}</Badge><Button variant="ghost" size="icon" aria-label={`${counts.replies} items need attention`} onClick={() => counts.replies ? setSection('followups') : toast.success('Nothing needs your attention right now.')}><Bell className="h-4 w-4"/>{counts.replies > 0 && <span className="absolute ml-4 mb-4 h-2 w-2 rounded-full bg-[#B8905B]"/>}</Button><Button variant="ghost" size="icon" onClick={logout} aria-label="Sign out"><LogOut className="h-4 w-4"/></Button></div></div></header>
@@ -198,6 +201,7 @@ export default function AdminPage() {
     <Sheet open={mobileNav} onOpenChange={setMobileNav}><SheetContent side="left" className="bg-[#153E45] p-0 text-white"><SheetHeader className="border-b border-white/10 p-5 text-left"><SheetTitle className="flex items-center gap-3 text-white"><img src="/assets/brand/cf-gold-monogram-128.png" className="h-10 w-10 rounded-xl" alt=""/>Manager OS</SheetTitle></SheetHeader><nav className="space-y-1 p-3">{navigation.map((item) => <button key={item.id} onClick={() => {setSection(item.id);setMobileNav(false);}} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm ${section === item.id ? 'bg-[#F7F2EA] text-[#173F46]' : 'text-white/75'}`}><item.icon className="h-4 w-4 shrink-0"/><span className="min-w-0 truncate">{item.label}</span></button>)}</nav></SheetContent></Sheet>
 
     <main className="relative z-10 min-w-0 px-3 py-4 sm:p-6 lg:ml-64 lg:p-8">
+      {isViewer && <div className="mb-5 flex items-start gap-3 rounded-2xl border border-[#C8B07C] bg-[#FFF8E8] p-4 text-sm text-[#684F2B]"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0"/><div><strong>Live read-only tour</strong><p className="mt-1 text-xs leading-5">You can explore the working dashboard and open its tools. Private customer information is hidden, and no button can save, publish, delete, message, restore, or change business data.</p></div></div>}
       {section === 'overview' && <Overview leads={leads} providers={providers} counts={counts} setSection={setSection} setSelectedLead={setSelectedLead} openWhatsApp={openWhatsApp}/>}
       {section === 'assistant' && <BusinessAssistant leads={leads} jobs={jobs} providers={providers} services={services}/>}
       {section === 'leads' && <Leads leads={filteredLeads} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} setSelectedLead={setSelectedLead}/>}

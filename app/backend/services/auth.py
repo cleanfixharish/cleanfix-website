@@ -27,8 +27,19 @@ class AuthService:
         user = result.scalar_one_or_none()
         logger.debug(f"[DB_OP] User lookup completed in {time.time() - start_time:.4f}s - found: {user is not None}")
 
+        normalized_email = email.strip().lower()
         admin_email = getattr(settings, "admin_user_email", "").strip().lower()
-        role = "admin" if admin_email and email.strip().lower() == admin_email else "user"
+        viewer_emails = {
+            item.strip().lower()
+            for item in getattr(settings, "viewer_user_emails", "").split(",")
+            if item.strip()
+        }
+        if admin_email and normalized_email == admin_email:
+            role = "admin"
+        elif normalized_email in viewer_emails:
+            role = "viewer"
+        else:
+            role = "user"
 
         if user:
             # Update user info if needed

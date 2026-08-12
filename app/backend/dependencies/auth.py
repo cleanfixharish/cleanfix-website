@@ -61,3 +61,10 @@ async def get_admin_user(current_user: UserResponse = Depends(get_current_user))
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return current_user
+
+
+async def get_dashboard_viewer(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
+    """Allow only accounts explicitly assigned the read-only viewer role."""
+    if current_user.role != "viewer":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Viewer access required")
+    return current_user

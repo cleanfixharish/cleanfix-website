@@ -11,7 +11,7 @@ interface ProtectedAdminRouteProps {
 const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({
   children,
 }) => {
-  const { user, loading, isAdmin, login } = useAuth();
+  const { user, loading, isAdmin, isViewer, login } = useAuth();
   // Loading state
   if (loading) {
     return (
@@ -47,7 +47,7 @@ const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({
   }
 
   // If the user is not an admin, show an insufficient-permissions page
-  if (!isAdmin) {
+  if (!isAdmin && !isViewer) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md mx-4">
@@ -100,7 +100,7 @@ const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({
     );
   }
 
-  // If the user is an admin, render the child components
+  // Owners and explicitly approved read-only viewers may open the manager.
   return <>{children}</>;
 };
 

@@ -23,6 +23,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refetch: () => Promise<void>;
   isAdmin: boolean;
+  isViewer: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -88,6 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refetch: checkAuthStatus,
     isAdmin: user?.role === 'admin',
+    isViewer: user?.role === 'viewer',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

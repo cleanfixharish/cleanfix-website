@@ -18,7 +18,7 @@ export default function AuthCallback() {
       window.history.replaceState({}, document.title, '/auth/callback');
       try {
         const user = await authApi.getCurrentUser();
-        navigate(user?.role === 'admin' ? '/admin' : '/account', { replace: true });
+        navigate(['admin', 'viewer'].includes(user?.role || '') ? '/admin' : '/account', { replace: true });
       } catch {
         navigate('/auth/error?msg=We could not complete sign-in. Please try again.', { replace: true });
       }

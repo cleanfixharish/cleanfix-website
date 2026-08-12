@@ -10,6 +10,10 @@ http.interceptors.request.use((config) => {
 });
 
 export const cleanfixApi = {
+  async getViewerDashboard() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/viewer/dashboard`);
+    return response.data;
+  },
   async createLead(data: Record<string, unknown>) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/entities/leads`, data);
     return response.data;
