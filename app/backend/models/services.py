@@ -1,6 +1,6 @@
 from core.database import Base
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Integer, Numeric, String
 
 
 class Services(Base):
@@ -14,6 +14,11 @@ class Services(Base):
     description_he = Column(String, nullable=True)
     icon = Column(String(100), nullable=True)
     category = Column(String(100), nullable=True)
+    price_from = Column(Numeric(12, 2), nullable=True)
+    price_unit = Column(String(80), nullable=True)
+    price_note_en = Column(String(300), nullable=True)
+    price_note_he = Column(String(300), nullable=True)
+    image_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, nullable=True, default=True, server_default='true')
     sort_order = Column(Integer, nullable=True, default=0, server_default='0')
     created_at = Column(DateTime(timezone=True), default=datetime.now)

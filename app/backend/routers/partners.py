@@ -103,7 +103,7 @@ class PartnersBatchDeleteRequest(BaseModel):
 
 
 # ---------- Routes ----------
-@router.get("", response_model=PartnersListResponse)
+@router.get("", response_model=PartnersListResponse, dependencies=[Depends(get_admin_user)])
 async def query_partnerss(
     query: str = Query(None, description="Query conditions (JSON string)"),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
@@ -140,7 +140,7 @@ async def query_partnerss(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/all", response_model=PartnersListResponse)
+@router.get("/all", response_model=PartnersListResponse, dependencies=[Depends(get_admin_user)])
 async def query_partnerss_all(
     query: str = Query(None, description="Query conditions (JSON string)"),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
@@ -177,7 +177,7 @@ async def query_partnerss_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/{id}", response_model=PartnersResponse)
+@router.get("/{id}", response_model=PartnersResponse, dependencies=[Depends(get_admin_user)])
 async def get_partners(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),

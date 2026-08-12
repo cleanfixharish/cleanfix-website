@@ -6,8 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, MessageCircle } from 'lucide-react';
 import { getWhatsAppServiceLink } from '@/lib/whatsapp';
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { absoluteApiUrl, cleanfixApi } from '@/lib/cleanfixApi';
 
-const services = [
+const fallbackServices = [
   { id: 'handyman', mark: '/assets/brand/v2/symbol-handyman.svg', image: 'service-handyman-v2', name_en: 'Handyman services', name_he: 'שירותי הנדימן', desc_en: 'Practical repairs, mounting, assembly, installations and adjustments—handled carefully and clearly.', desc_he: 'תיקונים מעשיים, תלייה, הרכבה, התקנות והתאמות—בעבודה זהירה וברורה.', priority: true },
   { id: 'post-renovation', mark: '/assets/brand/v2/symbol-cleaning.svg', image: 'service-post-renovation-cleaning-v2', name_en: 'Post-renovation cleaning', name_he: 'ניקיון אחרי שיפוץ', desc_en: 'Detailed removal of construction dust and residue so the finished home can finally feel ready.', desc_he: 'ניקוי יסודי של אבק ושאריות בנייה, כדי שהבית המשופץ ירגיש מוכן באמת.' },
   { id: 'move', mark: '/assets/brand/v2/symbol-access.svg', image: 'service-move-cleaning-v2', name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A thorough reset before receiving the key, moving in, or handing the property over.', desc_he: 'ניקיון יסודי לפני קבלת מפתח, כניסה לבית או מסירת הנכס.' },
@@ -17,6 +19,17 @@ const services = [
 
 export default function ServicesPage() {
   const { t, lang } = useLanguage();
+  const [liveServices, setLiveServices] = useState<any[]>([]);
+
+  useEffect(() => {
+    cleanfixApi.listServices().then((result) => setLiveServices((result?.items || []).filter((item: any) => item.is_active !== false))).catch(() => undefined);
+  }, []);
+
+  const services = liveServices.length ? liveServices.map((item, index) => ({
+    ...fallbackServices[index % fallbackServices.length], ...item,
+    id: item.id, desc_en: item.description_en, desc_he: item.description_he,
+    priority: index === 0,
+  })) : fallbackServices;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -36,13 +49,13 @@ export default function ServicesPage() {
         <section className="bg-[#f7f2ea] py-[55px] md:py-[89px]">
           <div className="cf-shell">
             <div className="grid grid-cols-1 gap-[21px] md:grid-cols-2 lg:grid-cols-3">
-              {services.map((service) => (
+              {services.map((service: any) => (
                 <Card key={service.id} className={`group overflow-hidden border-[#b8842f]/40 bg-[#fbf8f3] transition duration-300 hover:-translate-y-1 hover:shadow-[0_21px_55px_rgba(8,31,40,.13)] ${service.priority ? 'md:col-span-2 lg:col-span-2' : ''}`}>
                   <div className={`grid h-full ${service.priority ? 'md:grid-cols-[1.618fr_1fr]' : ''}`}>
-                    <picture className="block min-h-[240px] overflow-hidden">
+                    {service.image_url ? <img src={absoluteApiUrl(service.image_url)} alt={lang === 'en' ? service.name_en : service.name_he} className="h-full min-h-[240px] w-full object-cover transition duration-500 group-hover:scale-[1.025]" loading="lazy"/> : <picture className="block min-h-[240px] overflow-hidden">
                       <source media="(max-width: 640px)" srcSet={`/assets/images/home-support-v2/web/${service.image}-384.jpg`} />
                       <img src={`/assets/images/home-support-v2/web/${service.image}-${service.priority ? '1024' : '640'}.jpg`} alt={lang === 'en' ? service.name_en : service.name_he} className="h-full min-h-[240px] w-full object-cover transition duration-500 group-hover:scale-[1.025]" loading="lazy" />
-                    </picture>
+                    </picture>}
                   <CardContent className="flex flex-col p-6">
                     <div className="cf-gold-icon mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
                       <img src={service.mark} alt="" className="h-12 w-12" />
@@ -53,6 +66,7 @@ export default function ServicesPage() {
                     <p className="mb-5 flex-1 text-sm leading-6 text-muted-foreground">
                       {lang === 'en' ? service.desc_en : service.desc_he}
                     </p>
+                    {service.price_from != null && <div className="mb-5 rounded-xl bg-[#EEE4D4] p-3 text-sm text-[#765D38]"><strong>From ₪{Number(service.price_from).toLocaleString()}</strong>{service.price_unit ? ` ${service.price_unit}` : ''}{(lang === 'en' ? service.price_note_en : service.price_note_he) && <span className="mt-1 block text-xs">{lang === 'en' ? service.price_note_en : service.price_note_he}</span>}</div>}
                     <div className="flex flex-wrap gap-2">
                       <a
                         href={getWhatsAppServiceLink(lang === 'en' ? service.name_en : service.name_he, lang)}
