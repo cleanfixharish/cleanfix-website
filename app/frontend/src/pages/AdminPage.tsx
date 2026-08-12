@@ -52,6 +52,8 @@ const statusStyle: Record<LeadStatus, string> = {
   'follow-up': 'bg-[#F2E1D7] text-[#854D37]', cancelled: 'bg-[#EAE7E3] text-[#746D65]',
 };
 
+const viewerLockedSections: Section[] = ['assistant', 'whatsapp', 'content', 'followups', 'platforms', 'internal'];
+
 const templates = [
   { title: 'New inquiry', body: 'Hi {{name}}, thank you for contacting CleanFixHarish. Please send a few photos and your Harish neighborhood so we can understand the job clearly.' },
   { title: 'Scheduling', body: 'Hi {{name}}, we can offer {{date/time}}. Please confirm the address and that this time works for you.' },
@@ -203,20 +205,25 @@ export default function AdminPage() {
     <main className="relative z-10 min-w-0 px-3 py-4 sm:p-6 lg:ml-64 lg:p-8">
       {isViewer && <div className="mb-5 flex items-start gap-3 rounded-2xl border border-[#C8B07C] bg-[#FFF8E8] p-4 text-sm text-[#684F2B]"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0"/><div><strong>Live read-only tour</strong><p className="mt-1 text-xs leading-5">You can explore the working dashboard and open its tools. Private customer information is hidden, and no button can save, publish, delete, message, restore, or change business data.</p></div></div>}
       {section === 'overview' && <Overview leads={leads} providers={providers} counts={counts} setSection={setSection} setSelectedLead={setSelectedLead} openWhatsApp={openWhatsApp}/>}
-      {section === 'assistant' && <BusinessAssistant leads={leads} jobs={jobs} providers={providers} services={services}/>}
+      {isViewer && viewerLockedSections.includes(section) && <ViewerLockedSection/>}
+      {!isViewer && section === 'assistant' && <BusinessAssistant leads={leads} jobs={jobs} providers={providers} services={services}/>}
       {section === 'leads' && <Leads leads={filteredLeads} query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} setSelectedLead={setSelectedLead}/>}
-      {section === 'whatsapp' && <WhatsAppOps leads={leads} openWhatsApp={openWhatsApp}/>}
+      {!isViewer && section === 'whatsapp' && <WhatsAppOps leads={leads} openWhatsApp={openWhatsApp}/>}
       {section === 'jobs' && <Jobs jobs={jobs} setJobs={setJobs}/>}
       {section === 'providers' && <Providers providers={providers} setProviders={setProviders}/>}
       {section === 'services' && <><Services items={services} setItems={setServices}/><MarketPriceComparison items={services}/></>}
-      {section === 'content' && <ContentControl/>}
-      {section === 'followups' && <FollowUps leads={leads} openWhatsApp={openWhatsApp} completeFollowUp={completeFollowUp}/>}
-      {section === 'platforms' && <PlatformDirectory/>}
-      {section === 'internal' && <InternalOS/>}
+      {!isViewer && section === 'content' && <ContentControl/>}
+      {!isViewer && section === 'followups' && <FollowUps leads={leads} openWhatsApp={openWhatsApp} completeFollowUp={completeFollowUp}/>}
+      {!isViewer && section === 'platforms' && <PlatformDirectory/>}
+      {!isViewer && section === 'internal' && <InternalOS/>}
     </main>
 
     <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)}><DialogContent className="max-w-xl border-[#D8D0C6] bg-[#FBF8F3]">{selectedLead && <><DialogHeader><DialogTitle className="break-words pr-6 text-xl text-[#173F46] sm:text-2xl">{selectedLead.customerName}</DialogTitle></DialogHeader><div className="space-y-5"><div className="grid grid-cols-1 gap-3 rounded-2xl bg-[#F0EAE1] p-4 text-sm min-[390px]:grid-cols-2"><Info label="Phone" value={selectedLead.phone}/><Info label="Service" value={selectedLead.service}/><Info label="Location" value={selectedLead.location}/><Info label="Provider" value={selectedLead.provider}/></div><div><Label>Customer message</Label><p className="mt-1 break-words rounded-xl border border-[#DDD3C7] bg-white p-3 text-sm">{selectedLead.message}</p></div><div><Label>Status</Label><Select value={selectedLead.status} onValueChange={(value) => changeStatus(selectedLead, value as LeadStatus)}><SelectTrigger className="mt-1 bg-white"><SelectValue/></SelectTrigger><SelectContent>{pipeline.map((status) => <SelectItem key={status} value={status}>{title(status)}</SelectItem>)}</SelectContent></Select></div><div><Label>Internal notes</Label><Textarea className="mt-1 bg-white" value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} rows={4}/></div><div className="grid gap-2 sm:grid-cols-3"><Button className="bg-[#174E57] hover:bg-[#0E343B]" onClick={() => openWhatsApp(selectedLead)}><MessageCircle className="mr-2 h-4 w-4"/>WhatsApp</Button><Button variant="outline" onClick={saveNotes} disabled={savingLead}><Check className="mr-2 h-4 w-4"/>{savingLead ? 'Saving…' : 'Save notes'}</Button><Button variant="outline" onClick={() => createJobForLead(selectedLead)} disabled={savingLead}><BriefcaseBusiness className="mr-2 h-4 w-4"/>{jobs.some((job) => job.leadId === selectedLead.id) ? 'View job' : 'Create job'}</Button></div></div></>}</DialogContent></Dialog>
   </div>;
+}
+
+function ViewerLockedSection() {
+  return <div className="flex min-h-[55vh] items-center justify-center"><Card className="w-full max-w-lg border-[#D8D0C6] bg-[#FBF8F3] text-center"><CardContent className="p-8 sm:p-12"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EEE4D4]"><ShieldCheck className="h-8 w-8 text-[#84673F]"/></div><h1 className="mt-5 text-2xl font-semibold text-[#173F46]">Only Aviel can see this</h1><p className="mt-3 text-sm leading-6 text-[#756D64]">This area contains private business information or controls. Your Viewer account is working correctly, but this section is safely locked.</p><Badge className="mt-5 bg-[#DCEADF] text-[#2E6840]">Read-only protection active</Badge></CardContent></Card></div>;
 }
 
 function Overview({ leads, providers, counts, setSection, setSelectedLead, openWhatsApp }: { leads: DashboardLead[]; providers: AdminPartner[]; counts: any; setSection: (s: Section) => void; setSelectedLead: (l: DashboardLead) => void; openWhatsApp: (l: DashboardLead) => void }) {
