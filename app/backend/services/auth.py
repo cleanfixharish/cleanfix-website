@@ -30,18 +30,13 @@ class AuthService:
 
         normalized_email = email.strip().lower()
         admin_email = getattr(settings, "admin_user_email", "").strip().lower()
-        configured_viewer_emails = {
-            item.strip().lower()
-            for item in getattr(settings, "viewer_user_emails", "").split(",")
-            if item.strip()
-        }
         viewer_result = await self.db.execute(
             select(ViewerAccess).where(ViewerAccess.email == normalized_email, ViewerAccess.is_active.is_(True))
         )
         is_database_viewer = viewer_result.scalar_one_or_none() is not None
         if admin_email and normalized_email == admin_email:
             role = "admin"
-        elif normalized_email in configured_viewer_emails or is_database_viewer:
+        elif is_database_viewer:
             role = "viewer"
         else:
             role = "user"

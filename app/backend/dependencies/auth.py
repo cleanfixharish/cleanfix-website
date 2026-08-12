@@ -4,9 +4,13 @@ from datetime import datetime
 from typing import Optional
 
 from core.auth import AccessTokenError, decode_access_token
+from core.database import get_db
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from models.viewer_access import ViewerAccess
 from schemas.auth import UserResponse
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +67,17 @@ async def get_admin_user(current_user: UserResponse = Depends(get_current_user))
     return current_user
 
 
-async def get_dashboard_viewer(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
+async def get_dashboard_viewer(
+    current_user: UserResponse = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> UserResponse:
     """Allow only accounts explicitly assigned the read-only viewer role."""
     if current_user.role != "viewer":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Viewer access required")
+
+    normalized_email = current_user.email.strip().lower()
+    result = await db.execute(
+        select(ViewerAccess).where(ViewerAccess.email == normalized_email, ViewerAccess.is_active.is_(True))
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Viewer access has been removed")
     return current_user
