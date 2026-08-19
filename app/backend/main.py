@@ -19,6 +19,8 @@ from core.auth import AccessTokenError, decode_access_token
 from services.database import check_database_health, initialize_database, close_database
 from services.mock_data import initialize_mock_data
 from services.auth import initialize_admin_user
+from services.pricing_baseline import ensure_pricing_baseline
+from core.database import db_manager
 # MODULE_IMPORTS_END
 
 
@@ -64,6 +66,9 @@ async def lifespan(app: FastAPI):
 
     # MODULE_STARTUP_START
     await initialize_database()
+    if db_manager.async_session_maker:
+        async with db_manager.async_session_maker() as pricing_session:
+            await ensure_pricing_baseline(pricing_session)
     await initialize_mock_data()
     await initialize_admin_user()
     # MODULE_STARTUP_END

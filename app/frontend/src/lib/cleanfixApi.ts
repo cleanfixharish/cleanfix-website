@@ -88,6 +88,46 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async listPricingReferences() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/pricing/references`);
+    return response.data;
+  },
+
+  async listPriceEstimates() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/pricing/estimates`);
+    return response.data;
+  },
+
+  async createPriceEstimate(data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/pricing/estimates`, data);
+    return response.data;
+  },
+
+  async approvePriceEstimate(id: number | string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/pricing/estimates/${id}/approve`);
+    return response.data;
+  },
+
+  async listLocalPriceEvidence() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/pricing/local-evidence`);
+    return response.data;
+  },
+
+  async createLocalPriceEvidence(data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/pricing/local-evidence`, data);
+    return response.data;
+  },
+
+  async approveLocalPriceEvidence(id: number | string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/pricing/local-evidence/${id}/approve`);
+    return response.data;
+  },
+
+  async getLocalPriceBenchmarks() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/pricing/local-benchmarks`);
+    return response.data;
+  },
+
   async listSiteContent() {
     const response = await http.get(`${getAPIBaseURL()}/api/v1/entities/site_content`, {
       params: { sort: 'section_key', limit: 200 },
