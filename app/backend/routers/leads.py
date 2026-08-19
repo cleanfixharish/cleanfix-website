@@ -4,12 +4,14 @@ from typing import List, Optional
 
 from datetime import datetime, date
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from core.lead_abuse import enforce_lead_intake_guard
 from dependencies.auth import get_admin_user
+from schemas.leads import PublicLeadIntakeRequest, build_lead_from_public_intake
 from services.leads import LeadsService
 
 # Set up logging
@@ -221,15 +223,19 @@ async def get_leads(
 
 @router.post("", response_model=LeadsResponse, status_code=201)
 async def create_leads(
-    data: LeadsData,
+    request: Request,
+    data: PublicLeadIntakeRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new leads"""
-    logger.debug("Creating a new lead")
-    
+    """Create a new lead from the public quote intake form."""
+    logger.debug("Creating a new lead from public intake")
+
+    enforce_lead_intake_guard(request, data.company_website)
+    lead_data = build_lead_from_public_intake(data)
+
     service = LeadsService(db)
     try:
-        result = await service.create(data.model_dump())
+        result = await service.create(lead_data)
         if not result:
             raise HTTPException(status_code=400, detail="Failed to create leads")
         

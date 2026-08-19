@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from core.config import settings
+from core.environment import fastapi_documentation_urls, is_production_environment
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
@@ -79,6 +80,7 @@ app = FastAPI(
     description="A best-practice FastAPI template with modular architecture",
     version="1.0.0",
     lifespan=lifespan,
+    **fastapi_documentation_urls(),
 )
 
 allowed_origins = [
@@ -100,6 +102,23 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Accept", "X-CSRF-Token"],
 )
 # MODULE_MIDDLEWARE_END
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Apply baseline security headers in production without affecting local development."""
+    response = await call_next(request)
+    if is_production_environment():
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        if request.url.scheme == "https":
+            response.headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains",
+            )
+    return response
 
 
 @app.middleware("http")

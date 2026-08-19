@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Dict
 
+from core.environment import is_production_environment
 from dependencies.auth import get_admin_user
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -8,7 +9,16 @@ from schemas.auth import UserResponse
 
 router = APIRouter(prefix="/api/v1/admin/settings", tags=["admin-settings"])
 
-SENSITIVE_KEY_PARTS = ("SECRET", "TOKEN", "PASSWORD", "PRIVATE", "API_KEY", "DATABASE_URL")
+SENSITIVE_KEY_PARTS = (
+    "SECRET",
+    "TOKEN",
+    "PASSWORD",
+    "PRIVATE",
+    "API_KEY",
+    "DATABASE_URL",
+    "_KEY",
+    "CREDENTIAL",
+)
 MASKED_VALUE = "********"
 
 
@@ -62,6 +72,15 @@ def read_env_file(env_type: str) -> Dict[str, str]:
                 key, value = line.split("=", 1)
                 env_vars[key.strip()] = value.strip()
     return env_vars
+
+
+def ensure_settings_mutation_allowed() -> None:
+    """Block env-file writes and deletes in production deployments."""
+    if is_production_environment():
+        raise HTTPException(
+            status_code=403,
+            detail="Environment file changes are disabled in production.",
+        )
 
 
 def write_env_file(env_type: str, env_vars: Dict[str, str]):
@@ -133,6 +152,7 @@ async def update_backend_setting(
     key: str, update: EnvVariableUpdate, current_user: UserResponse = Depends(get_admin_user)
 ):
     """Update a backend environment variable."""
+    ensure_settings_mutation_allowed()
     try:
         env_vars = read_env_file("backend")
         env_vars[key] = update.value
@@ -147,6 +167,7 @@ async def update_frontend_setting(
     key: str, update: EnvVariableUpdate, current_user: UserResponse = Depends(get_admin_user)
 ):
     """Update a frontend environment variable."""
+    ensure_settings_mutation_allowed()
     try:
         env_vars = read_env_file("frontend")
         env_vars[key] = update.value
@@ -161,6 +182,7 @@ async def add_backend_setting(
     key: str, update: EnvVariableUpdate, current_user: UserResponse = Depends(get_admin_user)
 ):
     """Add a backend environment variable."""
+    ensure_settings_mutation_allowed()
     try:
         env_vars = read_env_file("backend")
         env_vars[key] = update.value
@@ -175,6 +197,7 @@ async def add_frontend_setting(
     key: str, update: EnvVariableUpdate, current_user: UserResponse = Depends(get_admin_user)
 ):
     """Add a frontend environment variable."""
+    ensure_settings_mutation_allowed()
     try:
         env_vars = read_env_file("frontend")
         env_vars[key] = update.value
@@ -187,6 +210,7 @@ async def add_frontend_setting(
 @router.delete("/backend/{key}")
 async def delete_backend_setting(key: str, current_user: UserResponse = Depends(get_admin_user)):
     """Delete a backend environment variable."""
+    ensure_settings_mutation_allowed()
     try:
         env_vars = read_env_file("backend")
         if key in env_vars:
@@ -202,6 +226,7 @@ async def delete_backend_setting(key: str, current_user: UserResponse = Depends(
 @router.delete("/frontend/{key}")
 async def delete_frontend_setting(key: str, current_user: UserResponse = Depends(get_admin_user)):
     """Delete a frontend environment variable."""
+    ensure_settings_mutation_allowed()
     try:
         env_vars = read_env_file("frontend")
         if key in env_vars:

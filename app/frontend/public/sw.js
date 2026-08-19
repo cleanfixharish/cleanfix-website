@@ -1,13 +1,43 @@
-const CACHE_NAME = 'cleanfix-harish-v3-cf-gold';
+const CACHE_NAME = 'cleanfix-harish-v4-security';
 const LEGACY_RENDER_HOST = 'cleanfixharish-web.onrender.com';
 const OFFICIAL_ORIGIN = 'https://www.cleanfixharish.co.il';
 const IS_LEGACY_RENDER_ORIGIN = self.location.hostname === LEGACY_RENDER_HOST;
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];
+
+function isSameOrigin(url) {
+  return url.origin === self.location.origin;
+}
+
+function isApiRequest(url) {
+  return url.pathname.startsWith('/api/');
+}
+
+function hasAuthHeader(request) {
+  return request.headers.has('Authorization');
+}
+
+function isStaticAsset(url) {
+  return STATIC_ASSETS.includes(url.pathname)
+    || url.pathname.startsWith('/icons/')
+    || url.pathname.startsWith('/assets/');
+}
+
+function shouldNeverCache(request) {
+  const url = new URL(request.url);
+
+  if (request.method !== 'GET') return true;
+  if (!isSameOrigin(url)) return true;
+  if (isApiRequest(url)) return true;
+  if (hasAuthHeader(request)) return true;
+  if (request.mode === 'navigate') return true;
+  if (!isStaticAsset(url)) return true;
+
+  return false;
+}
 
 // Install - cache static assets
 self.addEventListener('install', (event) => {
@@ -37,7 +67,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch - network first, fallback to cache
+// Fetch - never cache API, authenticated, navigation, or non-static responses
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
@@ -46,18 +76,30 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(Response.redirect(`${OFFICIAL_ORIGIN}${url.pathname}${url.search}`, 308));
     return;
   }
-  
+
+  if (shouldNeverCache(event.request)) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
+    caches.match(event.request)
+      .then((cached) => {
+        if (cached) {
+          return cached;
+        }
+
+        return fetch(event.request).then((response) => {
+          const responseUrl = new URL(response.url);
+          if (response.ok && isSameOrigin(responseUrl)) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return response;
         });
-        return response;
       })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
   );
 });

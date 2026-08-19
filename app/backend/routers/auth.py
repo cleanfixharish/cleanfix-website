@@ -17,6 +17,7 @@ from core.auth import (
 )
 from core.config import settings
 from core.database import get_db
+from core.environment import legacy_platform_token_exchange_enabled
 from dependencies.auth import get_current_user
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -31,6 +32,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
 logger = logging.getLogger(__name__)
+
+
+async def require_legacy_platform_token_exchange() -> None:
+    if not legacy_platform_token_exchange_enabled():
+        logger.warning("[token/exchange] Legacy platform token exchange is disabled")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found",
+        )
 
 
 @router.get("/status")
@@ -288,7 +298,11 @@ async def callback(
         )
 
 
-@router.post("/token/exchange", response_model=TokenExchangeResponse)
+@router.post(
+    "/token/exchange",
+    response_model=TokenExchangeResponse,
+    dependencies=[Depends(require_legacy_platform_token_exchange)],
+)
 async def exchange_platform_token(
     payload: PlatformTokenExchangeRequest,
     db: AsyncSession = Depends(get_db),

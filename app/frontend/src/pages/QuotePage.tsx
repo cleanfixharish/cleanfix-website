@@ -30,6 +30,7 @@ export default function QuotePage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [companyWebsite, setCompanyWebsite] = useState('');
   const [form, setForm] = useState({
     customer_name: '',
     phone: '',
@@ -37,7 +38,6 @@ export default function QuotePage() {
     area: '',
     service_requested: '',
     description: '',
-    preferred_contact: 'whatsapp',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,19 +46,13 @@ export default function QuotePage() {
     setError('');
     try {
       await cleanfixApi.createLead({
-          customer_name: form.customer_name,
-          phone: form.phone,
-          whatsapp: form.whatsapp || form.phone,
-          area: form.area,
-          service_requested: form.service_requested,
-          description: form.description,
-          source: 'website',
-          status: 'new',
-          assignment: 'internal',
-          quote_status: 'pending',
-          booking_status: 'pending',
-          follow_up_status: 'none',
-          priority: 'normal',
+        customer_name: form.customer_name,
+        phone: form.phone,
+        ...(form.whatsapp ? { whatsapp: form.whatsapp } : {}),
+        ...(form.area ? { area: form.area } : {}),
+        service_requested: form.service_requested,
+        ...(form.description ? { description: form.description } : {}),
+        company_website: companyWebsite,
       });
       setSubmitted(true);
     } catch (err) {
@@ -113,6 +107,16 @@ export default function QuotePage() {
             <Card>
               <CardContent className="p-6">
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  <input
+                    type="text"
+                    name="company_website"
+                    value={companyWebsite}
+                    onChange={(e) => setCompanyWebsite(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    className="absolute left-[-9999px] h-0 w-0 overflow-hidden opacity-0 pointer-events-none"
+                  />
                   <div>
                     <Label htmlFor="name">{t.quote.name} *</Label>
                     <Input
