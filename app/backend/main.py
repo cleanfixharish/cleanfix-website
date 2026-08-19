@@ -113,7 +113,12 @@ async def add_security_headers(request: Request, call_next):
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        if request.url.scheme == "https":
+        forwarded_proto = request.headers.get("x-forwarded-proto", "")
+        is_https = (
+            request.url.scheme == "https"
+            or forwarded_proto.split(",", 1)[0].strip().lower() == "https"
+        )
+        if is_https:
             response.headers.setdefault(
                 "Strict-Transport-Security",
                 "max-age=31536000; includeSubDomains",

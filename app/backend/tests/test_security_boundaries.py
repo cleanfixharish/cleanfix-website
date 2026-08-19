@@ -222,10 +222,11 @@ def test_fastapi_docs_remain_available_in_development(monkeypatch):
 
 def test_security_headers_are_applied_in_production(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "prod")
-    response = client.get("/health")
+    response = client.get("/health", headers={"x-forwarded-proto": "https"})
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+    assert response.headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"
 
 
 def test_security_headers_are_not_applied_in_development(monkeypatch):
