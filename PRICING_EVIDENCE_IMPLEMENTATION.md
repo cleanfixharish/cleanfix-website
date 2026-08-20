@@ -4,7 +4,7 @@ Status: implemented locally on `feature/pricing-evidence-estimator`; not deploye
 
 ## What is safe to use now
 
-Eleven national, VAT-inclusive observations from The Professionals are marked `verified` and may be selected as reference evidence for a draft estimate. They are national references, not Harish prices.
+Nineteen national observations are marked `verified` and may be selected as reference evidence for a draft estimate. Eleven VAT-inclusive handyman observations come from The Professionals. Eight Midrag cleaning and air-conditioning observations were manually revalidated on 2026-08-20; their VAT status remains unspecified. All 19 are national references, not Harish prices.
 
 Corrected source relationships:
 
@@ -13,20 +13,25 @@ Corrected source relationships:
 - All four post-renovation cleaning observations -> `SRC_NAT_MID_POST4409`
 - All four air-conditioning observations -> `SRC_NAT_MID_AC18`
 
-## What remains blocked
+## Midrag validation completed on 2026-08-20
 
-The eight Midrag observations are stored as `pending`, `provisional`, and `eligible_for_estimate=false`. A draft estimate cannot be created from them.
+The live indexed text of both source pages was checked for exact task, range, scope, geography, exclusions, and supplements. The eight rows now point to their correct sources and are eligible only as national evidence for a human-approved draft:
 
-Before an owner changes any of these rows to verified, the live page must be manually checked for:
+- Post-renovation cleaning: four rooms, 1,500–3,200 NIS.
+- Post-renovation cleaning: 100 sqm/four rooms, 1,300–2,000 NIS.
+- Post-renovation cleaning: 120 sqm/five rooms, 1,700–2,300 NIS.
+- Many windows or glass walls supplement for four rooms, 300–400 NIS.
+- Split-unit filter cleaning, 262–325 NIS.
+- Deep split-unit cleaning, 377–565 NIS.
+- Accessible split-unit mold cleaning, 360–550 NIS.
+- Diagnostic technician visit only, 283–351 NIS.
 
-1. Exact task and scope.
-2. Exact minimum and maximum.
-3. Whether the amount includes VAT.
-4. Included work, exclusions, and supplements.
-5. Geography (national versus local).
-6. Live URL and review date.
+The post-renovation guide says ordinary window cleaning is included, while waste removal, wall cleaning, appliance cleaning, and polishing are excluded or additional. The AC page describes averages from provider price lists and customer transactions. Neither source page states VAT for these rows, so the implementation does not claim VAT is included.
 
-If the page does not display enough evidence, the row stays pending.
+Sources:
+
+- https://www.midrag.co.il/Content/Price/4409
+- https://www.midrag.co.il/Content/SectorPriceList/18
 
 ## Estimator safety rules
 

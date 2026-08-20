@@ -23,10 +23,11 @@ def test_only_verified_observations_can_support_estimates():
         )
 
 
-def test_all_midrag_rows_remain_quarantined_until_manual_validation():
+def test_all_midrag_rows_are_verified_after_manual_validation():
     midrag_rows = [row for row in OBSERVATIONS if row[0].startswith("NAT_MID_")]
     assert len(midrag_rows) == 8
-    assert all(row[7] == "pending" and row[8] is False for row in midrag_rows)
+    assert all(row[7] == "verified" and row[8] is True for row in midrag_rows)
+    assert all(row[9] == "VAT unspecified" for row in midrag_rows)
 
 
 def test_local_guidance_requires_five_approved_comparable_samples():
