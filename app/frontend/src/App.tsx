@@ -11,6 +11,7 @@ import WhyTrustUsPage from './pages/WhyTrustUsPage';
 import PartnersPage from './pages/PartnersPage';
 import AboutPage from './pages/AboutPage';
 import QuotePage from './pages/QuotePage';
+import PublicQuotePage from './pages/PublicQuotePage';
 import AdminPage from './pages/AdminPage';
 import AuthCallback from './pages/AuthCallback';
 import AuthError from './pages/AuthError';
@@ -30,6 +31,7 @@ const AppRoutes = () => (
     <Route path="/partners" element={<PartnersPage />} />
     <Route path="/about" element={<AboutPage />} />
     <Route path="/quote" element={<QuotePage />} />
+    <Route path="/quote/:token" element={<PublicQuotePage />} />
     <Route path="/account" element={<AccountPage />} />
     <Route path="/accessibility" element={<AccessibilityPage />} />
     <Route

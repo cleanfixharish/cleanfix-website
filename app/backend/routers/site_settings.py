@@ -19,6 +19,7 @@ class SiteSettingsData(BaseModel):
     hero_image_url: Optional[str] = None
     cta_image_url: Optional[str] = None
     hero_layout: str = "text-left"
+    effects_mode: str = "reduced"
     primary_cta_en: Optional[str] = None
     primary_cta_he: Optional[str] = None
     secondary_cta_en: Optional[str] = None
@@ -36,6 +37,13 @@ class SiteSettingsData(BaseModel):
     def valid_layout(cls, value: str) -> str:
         if value not in {"text-left", "image-left"}:
             raise ValueError("Unsupported hero layout")
+        return value
+
+    @field_validator("effects_mode")
+    @classmethod
+    def valid_effects_mode(cls, value: str) -> str:
+        if value not in {"full", "reduced", "off"}:
+            raise ValueError("Unsupported effects mode")
         return value
 
 

@@ -184,6 +184,31 @@ export const cleanfixApi = {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/website-restore/default`);
     return response.data as { name: string; restored: boolean; content_sections: number; services: number };
   },
+
+  async listServiceQuotes() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/quotes`);
+    return response.data;
+  },
+
+  async createServiceQuote(data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/quotes`, data);
+    return response.data;
+  },
+
+  async publishServiceQuote(id: number | string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/quotes/${id}/publish`);
+    return response.data;
+  },
+
+  async getPublicServiceQuote(token: string) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/public/quotes/${encodeURIComponent(token)}`);
+    return response.data;
+  },
+
+  async decidePublicServiceQuote(token: string, decision: 'accept' | 'decline') {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/public/quotes/${encodeURIComponent(token)}/decision`, { decision });
+    return response.data;
+  },
 };
 
 export function absoluteApiUrl(path?: string) {

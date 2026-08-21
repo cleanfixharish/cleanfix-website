@@ -15,6 +15,7 @@ class SiteSettings(Base):
     hero_image_url = Column(String(500), nullable=True)
     cta_image_url = Column(String(500), nullable=True)
     hero_layout = Column(String(30), nullable=False, default="text-left", server_default="text-left")
+    effects_mode = Column(String(20), nullable=False, default="reduced", server_default="reduced")
     primary_cta_en = Column(String(100), nullable=True)
     primary_cta_he = Column(String(100), nullable=True)
     secondary_cta_en = Column(String(100), nullable=True)

@@ -46,6 +46,7 @@ class ServicesService:
         limit: int = 20, 
         query_dict: Optional[Dict[str, Any]] = None,
         sort: Optional[str] = None,
+        public_only: bool = False,
     ) -> Dict[str, Any]:
         """Get paginated list of servicess"""
         try:
@@ -57,6 +58,10 @@ class ServicesService:
                     if hasattr(Services, field):
                         query = query.where(getattr(Services, field) == value)
                         count_query = count_query.where(getattr(Services, field) == value)
+
+            if public_only:
+                query = query.where(Services.is_active.is_(True))
+                count_query = count_query.where(Services.is_active.is_(True))
             
             count_result = await self.db.execute(count_query)
             total = count_result.scalar()

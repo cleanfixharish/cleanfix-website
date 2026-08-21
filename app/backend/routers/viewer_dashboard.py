@@ -18,6 +18,20 @@ def _masked_customer(index: int) -> str:
     return f"Customer {index:03d}"
 
 
+def _viewer_safe_service(service):
+    """Keep catalog context while excluding owner-only pricing and draft data."""
+    return {
+        "id": service.id,
+        "name_en": service.name_en,
+        "name_he": service.name_he,
+        "description_en": service.description_en,
+        "description_he": service.description_he,
+        "category": service.category,
+        "is_active": service.is_active,
+        "sort_order": service.sort_order,
+    }
+
+
 @router.get("/dashboard")
 async def viewer_dashboard(
     _viewer: UserResponse = Depends(get_dashboard_viewer),
@@ -27,7 +41,8 @@ async def viewer_dashboard(
     leads = await LeadsService(db).get_list(limit=100, sort="-created_at")
     jobs = await JobsService(db).get_list(limit=200, sort="-created_at")
     partners = await PartnersService(db).get_list(limit=200, sort="sort_order")
-    services = await ServicesService(db).get_list(limit=200, sort="sort_order")
+    services = await ServicesService(db).get_list(limit=200, sort="sort_order", public_only=True)
+    safe_services = {**services, "items": [_viewer_safe_service(item) for item in services["items"]]}
 
     masked_leads = []
     lead_names = {}
@@ -99,5 +114,5 @@ async def viewer_dashboard(
         "leads": {**leads, "items": masked_leads},
         "jobs": {**jobs, "items": masked_jobs},
         "partners": {**partners, "items": masked_partners},
-        "services": services,
+        "services": safe_services,
     }

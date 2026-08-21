@@ -10,13 +10,19 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from dependencies.auth import get_admin_user
+from dependencies.auth import get_admin_user, get_optional_current_user
+from schemas.auth import UserResponse
 from services.services import ServicesService
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/entities/services", tags=["services"])
+
+
+def is_public_service(service) -> bool:
+    """Only active services are visible to unauthenticated/non-admin readers."""
+    return bool(service.is_active)
 
 
 # ---------- Pydantic Schemas ----------
@@ -115,6 +121,7 @@ async def query_servicess(
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[UserResponse] = Depends(get_optional_current_user),
 ):
     """Query servicess with filtering, sorting, and pagination"""
     logger.debug(f"Querying servicess: query={query}, sort={sort}, skip={skip}, limit={limit}, fields={fields}")
@@ -134,6 +141,7 @@ async def query_servicess(
             limit=limit,
             query_dict=query_dict,
             sort=sort,
+            public_only=not current_user or current_user.role != "admin",
         )
         logger.debug(f"Found {result['total']} servicess")
         return result
@@ -152,6 +160,7 @@ async def query_servicess_all(
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[UserResponse] = Depends(get_optional_current_user),
 ):
     # Query servicess with filtering, sorting, and pagination without user limitation
     logger.debug(f"Querying servicess: query={query}, sort={sort}, skip={skip}, limit={limit}, fields={fields}")
@@ -170,7 +179,8 @@ async def query_servicess_all(
             skip=skip,
             limit=limit,
             query_dict=query_dict,
-            sort=sort
+            sort=sort,
+            public_only=not current_user or current_user.role != "admin",
         )
         logger.debug(f"Found {result['total']} servicess")
         return result
@@ -186,6 +196,7 @@ async def get_services(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[UserResponse] = Depends(get_optional_current_user),
 ):
     """Get a single services by ID"""
     logger.debug(f"Fetching services with id: {id}, fields={fields}")
@@ -193,6 +204,8 @@ async def get_services(
     service = ServicesService(db)
     try:
         result = await service.get_by_id(id)
+        if result is not None and (not current_user or current_user.role != "admin") and not is_public_service(result):
+            result = None
         if not result:
             logger.warning(f"Services with id {id} not found")
             raise HTTPException(status_code=404, detail="Services not found")

@@ -78,6 +78,17 @@ async def get_dashboard_viewer(
     result = await db.execute(
         select(ViewerAccess).where(ViewerAccess.email == normalized_email, ViewerAccess.is_active.is_(True))
     )
+
+
     if result.scalar_one_or_none() is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Viewer access has been removed")
     return current_user
+
+
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+) -> Optional[UserResponse]:
+    """Return the authenticated user when present, while allowing public reads."""
+    if not credentials or credentials.scheme.lower() != "bearer":
+        return None
+    return await get_current_user(credentials.credentials)

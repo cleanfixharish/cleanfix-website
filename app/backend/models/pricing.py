@@ -63,6 +63,34 @@ class PriceEstimate(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.now, onupdate=datetime.now)
 
 
+class ServiceQuote(Base):
+    """A fixed, customer-facing offer created from an owner-approved estimate.
+
+    The raw access token is never stored. Only its SHA-256 digest is persisted,
+    so a database read does not reveal usable customer quote links.
+    """
+
+    __tablename__ = "service_quotes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    estimate_id = Column(Integer, ForeignKey("price_estimates.id"), nullable=False, unique=True, index=True)
+    lead_id = Column(Integer, ForeignKey("leads.id"), nullable=True, index=True)
+    quoted_total = Column(Numeric(12, 2), nullable=False)
+    deposit_required = Column(Numeric(12, 2), nullable=True)
+    scope = Column(Text, nullable=False)
+    exclusions = Column(Text, nullable=True)
+    terms = Column(Text, nullable=True)
+    status = Column(String(30), nullable=False, default="draft", server_default="draft", index=True)
+    public_token_hash = Column(String(64), nullable=True, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    accepted_at = Column(DateTime(timezone=True), nullable=True)
+    declined_at = Column(DateTime(timezone=True), nullable=True)
+    created_by = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.now)
+    updated_at = Column(DateTime(timezone=True), default=datetime.now, onupdate=datetime.now)
+
+
 class LocalPriceEvidence(Base):
     __tablename__ = "local_price_evidence"
 
