@@ -1,0 +1,35 @@
+{
+  "version": "3.0",
+  "status": "production-ready",
+  "palette": "CleanFixHarish documentary mobile v3",
+  "assets": [
+    {
+      "id": "handyman-shelf",
+      "file": "handyman-shelf",
+      "placement": "Handyman service cards and how-it-works explainer",
+      "alt_en": "Handyman mounting a wooden shelf in a lived-in apartment while the homeowner looks on",
+      "alt_he": "הנדימן מתקין מדף עץ בדירה מגוורת ובעלת הבית משגיחה"
+    },
+    {
+      "id": "post-renovation-cleaning",
+      "file": "post-renovation-cleaning",
+      "placement": "Post-renovation service cards and trust section",
+      "alt_en": "Cleaner wiping a kitchen counter after renovation dust has been removed from the apartment",
+      "alt_he": "מנקה מנגבת משטח מטבח אחרי פינוי אבק שיפוץ מהדירה"
+    },
+    {
+      "id": "move-in-window-cleaning",
+      "file": "move-in-window-cleaning",
+      "placement": "Move-in cleaning, window cleaning, and about section",
+      "alt_en": "Two cleaners preparing a bright apartment, including window glass and supplies for a move-in reset",
+      "alt_he": "שני מנקים מכינים דירה מוארת, כולל ניקוי חלון וציוד לאיפוס כניסה"
+    },
+    {
+      "id": "ac-maintenance",
+      "file": "ac-maintenance",
+      "placement": "AC cleaning service cards and why-trust-us explainer",
+      "alt_en": "Technician cleaning a wall-mounted air conditioner in a living room while the homeowner stands nearby",
+      "alt_he": "טכנאי מנקה מזגן עילי בסלון ובעלת הבית עומדת בקרבת מקום"
+    }
+  ]
+}

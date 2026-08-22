@@ -9,6 +9,18 @@
     <title data-mgx-overview="title">CleanFixHarish | Handyman & Home Services in Harish</title>
     <meta data-mgx-overview="description" name="description" content="Local handyman, post-renovation cleaning, move-in cleaning, AC cleaning, and window care in Harish. Send details by WhatsApp." />
     <meta name="author" content="CleanFix Harish" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;500;600;700&family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Noto+Serif+Hebrew:wght@600;700&display=swap" />
+    <link
+      rel="preload"
+      as="image"
+      type="image/webp"
+      href="/assets/images/cleanfix-documentary/web/hero-managed-service-768.webp"
+      imagesrcset="/assets/images/cleanfix-documentary/web/hero-managed-service-480.webp 480w, /assets/images/cleanfix-documentary/web/hero-managed-service-768.webp 768w, /assets/images/cleanfix-documentary/web/hero-managed-service-1200.webp 1200w"
+      imagesizes="(max-width: 640px) 100vw, (max-width: 1100px) 92vw, 720px"
+      fetchpriority="high"
+    />
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#102E38" />
@@ -39,6 +51,14 @@
     <script>
       // Register Service Worker for PWA
       if ('serviceWorker' in navigator) {
+        const hadServiceWorkerController = Boolean(navigator.serviceWorker.controller);
+        let refreshedForNewVersion = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (hadServiceWorkerController && !refreshedForNewVersion) {
+            refreshedForNewVersion = true;
+            window.location.reload();
+          }
+        });
         window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
           .then((registration) => registration.update())

@@ -1,6 +1,8 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import DocumentaryImage from '@/components/DocumentaryImage';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import PublicSite from '@/components/PublicSite';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { MessageCircle, ArrowRight, Shield, Users, MapPin, Heart } from 'lucide-react';
@@ -24,43 +26,39 @@ export default function AboutPage() {
       ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <PublicSite>
       <Header />
       <main className="flex-1">
-        {/* Hero */}
-        <section className="py-16 md:py-20 bg-card">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-4">{t.about.title}</h1>
-                <p className="text-muted-foreground leading-relaxed text-lg">
+        <section className="bg-card py-16 md:py-20">
+          <div className="cf-shell">
+            <div className="public-grid grid min-w-0 grid-cols-1 items-center gap-12 lg:grid-cols-2">
+              <div className="min-w-0">
+                <h1 className="mb-4 text-3xl font-bold md:text-4xl">{t.about.title}</h1>
+                <p className="text-lg leading-relaxed text-muted-foreground">
                   {t.about.description}
                 </p>
               </div>
-              <div className="rounded-xl overflow-hidden">
-                <picture>
-                  <source media="(max-width: 640px)" srcSet="/assets/images/home-support-v2/web/harish-city-aerial-v2-640.jpg" />
-                  <source media="(max-width: 1100px)" srcSet="/assets/images/home-support-v2/web/harish-city-aerial-v2-960.jpg" />
-                  <img src="/assets/images/home-support-v2/web/harish-city-aerial-v2-1536.jpg" alt="Aerial view of Harish, Israel" className="h-64 w-full object-cover md:h-80" loading="lazy" />
-                </picture>
+              <div className="min-w-0 overflow-hidden rounded-xl">
+                <div className="cf-photo overflow-hidden" style={{ aspectRatio: '3 / 2' }}>
+                  <DocumentaryImage id="move-in-window-cleaning" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Values */}
         <section className="py-16 md:py-20">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-center mb-10">
+          <div className="cf-shell">
+            <h2 className="mb-10 text-center text-2xl font-bold">
               {lang === 'en' ? 'Our Values' : 'הערכים שלנו'}
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="public-grid grid min-w-0 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {values.map((v, i) => (
-                <div key={i} className="text-center">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+                <div key={i} className="min-w-0 text-center">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                     {v.icon}
                   </div>
-                  <h3 className="font-semibold mb-2">{v.title}</h3>
+                  <h3 className="mb-2 font-semibold">{v.title}</h3>
                   <p className="text-sm text-muted-foreground">{v.desc}</p>
                 </div>
               ))}
@@ -68,21 +66,20 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="py-12 md:py-16 bg-card">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">
+        <section className="bg-card py-12 md:py-16">
+          <div className="cf-shell text-center">
+            <h2 className="mb-4 text-2xl font-bold">
               {lang === 'en' ? 'Ready to Experience the Difference?' : 'מוכנים לחוות את ההבדל?'}
             </h2>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Link to="/quote">
-                <Button size="lg" className="gap-2">
+            <div className="public-hero-actions flex flex-col justify-center gap-3 min-[430px]:flex-row min-[430px]:flex-wrap">
+              <Link to="/quote" className="min-w-0">
+                <Button size="lg" className="w-full min-h-11 gap-2">
                   {t.hero.cta}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer">
-                <Button size="lg" variant="outline" className="gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10">
+              <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="min-w-0">
+                <Button size="lg" variant="outline" className="w-full min-h-11 gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10">
                   <MessageCircle className="h-5 w-5" />
                   {t.hero.whatsapp}
                 </Button>
@@ -92,6 +89,6 @@ export default function AboutPage() {
         </section>
       </main>
       <Footer />
-    </div>
+    </PublicSite>
   );
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import PublicSite from '@/components/PublicSite';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -82,7 +83,7 @@ export default function PartnersPage() {
             {partner.area}
           </div>
         )}
-        <div className="flex gap-2">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
           {partner.phone && (
             <a href={`tel:${OFFICIAL_PHONE_LINK}`} aria-label={`${t.partners.callNow}: ${OFFICIAL_PHONE_DISPLAY}`}>
               <Button size="sm" variant="outline" className="gap-1.5">
@@ -105,20 +106,20 @@ export default function PartnersPage() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <PublicSite>
       <Header />
       <main className="flex-1">
-        <section className="py-16 md:py-20 bg-card">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <section className="bg-card py-16 md:py-20">
+          <div className="cf-shell text-center">
             <h1 className="text-3xl md:text-4xl font-bold mb-3">{t.partners.title}</h1>
             <p className="text-muted-foreground max-w-lg mx-auto">{t.partners.subtitle}</p>
           </div>
         </section>
 
         <section className="py-12 md:py-16">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="cf-shell">
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="public-grid grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((i) => (
                   <Card key={i} className="animate-pulse">
                     <CardContent className="p-5 h-40" />
@@ -127,7 +128,7 @@ export default function PartnersPage() {
               </div>
             ) : partners.length === 0 ? (
               <Card className="mx-auto max-w-3xl border-[#B8842F]/40 bg-[#FBF8F3] shadow-[0_21px_55px_rgba(8,31,40,.09)]">
-                <CardContent className="grid gap-6 p-7 sm:grid-cols-[auto_1fr] sm:p-10">
+                <CardContent className="public-grid grid min-w-0 gap-6 p-7 sm:grid-cols-[auto_1fr] sm:p-10">
                   <div className="cf-gold-icon flex h-16 w-16 items-center justify-center rounded-2xl"><Building2 className="h-7 w-7 text-[#F0C96F]"/></div>
                   <div><p className="cf-eyebrow">{lang === 'he' ? 'רשת מקומית מאומתת' : 'Verified local network'}</p><h2 className="mt-2 text-3xl text-[#102E38]">{lang === 'he' ? 'פרופילים של עסקים מקומיים נמצאים בבדיקה.' : 'Local business profiles are being reviewed.'}</h2><p className="mt-3 leading-7 text-[#5D6B6D]">{lang === 'he' ? 'אנו מפרסמים בעלי מקצוע רק לאחר בדיקת מנהל. לא מוצגים עסקים לדוגמה, ניסיון מומצא או טענות שלא אומתו.' : 'We only publish providers after owner review. No placeholder businesses, fabricated experience, or unverified claims are shown.'}</p><div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap"><Button asChild className="w-full bg-[#102E38] sm:w-auto"><Link to="/account?type=business"><ShieldCheck className="me-2 h-4 w-4"/>{lang === 'he' ? 'הגשת מועמדות כבעל מקצוע' : 'Apply as a local provider'}</Link></Button><Button asChild variant="outline" className="w-full border-[#B8842F]/55 sm:w-auto"><a href={getWhatsAppLink(lang === 'he' ? 'שלום CleanFixHarish, אשמח לקבל מידע על רשת העסקים המקומיים.' : 'Hello CleanFixHarish, I would like information about the local business network.')} target="_blank" rel="noreferrer"><MessageCircle className="me-2 h-4 w-4"/>{lang === 'he' ? 'שאלה בוואטסאפ' : 'Ask on WhatsApp'}</a></Button></div></div>
                 </CardContent>
@@ -141,22 +142,22 @@ export default function PartnersPage() {
                   <TabsTrigger value="directory">{t.partners.localDirectory}</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="public-grid grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {partners.map((p) => <PartnerCard key={p.id} partner={p} />)}
                   </div>
                 </TabsContent>
                 <TabsContent value="internal">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="public-grid grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {internalTeam.map((p) => <PartnerCard key={p.id} partner={p} />)}
                   </div>
                 </TabsContent>
                 <TabsContent value="partners">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="public-grid grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {directPartners.map((p) => <PartnerCard key={p.id} partner={p} />)}
                   </div>
                 </TabsContent>
                 <TabsContent value="directory">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="public-grid grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {directory.map((p) => <PartnerCard key={p.id} partner={p} />)}
                   </div>
                 </TabsContent>
@@ -166,6 +167,6 @@ export default function PartnersPage() {
         </section>
       </main>
       <Footer />
-    </div>
+    </PublicSite>
   );
 }

@@ -9,13 +9,16 @@ export default function Footer() {
   return (
     <footer className="border-t border-[#b8842f]/45 bg-[#081f28] text-[#f7f2ea]">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="public-grid grid min-w-0 grid-cols-1 gap-8 md:grid-cols-3">
           {/* Brand */}
           <div>
             <img
               src="/assets/brand/cf-gold-wordmark-master.png"
               alt="CleanFix Harish"
-              className="mb-3 h-24 w-auto max-w-[260px] rounded-2xl object-contain object-start"
+              width={260}
+              height={96}
+              loading="lazy"
+              className="mb-3 h-24 w-auto max-w-full rounded-2xl object-contain object-start sm:max-w-[260px]"
             />
             <p className="max-w-xs text-sm text-[#e8d8be]/75">
               {t.footer.tagline}
@@ -75,12 +78,12 @@ export default function Footer() {
 
             {/* Social Media */}
             <h4 className="mb-3 mt-6 text-sm font-semibold text-[#f0c96f]">{lang === 'en' ? 'Follow Us' : 'עקבו אחרינו'}</h4>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <a
                 href="https://facebook.com/cleanfixharish"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#e8d8be]/70 transition-colors hover:text-white"
+                className="inline-flex h-11 w-11 items-center justify-center text-[#e8d8be]/70 transition-colors hover:text-white"
                 aria-label="Facebook"
               >
                 <Facebook className="h-5 w-5" />
@@ -89,7 +92,7 @@ export default function Footer() {
                 href="https://www.instagram.com/cleanfixharish"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#e8d8be]/70 transition-colors hover:text-white"
+                className="inline-flex h-11 w-11 items-center justify-center text-[#e8d8be]/70 transition-colors hover:text-white"
                 aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" />
@@ -98,7 +101,7 @@ export default function Footer() {
                 href="https://x.com/CleanFixHarish"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#e8d8be]/70 transition-colors hover:text-white"
+                className="inline-flex h-11 w-11 items-center justify-center text-[#e8d8be]/70 transition-colors hover:text-white"
                 aria-label="X (Twitter)"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">

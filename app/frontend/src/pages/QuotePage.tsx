@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import PublicSite from '@/components/PublicSite';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,9 +72,9 @@ export default function QuotePage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <PublicSite>
         <Header />
-        <main className="flex-1 flex items-center justify-center py-16">
+        <main className="flex flex-1 items-center justify-center py-16">
           <Card className="max-w-md w-full mx-4">
             <CardContent className="p-8 text-center">
               <div className="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-4">
@@ -93,15 +94,15 @@ export default function QuotePage() {
           </Card>
         </main>
         <Footer />
-      </div>
+      </PublicSite>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <PublicSite>
       <Header />
       <main className="flex-1 py-12 md:py-16">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="cf-shell">
           <div className="max-w-xl mx-auto">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold mb-2">{t.quote.title}</h1>
@@ -119,7 +120,7 @@ export default function QuotePage() {
                     tabIndex={-1}
                     autoComplete="off"
                     aria-hidden="true"
-                    className="absolute left-[-9999px] h-0 w-0 overflow-hidden opacity-0 pointer-events-none"
+                    className="sr-only"
                   />
                   <div>
                     <Label htmlFor="name">{t.quote.name} *</Label>
@@ -132,7 +133,7 @@ export default function QuotePage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="public-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="phone">{t.quote.phone} *</Label>
                       <Input
@@ -208,7 +209,7 @@ export default function QuotePage() {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                  <Button type="submit" className="w-full min-h-11" size="lg" disabled={loading}>
                     {loading ? (lang === 'en' ? 'Sending...' : 'שולח...') : t.quote.submit}
                   </Button>
                   {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
@@ -232,6 +233,6 @@ export default function QuotePage() {
         </div>
       </main>
       <Footer />
-    </div>
+    </PublicSite>
   );
 }

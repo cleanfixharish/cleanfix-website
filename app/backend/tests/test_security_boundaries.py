@@ -55,10 +55,35 @@ def test_render_service_worker_is_available_for_cache_retirement(monkeypatch):
     )
     assert response.status_code == 200
     assert "IS_LEGACY_RENDER_ORIGIN" in response.text
-    assert "cleanfix-harish-v5-responsive" in response.text
+    assert "cleanfix-harish-v6-mobile-recovery" in response.text
     assert "shouldNeverCache" in response.text
     assert "isSameOrigin" in response.text
     assert "'/'," not in response.text
+
+
+def test_frontend_shell_is_never_cached_but_hashed_assets_are_immutable(tmp_path):
+    index_file = tmp_path / "index.html"
+    index_file.write_text("<!doctype html>", encoding="utf-8")
+    asset_dir = tmp_path / "assets"
+    asset_dir.mkdir()
+    asset_file = asset_dir / "index-release123.js"
+    asset_file.write_text("console.log('ok')", encoding="utf-8")
+    sw_file = tmp_path / "sw.js"
+    sw_file.write_text("self.addEventListener('fetch', () => {})", encoding="utf-8")
+    photo_file = tmp_path / "assets" / "images"
+    photo_file.mkdir()
+    photo = photo_file / "handyman-shelf.png"
+    photo.write_bytes(b"png")
+
+    shell_response = main.frontend_file_response(index_file)
+    asset_response = main.frontend_file_response(asset_file)
+    sw_response = main.frontend_file_response(sw_file)
+    photo_response = main.frontend_file_response(photo)
+
+    assert shell_response.headers["cache-control"] == "no-store, no-cache, must-revalidate"
+    assert asset_response.headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert sw_response.headers["cache-control"] == "no-cache, must-revalidate"
+    assert photo_response.headers["cache-control"] == "public, max-age=3600"
 
 
 def test_account_directory_is_not_public():

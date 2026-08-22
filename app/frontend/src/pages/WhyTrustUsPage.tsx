@@ -1,6 +1,8 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import DocumentaryImage from '@/components/DocumentaryImage';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import PublicSite from '@/components/PublicSite';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { MessageCircle, ArrowRight, BadgeCheck, ShieldCheck, Star, Eye, Clock, Award } from 'lucide-react';
@@ -28,45 +30,52 @@ export default function WhyTrustUsPage() {
       ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <PublicSite>
       <Header />
       <main className="flex-1">
-        <section className="py-16 md:py-20 bg-card">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">{t.whyTrust.title}</h1>
-            <p className="text-muted-foreground max-w-lg mx-auto">{t.whyTrust.subtitle}</p>
+        <section className="bg-card py-16 md:py-20">
+          <div className="cf-shell">
+            <div className="public-grid grid min-w-0 items-center gap-10 lg:grid-cols-2">
+              <div className="min-w-0 text-center lg:text-start">
+                <h1 className="mb-3 text-3xl font-bold md:text-4xl">{t.whyTrust.title}</h1>
+                <p className="mx-auto max-w-lg text-muted-foreground lg:mx-0">{t.whyTrust.subtitle}</p>
+              </div>
+              <div className="cf-photo min-w-0 overflow-hidden rounded-[24px]" style={{ aspectRatio: '3 / 2' }}>
+                <DocumentaryImage id="ac-maintenance" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
+              </div>
+            </div>
           </div>
         </section>
 
         <section className="py-16 md:py-20">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="cf-shell">
+            <div className="public-grid grid min-w-0 grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {trustPoints.map((point, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <div key={i} className="flex min-w-0 gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     {point.icon}
                   </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">{point.title}</h3>
+                  <div className="min-w-0">
+                    <h2 className="mb-1 font-semibold">{point.title}</h2>
                     <p className="text-sm text-muted-foreground">{point.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="text-center mt-16 py-12 bg-card rounded-2xl">
-              <h2 className="text-2xl font-bold mb-4">
+            <div className="mt-16 rounded-2xl bg-card py-12 text-center">
+              <h2 className="mb-4 text-2xl font-bold">
                 {lang === 'en' ? 'Experience Honest Service' : 'חוו שירות כנה'}
               </h2>
-              <div className="flex flex-wrap justify-center gap-3">
-                <Link to="/quote">
-                  <Button size="lg" className="gap-2">
+              <div className="public-hero-actions flex flex-col justify-center gap-3 min-[430px]:flex-row min-[430px]:flex-wrap">
+                <Link to="/quote" className="min-w-0">
+                  <Button size="lg" className="w-full min-h-11 gap-2">
                     {t.hero.cta}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer">
-                  <Button size="lg" variant="outline" className="gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10">
+                <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="min-w-0">
+                  <Button size="lg" variant="outline" className="w-full min-h-11 gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10">
                     <MessageCircle className="h-5 w-5" />
                     {t.hero.whatsapp}
                   </Button>
@@ -77,6 +86,6 @@ export default function WhyTrustUsPage() {
         </section>
       </main>
       <Footer />
-    </div>
+    </PublicSite>
   );
 }

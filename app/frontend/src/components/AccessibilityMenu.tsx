@@ -66,7 +66,7 @@ export default function AccessibilityMenu() {
         <Button
           aria-label={copy.open}
           title={copy.title}
-          className={`fixed bottom-6 z-50 h-12 w-12 rounded-full bg-[#173F46] p-0 text-white shadow-lg hover:bg-[#0E343B] ${dir === 'rtl' ? 'right-6' : 'left-6'}`}
+          className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-50 h-12 w-12 rounded-full bg-[#173F46] p-0 text-white shadow-lg hover:bg-[#0E343B] ${dir === 'rtl' ? 'right-6' : 'left-6'}`}
         >
           <Accessibility className="h-6 w-6" />
         </Button>

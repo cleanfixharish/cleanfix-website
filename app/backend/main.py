@@ -2,6 +2,7 @@ import importlib
 import logging
 import os
 import pkgutil
+import re
 import traceback
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -292,6 +293,21 @@ async def readiness_check():
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
+FINGERPRINTED_ASSET = re.compile(r".+-[A-Za-z0-9_]{8,}\.(js|css)$")
+
+
+def frontend_file_response(path: Path) -> FileResponse:
+    """Serve hashed assets aggressively while never pinning an old app shell."""
+    if path.name == "index.html" or path.suffix == ".html":
+        cache_control = "no-store, no-cache, must-revalidate"
+    elif path.name == "sw.js":
+        cache_control = "no-cache, must-revalidate"
+    elif FINGERPRINTED_ASSET.fullmatch(path.name):
+        cache_control = "public, max-age=31536000, immutable"
+    else:
+        cache_control = "public, max-age=3600"
+    return FileResponse(path, headers={"Cache-Control": cache_control})
+
 
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_frontend(full_path: str):
@@ -306,13 +322,13 @@ async def serve_frontend(full_path: str):
         raise HTTPException(status_code=404, detail="File not found")
 
     if requested.is_file():
-        return FileResponse(requested)
+        return frontend_file_response(requested)
     directory_index = requested / "index.html"
     if directory_index.is_file():
-        return FileResponse(directory_index)
+        return frontend_file_response(directory_index)
     index_file = FRONTEND_DIST / "index.html"
     if index_file.is_file():
-        return FileResponse(index_file)
+        return frontend_file_response(index_file)
     raise HTTPException(status_code=503, detail="Frontend build is not available")
 
 

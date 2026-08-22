@@ -113,7 +113,7 @@ export default function Header() {
         <div className="mx-auto flex h-[68px] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 sm:h-[76px] sm:gap-3 sm:px-6 lg:px-8">
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-3" aria-label={t.header.homeAria}>
-            <span className="cf-logo-shine"><img src="/assets/brand/cf-gold-monogram-256.png" alt="" className="h-11 w-11 rounded-[14px] shadow-[0_5px_16px_rgba(8,31,40,.18)] sm:h-14 sm:w-14 sm:rounded-[17px]" /></span>
+            <span className="cf-logo-shine"><img src="/assets/brand/cf-gold-monogram-128.png" srcSet="/assets/brand/cf-gold-monogram-64.png 64w, /assets/brand/cf-gold-monogram-128.png 128w, /assets/brand/cf-gold-monogram-256.png 256w" sizes="56px" width={56} height={56} alt="" className="h-11 w-11 rounded-[14px] shadow-[0_5px_16px_rgba(8,31,40,.18)] sm:h-14 sm:w-14 sm:rounded-[17px]" /></span>
             <span className="hidden sm:block">
               <span className="block text-[1.35rem] font-semibold leading-none text-[#102e38]" style={{ fontFamily: 'Cormorant Garamond, Noto Serif Hebrew, serif' }}>CleanFixHarish</span>
               <span className="mt-1 block text-[9px] font-bold uppercase tracking-[.18em] text-[#95651f]">{t.header.homeSubline}</span>
@@ -147,7 +147,7 @@ export default function Header() {
                 onClick={handleInstallClick}
                 aria-label={platform === 'android' ? it.androidButton : it.button}
                 title={platform === 'android' ? it.androidButton : it.button}
-                className="gap-1.5 border-[#b8842f]/45 bg-[#fbf8f3] text-[#102e38] transition-all hover:border-[#b8842f]/70 hover:bg-[#e8d8be]/45 hover:text-[#102e38]"
+                className="min-h-11 gap-1.5 border-[#b8842f]/45 bg-[#fbf8f3] text-[#102e38] transition-all hover:border-[#b8842f]/70 hover:bg-[#e8d8be]/45 hover:text-[#102e38]"
               >
                 <Download className="h-4 w-4" />
                 <span className="hidden text-xs font-semibold 2xl:inline">
@@ -162,7 +162,7 @@ export default function Header() {
               size="sm"
               onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
               aria-label={lang === 'en' ? 'Switch site to Hebrew' : 'החלפת האתר לאנגלית'}
-              className="gap-1.5"
+              className="min-h-11 min-w-11 gap-1.5"
             >
               <Globe className="h-4 w-4" />
               <span className="text-xs font-medium">{lang === 'en' ? 'עב' : 'EN'}</span>
@@ -173,23 +173,23 @@ export default function Header() {
               href={getWhatsAppLink()}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex"
+              className="public-header-inline-cta hidden xl:inline-flex"
             >
-              <Button size="sm" className="gap-1.5 bg-[#102e38] text-[#f7f2ea] hover:bg-[#163f49]">
+              <Button size="sm" className="min-h-11 gap-1.5 bg-[#102e38] text-[#f7f2ea] hover:bg-[#163f49]">
                 <MessageCircle className="h-4 w-4 text-[#f0c96f]" />
                 <span className="hidden 2xl:inline">{t.hero.whatsapp}</span>
               </Button>
             </a>
 
             {/* Get Quote */}
-            <Link to="/quote" className="hidden sm:inline-flex">
-              <Button size="sm" variant="default">
+            <Link to="/quote" className="public-header-inline-cta hidden xl:inline-flex">
+              <Button size="sm" variant="default" className="min-h-11">
                 {t.nav.getQuote}
               </Button>
             </Link>
 
-            <Link to={user?.role === 'admin' ? '/admin' : '/account'} className="hidden sm:inline-flex">
-              <Button size="sm" variant="outline" className="gap-1.5 border-[#b8842f]/55 bg-[#fbf8f3]">
+            <Link to={user?.role === 'admin' ? '/admin' : '/account'} className="public-header-inline-cta hidden xl:inline-flex">
+              <Button size="sm" variant="outline" className="min-h-11 gap-1.5 border-[#b8842f]/55 bg-[#fbf8f3]">
                 <UserRound className="h-4 w-4" />
                 <span className="hidden xl:inline">{user ? (lang === 'en' ? 'My dashboard' : 'האזור שלי') : (lang === 'en' ? 'Join / Sign in' : 'הרשמה / כניסה')}</span>
               </Button>
@@ -198,7 +198,7 @@ export default function Header() {
             {/* Mobile Menu */}
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild className="xl:hidden">
-                <Button variant="ghost" size="icon" aria-label={lang === 'he' ? 'פתיחת תפריט הניווט' : 'Open navigation menu'}>
+                <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={lang === 'he' ? 'פתיחת תפריט הניווט' : 'Open navigation menu'}>
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>

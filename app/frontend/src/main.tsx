@@ -8,11 +8,7 @@ import { initializePwaInstall } from './lib/pwaInstall.ts';
 // This keeps the Install button reliable even on slow networks.
 initializePwaInstall();
 
-// Load runtime configuration before rendering the app
-async function initializeApp() {
-  // Prerendered blog pages are served as pure static HTML for SEO.
-  // Intentionally skip React mounting so the crawler-facing markup stays
-  // lightweight and self-contained — no client-side hydration needed.
+function mountApp() {
   if (
     document
       .querySelector('meta[name="prerender-static-page"]')
@@ -21,19 +17,10 @@ async function initializeApp() {
     return;
   }
 
-  try {
-    await loadRuntimeConfig();
-    console.log('Runtime configuration loaded successfully');
-  } catch (error) {
-    console.warn(
-      'Failed to load runtime configuration, using defaults:',
-      error
-    );
-  }
-
-  // Render the app
   createRoot(document.getElementById('root')!).render(<App />);
 }
 
-// Initialize the app
-initializeApp();
+// Public first paint must not wait on /api/config. Same-origin relative URLs
+// work immediately; runtime config can still refine the API host afterwards.
+void loadRuntimeConfig().catch(() => undefined);
+mountApp();
