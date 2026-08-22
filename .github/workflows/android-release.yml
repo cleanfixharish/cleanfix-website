@@ -1,0 +1,47 @@
+name: Android Tester Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/android/**"
+      - ".github/workflows/android-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-tester-release
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+      - name: Test, lint, and build the production-connected tester APK
+        run: >-
+          gradle --no-daemon
+          :app:testDebugUnitTest
+          :app:lintDebug
+          :app:assembleDebug
+          -PAPI_BASE_URL=https://www.cleanfixharish.co.il/
+      - name: Prepare stable download name
+        run: cp app/build/outputs/apk/debug/app-debug.apk CleanFixHarish-android.apk
+      - name: Publish stable tester release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view android-latest >/dev/null 2>&1 || gh release create android-latest --title "CleanFixHarish Android tester" --notes "Installable Android tester build connected to https://www.cleanfixharish.co.il/. This is not yet a Play Store production-signed release." --prerelease
+          gh release upload android-latest CleanFixHarish-android.apk --clobber

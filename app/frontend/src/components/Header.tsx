@@ -8,6 +8,8 @@ import { getWhatsAppLink } from '@/lib/whatsapp';
 import { useAuth } from '@/contexts/AuthContext';
 import { requestPwaInstall, subscribeToPwaInstall } from '@/lib/pwaInstall';
 
+const ANDROID_APK_URL = 'https://github.com/cleanfixharish/cleanfix-website/releases/download/android-latest/CleanFixHarish-android.apk';
+
 export default function Header() {
   const { t, lang, setLang, dir } = useLanguage();
   const { user } = useAuth();
@@ -36,6 +38,13 @@ export default function Header() {
   }, []);
 
   const handleInstallClick = useCallback(async () => {
+    // Android visitors asked for the native tester app. Keep this URL stable;
+    // the release workflow replaces the APK after every verified Android change.
+    if (platform === 'android') {
+      window.location.assign(ANDROID_APK_URL);
+      return;
+    }
+
     // Always try the browser's native installer first. This avoids a state timing
     // race and makes supported browsers go straight to their install confirmation.
     const outcome = await requestPwaInstall();
@@ -68,6 +77,7 @@ export default function Header() {
   const installText = {
     en: {
       button: 'Install App',
+      androidButton: 'Download Android app',
       modalTitle: 'One-click install is unavailable here',
       iosStep1: 'Tap the Share button at the bottom of Safari',
       iosStep2: 'Scroll down and tap "Add to Home Screen"',
@@ -81,6 +91,7 @@ export default function Header() {
     },
     he: {
       button: 'התקן',
+      androidButton: 'הורדת אפליקציה לאנדרואיד',
       modalTitle: 'התקנה בלחיצה אחת אינה זמינה בדפדפן זה',
       iosStep1: 'לחץ על כפתור השיתוף בתחתית ספארי',
       iosStep2: 'גלול למטה ולחץ "הוסף למסך הבית"',
@@ -129,7 +140,7 @@ export default function Header() {
           {/* Right Actions */}
           <div className="flex shrink-0 items-center gap-1.5">
             {/* Install App Button — always visible unless installed */}
-            {!isInstalled && (canInstall || platform === 'ios') && (
+            {!isInstalled && (platform === 'android' || canInstall || platform === 'ios') && (
               <Button
                 variant="outline"
                 size="sm"
@@ -138,7 +149,7 @@ export default function Header() {
               >
                 <Download className="h-4 w-4" />
                 <span className="hidden text-xs font-semibold 2xl:inline">
-                  {it.button}
+                  {platform === 'android' ? it.androidButton : it.button}
                 </span>
               </Button>
             )}
@@ -221,14 +232,14 @@ export default function Header() {
                       {t.hero.whatsapp}
                     </Button>
                   </a>
-                  {!isInstalled && (canInstall || platform === 'ios') && (
+                  {!isInstalled && (platform === 'android' || canInstall || platform === 'ios') && (
                     <Button
                       variant="outline"
                       className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/5"
                       onClick={() => { setOpen(false); handleInstallClick(); }}
                     >
                       <Download className="h-4 w-4" />
-                      {it.button}
+                      {platform === 'android' ? it.androidButton : it.button}
                     </Button>
                   )}
                   <Link to="/admin" onClick={() => setOpen(false)}>
