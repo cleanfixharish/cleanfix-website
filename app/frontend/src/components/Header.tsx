@@ -145,6 +145,8 @@ export default function Header() {
                 variant="outline"
                 size="sm"
                 onClick={handleInstallClick}
+                aria-label={platform === 'android' ? it.androidButton : it.button}
+                title={platform === 'android' ? it.androidButton : it.button}
                 className="gap-1.5 border-[#b8842f]/45 bg-[#fbf8f3] text-[#102e38] transition-all hover:border-[#b8842f]/70 hover:bg-[#e8d8be]/45 hover:text-[#102e38]"
               >
                 <Download className="h-4 w-4" />
