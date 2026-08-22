@@ -15,7 +15,7 @@ export default function Footer() {
             <img
               src="/assets/brand/cf-gold-wordmark-master.png"
               alt="CleanFix Harish"
-              className="mb-3 h-24 w-auto max-w-[260px] rounded-2xl object-contain object-left"
+              className="mb-3 h-24 w-auto max-w-[260px] rounded-2xl object-contain object-start"
             />
             <p className="max-w-xs text-sm text-[#e8d8be]/75">
               {t.footer.tagline}
@@ -50,6 +50,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-[#e8d8be]/70 transition-colors hover:text-white"
+                dir="ltr"
               >
                 <MessageCircle className="h-4 w-4" />
                 050-827-5505
@@ -57,6 +58,7 @@ export default function Footer() {
               <a
                 href="tel:0508275505"
                 className="flex items-center gap-2 text-sm text-[#e8d8be]/70 transition-colors hover:text-white"
+                dir="ltr"
               >
                 <Phone className="h-4 w-4" />
                 050-827-5505
@@ -64,6 +66,7 @@ export default function Footer() {
               <a
                 href="mailto:info@cleanfixharish.co.il"
                 className="flex items-center gap-2 text-sm text-[#e8d8be]/70 transition-colors hover:text-white"
+                dir="ltr"
               >
                 <Mail className="h-4 w-4" />
                 info@cleanfixharish.co.il
@@ -112,7 +115,7 @@ export default function Footer() {
           </p>
           <p className="mt-1 text-xs text-[#e8d8be]/60">
             {lang === 'en' ? 'Harish, Israel' : 'חריש, ישראל'} •{' '}
-            <a href="https://www.cleanfixharish.co.il" className="hover:text-primary transition-colors">
+            <a href="https://www.cleanfixharish.co.il" className="hover:text-primary transition-colors" dir="ltr">
               www.cleanfixharish.co.il
             </a>
           </p>

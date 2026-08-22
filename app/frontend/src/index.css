@@ -82,6 +82,14 @@
     font-kerning: normal;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
   }
   h1,
   h2,

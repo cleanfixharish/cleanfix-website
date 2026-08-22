@@ -10,6 +10,10 @@ http.interceptors.request.use((config) => {
 });
 
 export const cleanfixApi = {
+  async listAccountProfiles() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/account/profiles`);
+    return response.data;
+  },
   async getViewerDashboard() {
     const response = await http.get(`${getAPIBaseURL()}/api/v1/viewer/dashboard`);
     return response.data;
@@ -173,6 +177,27 @@ export const cleanfixApi = {
       max_tokens: 1800,
     });
     return response.data as { content: string; model?: string };
+  },
+
+  async generateVideo(data: {
+    prompt: string;
+    image?: string;
+    model?: string;
+    size?: string;
+    seconds?: string;
+  }) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/aihub/genvideo`, {
+      model: 'wan2.6-t2v',
+      size: '1280x720',
+      seconds: '4',
+      ...data,
+    });
+    return response.data as {
+      url: string;
+      model: string;
+      duration: number;
+      revised_prompt?: string;
+    };
   },
 
   async getDefaultRestorePoint() {

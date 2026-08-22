@@ -22,7 +22,11 @@ const serviceOptions = [
 ];
 
 const areaOptions = [
-  'Harish Center', 'Harish North', 'Harish South', 'Harish East', 'Harish West',
+  { en: 'Harish Center', he: 'מרכז חריש', key: 'harishCenter' as const },
+  { en: 'Harish North', he: 'חריש צפון', key: 'harishNorth' as const },
+  { en: 'Harish South', he: 'חריש דרום', key: 'harishSouth' as const },
+  { en: 'Harish East', he: 'חריש מזרח', key: 'harishEast' as const },
+  { en: 'Harish West', he: 'חריש מערב', key: 'harishWest' as const },
 ];
 
 export default function QuotePage() {
@@ -186,8 +190,8 @@ export default function QuotePage() {
                       </SelectTrigger>
                       <SelectContent>
                         {areaOptions.map((area) => (
-                          <SelectItem key={area} value={area}>
-                            {area}
+                          <SelectItem key={area.en} value={area.en}>
+                            {lang === 'en' ? area.en : area.he}
                           </SelectItem>
                         ))}
                       </SelectContent>

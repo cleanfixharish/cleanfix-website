@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -128,7 +129,7 @@ export default function PartnersPage() {
               <Card className="mx-auto max-w-3xl border-[#B8842F]/40 bg-[#FBF8F3] shadow-[0_21px_55px_rgba(8,31,40,.09)]">
                 <CardContent className="grid gap-6 p-7 sm:grid-cols-[auto_1fr] sm:p-10">
                   <div className="cf-gold-icon flex h-16 w-16 items-center justify-center rounded-2xl"><Building2 className="h-7 w-7 text-[#F0C96F]"/></div>
-                  <div><p className="cf-eyebrow">Verified local network</p><h2 className="mt-2 text-3xl text-[#102E38]">Local business profiles are being reviewed.</h2><p className="mt-3 leading-7 text-[#5D6B6D]">We only publish providers after owner review. No placeholder businesses, fabricated experience, or unverified claims are shown.</p><div className="mt-6 flex flex-wrap gap-3"><Button asChild className="bg-[#102E38]"><Link to="/account"><ShieldCheck className="mr-2 h-4 w-4"/>Apply as a local provider</Link></Button><Button asChild variant="outline" className="border-[#B8842F]/55"><a href={getWhatsAppLink(lang === 'he' ? 'שלום CleanFixHarish, אשמח לקבל מידע על רשת העסקים המקומיים.' : 'Hello CleanFixHarish, I would like information about the local business network.')} target="_blank" rel="noreferrer"><MessageCircle className="mr-2 h-4 w-4"/>Ask on WhatsApp</a></Button></div></div>
+                  <div><p className="cf-eyebrow">{lang === 'he' ? 'רשת מקומית מאומתת' : 'Verified local network'}</p><h2 className="mt-2 text-3xl text-[#102E38]">{lang === 'he' ? 'פרופילים של עסקים מקומיים נמצאים בבדיקה.' : 'Local business profiles are being reviewed.'}</h2><p className="mt-3 leading-7 text-[#5D6B6D]">{lang === 'he' ? 'אנו מפרסמים בעלי מקצוע רק לאחר בדיקת מנהל. לא מוצגים עסקים לדוגמה, ניסיון מומצא או טענות שלא אומתו.' : 'We only publish providers after owner review. No placeholder businesses, fabricated experience, or unverified claims are shown.'}</p><div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap"><Button asChild className="w-full bg-[#102E38] sm:w-auto"><Link to="/account?type=business"><ShieldCheck className="me-2 h-4 w-4"/>{lang === 'he' ? 'הגשת מועמדות כבעל מקצוע' : 'Apply as a local provider'}</Link></Button><Button asChild variant="outline" className="w-full border-[#B8842F]/55 sm:w-auto"><a href={getWhatsAppLink(lang === 'he' ? 'שלום CleanFixHarish, אשמח לקבל מידע על רשת העסקים המקומיים.' : 'Hello CleanFixHarish, I would like information about the local business network.')} target="_blank" rel="noreferrer"><MessageCircle className="me-2 h-4 w-4"/>{lang === 'he' ? 'שאלה בוואטסאפ' : 'Ask on WhatsApp'}</a></Button></div></div>
                 </CardContent>
               </Card>
             ) : (

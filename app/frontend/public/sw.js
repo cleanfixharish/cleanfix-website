@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cleanfix-harish-v4-security';
+const CACHE_NAME = 'cleanfix-harish-v5-responsive';
 const LEGACY_RENDER_HOST = 'cleanfixharish-web.onrender.com';
 const OFFICIAL_ORIGIN = 'https://www.cleanfixharish.co.il';
 const IS_LEGACY_RENDER_ORIGIN = self.location.hostname === LEGACY_RENDER_HOST;

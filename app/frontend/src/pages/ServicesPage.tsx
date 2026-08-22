@@ -66,7 +66,7 @@ export default function ServicesPage() {
                     <p className="mb-5 flex-1 text-sm leading-6 text-muted-foreground">
                       {lang === 'en' ? service.desc_en : service.desc_he}
                     </p>
-                    {service.price_from != null && <div className="mb-5 rounded-xl bg-[#EEE4D4] p-3 text-sm text-[#765D38]"><strong>From ₪{Number(service.price_from).toLocaleString()}</strong>{service.price_unit ? ` ${service.price_unit}` : ''}{(lang === 'en' ? service.price_note_en : service.price_note_he) && <span className="mt-1 block text-xs">{lang === 'en' ? service.price_note_en : service.price_note_he}</span>}</div>}
+                    {service.price_from != null && <div className="mb-5 rounded-xl bg-[#EEE4D4] p-3 text-sm text-[#765D38]"><strong>{t.servicesPage.fromPrice}{Number(service.price_from).toLocaleString()}</strong>{service.price_unit ? ` ${service.price_unit}` : ''}{(lang === 'en' ? service.price_note_en : service.price_note_he) && <span className="mt-1 block text-xs">{lang === 'en' ? service.price_note_en : service.price_note_he}</span>}</div>}
                     <div className="flex flex-wrap gap-2">
                       <a
                         href={getWhatsAppServiceLink(lang === 'en' ? service.name_en : service.name_he, lang)}

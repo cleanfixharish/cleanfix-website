@@ -1,4 +1,5 @@
 import os
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
@@ -54,15 +55,120 @@ def test_render_service_worker_is_available_for_cache_retirement(monkeypatch):
     )
     assert response.status_code == 200
     assert "IS_LEGACY_RENDER_ORIGIN" in response.text
-    assert "cleanfix-harish-v4-security" in response.text
+    assert "cleanfix-harish-v5-responsive" in response.text
     assert "shouldNeverCache" in response.text
     assert "isSameOrigin" in response.text
     assert "'/'," not in response.text
 
 
+def test_account_directory_is_not_public():
+    response = client.get("/api/v1/account/profiles")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Authentication credentials were not provided"
+
+
+def test_account_directory_rejects_non_admin():
+    from dependencies.auth import get_current_user
+    from schemas.auth import UserResponse
+
+    async def customer_user():
+        return UserResponse(id="customer-1", email="customer@example.com", role="user")
+
+    app.dependency_overrides[get_current_user] = customer_user
+    try:
+        response = client.get("/api/v1/account/profiles")
+        assert response.status_code == 403
+        assert "Admin access required" in response.text
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_account_directory_rejects_viewer():
+    from dependencies.auth import get_current_user
+    from schemas.auth import UserResponse
+
+    async def viewer_user():
+        return UserResponse(id="viewer-1", email="viewer@example.com", role="viewer")
+
+    app.dependency_overrides[get_current_user] = viewer_user
+    try:
+        response = client.get("/api/v1/account/profiles")
+        assert response.status_code == 403
+        assert "Admin access required" in response.text
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_incomplete_google_registration_appears_in_admin_directory():
+    from routers.account import build_admin_directory_entry
+
+    user = SimpleNamespace(
+        id="google-sub-123",
+        email="new.customer@gmail.com",
+        name="Dana Cohen",
+        role="user",
+        created_at=None,
+        last_login=None,
+    )
+    entry = build_admin_directory_entry(user, None)
+    payload = entry.model_dump()
+
+    assert entry.user_id == "google-sub-123"
+    assert entry.email == "new.customer@gmail.com"
+    assert entry.display_name == "Dana Cohen"
+    assert entry.application_status == "setup_incomplete"
+    assert entry.phone == ""
+    assert "Admin access required" not in str(payload)
+
+
+def test_completed_profile_keeps_customer_details_in_admin_directory():
+    from routers.account import build_admin_directory_entry
+
+    user = SimpleNamespace(id="google-sub-456", email="ready@example.com", name="Ignored")
+    profile = SimpleNamespace(
+        id=17,
+        user_id="google-sub-456",
+        account_type="business",
+        display_name="Harish Plumbing",
+        phone="0508275505",
+        area="Harish",
+        preferred_language="he",
+        whatsapp_opt_in=True,
+        vip_number="CFH-ABCD1234",
+        business_name="Harish Plumbing",
+        business_category="Plumbing",
+        business_description="Local repairs",
+        application_status="pending",
+        created_at=None,
+    )
+    entry = build_admin_directory_entry(user, profile)
+
+    assert entry.id == 17
+    assert entry.account_type == "business"
+    assert entry.display_name == "Harish Plumbing"
+    assert entry.phone == "0508275505"
+    assert entry.vip_number == "CFH-ABCD1234"
+    assert entry.application_status == "pending"
+
+
+def test_admin_directory_response_allows_incomplete_phone():
+    from routers.account import AdminAccountProfileResponse
+
+    payload = AdminAccountProfileResponse(
+        user_id="google-sub-789",
+        email="new@example.com",
+        display_name="new",
+        phone="",
+        application_status="setup_incomplete",
+    )
+    assert payload.phone == ""
+    assert payload.id == 0
+
+
 def test_admin_endpoints_reject_anonymous_requests():
     protected_requests = (
         ("GET", "/api/v1/entities/leads"),
+        ("GET", "/api/v1/account/profiles"),
         ("GET", "/api/v1/entities/partners"),
         ("GET", "/api/v1/admin/settings"),
         ("PUT", "/api/v1/site-settings"),

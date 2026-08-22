@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,7 @@ import {
   Plus,
   Search,
   Send,
+  Share2,
   Settings2,
   ShieldCheck,
   Bot,
@@ -67,6 +69,7 @@ import {
   Database,
   Github,
   Image,
+  Clapperboard,
   KeyRound,
   RotateCcw,
   Sparkles,
@@ -77,6 +80,9 @@ import {
   X,
 } from "lucide-react";
 import { absoluteApiUrl, cleanfixApi } from "@/lib/cleanfixApi";
+import { useAdminTranslation } from "@/lib/adminI18n";
+import AiVideoStudio from "@/components/admin/AiVideoStudio";
+import ShareOnboarding from "@/components/admin/ShareOnboarding";
 
 type Section =
   | "overview"
@@ -88,6 +94,8 @@ type Section =
   | "services"
   | "pricing"
   | "content"
+  | "sharing"
+  | "video"
   | "followups"
   | "platforms"
   | "internal";
@@ -126,6 +134,20 @@ type DashboardJob = {
   scheduledFor?: string;
   price?: number;
   notes: string;
+};
+type RegisteredAccount = {
+  id: number;
+  userId: string;
+  accountType: "customer" | "business";
+  displayName: string;
+  email: string;
+  phone: string;
+  area: string;
+  vipNumber: string;
+  businessName: string;
+  businessCategory: string;
+  applicationStatus: string;
+  createdAt: string;
 };
 type CmsItem = {
   id: number;
@@ -219,7 +241,11 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
   },
   {
     label: "Website",
-    items: [{ id: "content", label: "Website editor", icon: Globe2 }],
+    items: [
+      { id: "sharing", label: "Share & onboarding", icon: Share2 },
+      { id: "video", label: "AI Video Studio", icon: Clapperboard },
+      { id: "content", label: "Website editor", icon: Globe2 },
+    ],
   },
   {
     label: "System",
@@ -265,6 +291,8 @@ const viewerLockedSections: Section[] = [
   "whatsapp",
   "pricing",
   "content",
+  "sharing",
+  "video",
   "followups",
   "platforms",
   "internal",
@@ -302,6 +330,7 @@ function Metric({
   icon: typeof Users;
   tone?: string;
 }) {
+  const tr = useAdminTranslation();
   const tones: Record<string, string> = {
     teal: "bg-[#DDE9E7] text-[#174E57]",
     brass: "bg-[#EEE4D4] text-[#84673F]",
@@ -314,12 +343,12 @@ function Metric({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-[#786F65]">
-              {label}
+              {tr(label)}
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-tight text-[#173F46]">
               {value}
             </p>
-            <p className="mt-1 text-xs text-[#786F65]">{note}</p>
+            <p className="mt-1 text-xs text-[#786F65]">{tr(note)}</p>
           </div>
           <div className={`rounded-2xl p-2.5 ${tones[tone]}`}>
             <Icon className="h-5 w-5" />
@@ -341,28 +370,51 @@ function SectionTitle({
   description: string;
   action?: React.ReactNode;
 }) {
+  const tr = useAdminTranslation();
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[.18em] text-[#A47D4A]">
-          {eyebrow}
+          {tr(eyebrow)}
         </p>
         <h1 className="mt-1 text-2xl font-semibold text-[#173F46] sm:text-3xl">
-          {title}
+          {tr(title)}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-[#756D64]">{description}</p>
+        <p className="mt-2 max-w-2xl text-sm text-[#756D64]">{tr(description)}</p>
       </div>
       {action}
     </div>
   );
 }
 
+function mapRegisteredAccounts(accountResponse: any[], tr: (text: string) => string): RegisteredAccount[] {
+  return (accountResponse || []).map((account: any) => ({
+    id: account.id || 0,
+    userId: account.user_id || String(account.id || account.email || ""),
+    accountType: account.account_type === "business" ? "business" : "customer",
+    displayName: account.display_name || account.email || tr("Customer"),
+    email: account.email || "",
+    phone: account.phone || "",
+    area: account.area || "Harish",
+    vipNumber: account.vip_number || "",
+    businessName: account.business_name || "",
+    businessCategory: account.business_category || "",
+    applicationStatus: account.application_status || "setup_incomplete",
+    createdAt: account.created_at
+      ? new Date(account.created_at).toLocaleDateString("en-IL")
+      : tr("Just registered"),
+  }));
+}
+
 export default function AdminPage() {
   const { user, logout, isViewer } = useAuth();
+  const { lang, setLang, dir } = useLanguage();
+  const tr = useAdminTranslation();
   const [section, setSection] = useState<Section>("overview");
   const [mobileNav, setMobileNav] = useState(false);
   const [leads, setLeads] = useState<DashboardLead[]>([]);
   const [jobs, setJobs] = useState<DashboardJob[]>([]);
+  const [registeredAccounts, setRegisteredAccounts] = useState<RegisteredAccount[]>([]);
   const [providers, setProviders] = useState<AdminPartner[]>([]);
   const [services, setServices] = useState<AdminService[]>([]);
   const [selectedLead, setSelectedLead] = useState<DashboardLead | null>(null);
@@ -395,6 +447,14 @@ export default function AdminPage() {
                 cleanfixApi.listServices(),
               ]);
         const items = leadResponse?.items || [];
+        let accountResponse: any[] = [];
+        if (!isViewer) {
+          try {
+            accountResponse = await cleanfixApi.listAccountProfiles();
+          } catch {
+            toast.error(tr("Registered accounts could not be loaded."));
+          }
+        }
         setLeads(
           items.map((lead: any) => ({
             id: lead.id,
@@ -429,6 +489,7 @@ export default function AdminPage() {
             notes: job.notes || "",
           })),
         );
+        setRegisteredAccounts(mapRegisteredAccounts(accountResponse, tr));
         setProviders(
           (partnerResponse?.items || []).map((partner: any) => ({
             id: partner.id,
@@ -464,12 +525,30 @@ export default function AdminPage() {
       } catch {
         setApiMode("error");
         toast.error(
-          "The manager could not load live business data. No demonstration data was shown.",
+          tr(
+            "The manager could not load live business data. No demonstration data was shown.",
+          ),
         );
       }
     };
     load();
   }, [isViewer]);
+
+  useEffect(() => {
+    if (isViewer || section !== "leads") return;
+    let cancelled = false;
+    cleanfixApi
+      .listAccountProfiles()
+      .then((accountResponse) => {
+        if (!cancelled) setRegisteredAccounts(mapRegisteredAccounts(accountResponse, tr));
+      })
+      .catch(() => {
+        if (!cancelled) toast.error(tr("Registered accounts could not be loaded."));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isViewer, section, tr]);
 
   useEffect(() => {
     setNoteDraft(selectedLead?.notes || "");
@@ -492,7 +571,7 @@ export default function AdminPage() {
     try {
       await cleanfixApi.updateLead(lead.id, { status });
     } catch {
-      toast.error("The status was not saved. Please try again.");
+      toast.error(tr("The status was not saved. Please try again."));
       return;
     }
     setLeads((current) =>
@@ -505,7 +584,7 @@ export default function AdminPage() {
         ? { ...current, status, needsReply: false }
         : current,
     );
-    toast.success(`${lead.customerName} moved to ${status}`);
+    toast.success(`${lead.customerName} ${tr("moved to")} ${tr(status)}`);
   };
 
   const saveNotes = async () => {
@@ -519,9 +598,9 @@ export default function AdminPage() {
         ),
       );
       setSelectedLead({ ...selectedLead, notes: noteDraft });
-      toast.success("Notes saved to the database.");
+      toast.success(tr("Notes saved to the database."));
     } catch {
-      toast.error("The notes were not saved.");
+      toast.error(tr("The notes were not saved."));
     } finally {
       setSavingLead(false);
     }
@@ -538,7 +617,7 @@ export default function AdminPage() {
       const job = await cleanfixApi.createJob({
         lead_id: lead.id,
         customer_name: lead.customerName,
-        title: lead.service || "Customer job",
+        title: lead.service || tr("Customer job"),
         phone: lead.phone,
         address: lead.location,
         status: "scheduled",
@@ -562,9 +641,9 @@ export default function AdminPage() {
       if (lead.status !== "scheduled") await changeStatus(lead, "scheduled");
       setSelectedLead(null);
       setSection("jobs");
-      toast.success("A real job was created.");
+      toast.success(tr("A real job was created."));
     } catch {
-      toast.error("The job was not created.");
+      toast.error(tr("The job was not created."));
     } finally {
       setSavingLead(false);
     }
@@ -580,9 +659,9 @@ export default function AdminPage() {
             : item,
         ),
       );
-      toast.success("Follow-up saved as complete.");
+      toast.success(tr("Follow-up saved as complete."));
     } catch {
-      toast.error("The follow-up was not saved.");
+      toast.error(tr("The follow-up was not saved."));
     }
   };
 
@@ -607,9 +686,9 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#F2EDE5] text-[#243538]">
+    <div dir={dir} className="min-h-[100dvh] w-full max-w-full overflow-x-clip bg-[#F2EDE5] text-[#243538]">
       <div className="pointer-events-none fixed inset-0 bg-[url('/assets/brand/v2/golden-ratio-grid.svg')] bg-[length:900px_auto] bg-center opacity-35" />
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-[#B8842F]/45 bg-[#102E38] bg-[url('/assets/brand/v2/navy-embossed-panel.svg')] bg-cover text-white lg:flex lg:flex-col">
+      <aside className={`fixed inset-y-0 z-40 hidden w-64 bg-[#102E38] bg-[url('/assets/brand/v2/navy-embossed-panel.svg')] bg-cover text-white min-[1400px]:flex min-[1400px]:flex-col ${dir === "rtl" ? "right-0 border-l border-[#B8842F]/45" : "left-0 border-r border-[#B8842F]/45"}`}>
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-5">
           <img
             src="/assets/brand/cf-gold-monogram-128.png"
@@ -620,6 +699,7 @@ export default function AdminPage() {
             <p className="font-semibold">CleanFixHarish</p>
             <p className="text-[10px] uppercase tracking-[.18em] text-white/55">
               Manager OS
+
             </p>
           </div>
         </div>
@@ -627,7 +707,7 @@ export default function AdminPage() {
           {navigationGroups.map((group) => (
             <div key={group.label}>
               <p className="px-3 pb-1 text-[9px] font-semibold uppercase tracking-[.18em] text-white/38">
-                {group.label}
+                {tr(group.label)}
               </p>
               <div className="space-y-1">
                 {group.items.map((item) => (
@@ -637,7 +717,7 @@ export default function AdminPage() {
                     className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${section === item.id ? "bg-[#F7F2EA] text-[#173F46] shadow-sm" : "text-white/72 hover:bg-white/8 hover:text-white"}`}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="flex-1 text-left">{item.label}</span>
+                    <span className={`flex-1 ${dir === "rtl" ? "text-right" : "text-left"}`}>{tr(item.label)}</span>
                     {item.id === "leads" && counts.new > 0 && (
                       <span className="rounded-full bg-[#B8905B] px-2 py-0.5 text-[10px] text-white">
                         {counts.new}
@@ -653,32 +733,33 @@ export default function AdminPage() {
           <div className="rounded-2xl bg-white/7 p-3">
             <div className="flex items-center gap-2 text-xs">
               <ShieldCheck className="h-4 w-4 text-[#D8C092]" />
-              <span>{isViewer ? "Read-only viewer" : "Owner workspace"}</span>
+              <span>{tr(isViewer ? "Read-only viewer" : "Owner workspace")}</span>
             </div>
-            <p className="mt-2 truncate text-xs text-white/55">
+            <p className="mt-2 truncate text-xs text-white/55" dir="ltr">
               {user?.email || "CleanFixHarish admin"}
             </p>
           </div>
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 border-b border-[#D8D0C6] bg-[#F7F2EA]/90 backdrop-blur-xl lg:ml-64">
+      <header className={`sticky top-0 z-30 min-w-0 border-b border-[#D8D0C6] bg-[#F7F2EA]/90 backdrop-blur-xl ${dir === "rtl" ? "min-[1400px]:mr-64" : "min-[1400px]:ml-64"}`}>
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="min-[1400px]:hidden"
               onClick={() => setMobileNav(true)}
+              aria-label={tr("Open dashboard navigation")}
             >
               <Menu className="h-5 w-5" />
             </Button>
             <div className="hidden sm:block">
               <p className="text-xs text-[#786F65]">
-                CleanFixHarish operations
+                {tr("CleanFixHarish operations")}
               </p>
               <p className="text-sm font-medium text-[#173F46]">
-                Welcome, {user?.name || "Aviel"}
+                {tr("Welcome")}, {user?.name || "Aviel"}
               </p>
             </div>
           </div>
@@ -691,19 +772,29 @@ export default function AdminPage() {
                 className={`mr-1.5 h-1.5 w-1.5 rounded-full ${apiMode === "live" ? "bg-emerald-600" : apiMode === "error" ? "bg-red-600" : "bg-[#B8905B]"}`}
               />
               {apiMode === "live"
-                ? "Live data"
+                ? tr("Live data")
                 : apiMode === "loading"
-                  ? "Connecting"
-                  : "Connection error"}
+                  ? tr("Connecting")
+                  : tr("Connection error")}
             </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLang(lang === "en" ? "he" : "en")}
+              aria-label={lang === "en" ? "Switch dashboard to Hebrew" : "החלפת לוח הבקרה לאנגלית"}
+              className="min-w-12 border-[#B8842F]/45 bg-[#FBF8F3] font-semibold"
+            >
+              <Globe2 className="h-4 w-4" />
+              <span className="ms-1">{lang === "en" ? "עב" : "EN"}</span>
+            </Button>
             <Button
               variant="ghost"
               size="icon"
-              aria-label={`${counts.replies} items need attention`}
+              aria-label={`${counts.replies} ${tr("items need attention")}`}
               onClick={() =>
                 counts.replies
                   ? setSection("followups")
-                  : toast.success("Nothing needs your attention right now.")
+                  : toast.success(tr("Nothing needs your attention right now."))
               }
             >
               <Bell className="h-4 w-4" />
@@ -715,7 +806,7 @@ export default function AdminPage() {
               variant="ghost"
               size="icon"
               onClick={logout}
-              aria-label="Sign out"
+              aria-label={tr("Sign out")}
             >
               <LogOut className="h-4 w-4" />
             </Button>
@@ -724,22 +815,22 @@ export default function AdminPage() {
       </header>
 
       <Sheet open={mobileNav} onOpenChange={setMobileNav}>
-        <SheetContent side="left" className="bg-[#153E45] p-0 text-white">
-          <SheetHeader className="border-b border-white/10 p-5 text-left">
+        <SheetContent side={dir === "rtl" ? "right" : "left"} className="bg-[#153E45] p-0 text-white">
+          <SheetHeader className={`border-b border-white/10 p-5 ${dir === "rtl" ? "text-right" : "text-left"}`}>
             <SheetTitle className="flex items-center gap-3 text-white">
               <img
                 src="/assets/brand/cf-gold-monogram-128.png"
                 className="h-10 w-10 rounded-xl"
                 alt=""
               />
-              Manager OS
+              {tr("Manager OS")}
             </SheetTitle>
           </SheetHeader>
           <nav className="max-h-[calc(100vh-84px)] space-y-4 overflow-y-auto p-3">
             {navigationGroups.map((group) => (
               <div key={group.label}>
                 <p className="px-3 pb-1 text-[9px] font-semibold uppercase tracking-[.18em] text-white/40">
-                  {group.label}
+                  {tr(group.label)}
                 </p>
                 {group.items.map((item) => (
                   <button
@@ -751,7 +842,7 @@ export default function AdminPage() {
                     className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-3 text-sm ${section === item.id ? "bg-[#F7F2EA] text-[#173F46]" : "text-white/75"}`}
                   >
                     <item.icon className="h-4 w-4 shrink-0" />
-                    <span className="min-w-0 truncate">{item.label}</span>
+                    <span className="min-w-0 truncate">{tr(item.label)}</span>
                   </button>
                 ))}
               </div>
@@ -760,16 +851,16 @@ export default function AdminPage() {
         </SheetContent>
       </Sheet>
 
-      <main className="relative z-10 min-w-0 px-3 py-4 pb-24 sm:p-6 sm:pb-24 lg:ml-64 lg:p-8">
+      <main className={`relative z-10 w-full min-w-0 max-w-full px-3 py-4 pb-24 sm:p-6 sm:pb-24 min-[1400px]:w-auto min-[1400px]:p-8 ${dir === "rtl" ? "min-[1400px]:mr-64" : "min-[1400px]:ml-64"}`}>
         {isViewer && (
           <div className="mb-5 flex items-start gap-3 rounded-2xl border border-[#C8B07C] bg-[#FFF8E8] p-4 text-sm text-[#684F2B]">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
-              <strong>Live read-only tour</strong>
+              <strong>{tr("Live read-only tour")}</strong>
               <p className="mt-1 text-xs leading-5">
-                You can explore the working dashboard and open its tools.
-                Private customer information is hidden, and no button can save,
-                publish, delete, message, restore, or change business data.
+                {tr(
+                  "You can explore the working dashboard and open its tools. Private customer information is hidden, and no button can save, publish, delete, message, restore, or change business data.",
+                )}
               </p>
             </div>
           </div>
@@ -798,6 +889,7 @@ export default function AdminPage() {
         {section === "leads" && (
           <Leads
             leads={filteredLeads}
+            accounts={registeredAccounts}
             query={query}
             setQuery={setQuery}
             statusFilter={statusFilter}
@@ -822,6 +914,8 @@ export default function AdminPage() {
           <PricingWorkspace leads={leads} />
         )}
         {!isViewer && section === "content" && <ContentControl />}
+        {!isViewer && section === "sharing" && <ShareOnboarding />}
+        {!isViewer && section === "video" && <AiVideoStudio />}
         {!isViewer && section === "followups" && (
           <FollowUps
             leads={leads}
@@ -834,8 +928,8 @@ export default function AdminPage() {
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[#D8D0C6] bg-[#FBF8F3]/95 px-1 pb-[max(.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_30px_rgba(16,46,56,.08)] backdrop-blur-xl lg:hidden"
-        aria-label="Primary mobile navigation"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[#D8D0C6] bg-[#FBF8F3]/95 px-1 pb-[max(.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_30px_rgba(16,46,56,.08)] backdrop-blur-xl min-[1400px]:hidden"
+        aria-label={tr("Primary mobile navigation")}
       >
         {mobilePrimaryNavigation.map((item) => (
           <button
@@ -845,7 +939,7 @@ export default function AdminPage() {
             className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-medium ${section === item.id ? "bg-[#E4ECEA] text-[#174E57]" : "text-[#6F6A63]"}`}
           >
             <item.icon className="h-5 w-5" />
-            <span>{item.label}</span>
+            <span>{tr(item.label)}</span>
           </button>
         ))}
         <button
@@ -854,7 +948,7 @@ export default function AdminPage() {
           className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-medium text-[#6F6A63]"
         >
           <Menu className="h-5 w-5" />
-          <span>More</span>
+          <span>{tr("More")}</span>
         </button>
       </nav>
 
@@ -872,19 +966,19 @@ export default function AdminPage() {
               </DialogHeader>
               <div className="space-y-5">
                 <div className="grid grid-cols-1 gap-3 rounded-2xl bg-[#F0EAE1] p-4 text-sm min-[390px]:grid-cols-2">
-                  <Info label="Phone" value={selectedLead.phone} />
-                  <Info label="Service" value={selectedLead.service} />
-                  <Info label="Location" value={selectedLead.location} />
-                  <Info label="Provider" value={selectedLead.provider} />
+                  <Info label="Phone" value={selectedLead.phone} ltr />
+                  <Info label={tr("Service")} value={selectedLead.service} />
+                  <Info label={tr("Location")} value={selectedLead.location} />
+                  <Info label={tr("Provider")} value={selectedLead.provider} />
                 </div>
                 <div>
-                  <Label>Customer message</Label>
+                  <Label>{tr("Customer message")}</Label>
                   <p className="mt-1 break-words rounded-xl border border-[#DDD3C7] bg-white p-3 text-sm">
                     {selectedLead.message}
                   </p>
                 </div>
                 <div>
-                  <Label>Status</Label>
+                  <Label>{tr("Status")}</Label>
                   <Select
                     value={selectedLead.status}
                     onValueChange={(value) =>
@@ -897,14 +991,14 @@ export default function AdminPage() {
                     <SelectContent>
                       {pipeline.map((status) => (
                         <SelectItem key={status} value={status}>
-                          {title(status)}
+                          {tr(status)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Internal notes</Label>
+                  <Label>{tr("Internal notes")}</Label>
                   <Textarea
                     className="mt-1 bg-white"
                     value={noteDraft}
@@ -917,8 +1011,8 @@ export default function AdminPage() {
                     className="bg-[#174E57] hover:bg-[#0E343B]"
                     onClick={() => openWhatsApp(selectedLead)}
                   >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    WhatsApp
+                    <MessageCircle className="me-2 h-4 w-4" />
+                    {tr("WhatsApp")}
                   </Button>
                   <Button
                     variant="outline"
@@ -926,7 +1020,7 @@ export default function AdminPage() {
                     disabled={savingLead}
                   >
                     <Check className="mr-2 h-4 w-4" />
-                    {savingLead ? "Saving…" : "Save notes"}
+                    {savingLead ? `${tr("Saving")}…` : tr("Save notes")}
                   </Button>
                   <Button
                     variant="outline"
@@ -935,8 +1029,8 @@ export default function AdminPage() {
                   >
                     <BriefcaseBusiness className="mr-2 h-4 w-4" />
                     {jobs.some((job) => job.leadId === selectedLead.id)
-                      ? "View job"
-                      : "Create job"}
+                      ? tr("View job")
+                      : tr("Create job")}
                   </Button>
                 </div>
               </div>
@@ -949,6 +1043,7 @@ export default function AdminPage() {
 }
 
 function ViewerLockedSection() {
+  const tr = useAdminTranslation();
   return (
     <div className="flex min-h-[55vh] items-center justify-center">
       <Card className="w-full max-w-lg border-[#D8D0C6] bg-[#FBF8F3] text-center">
@@ -957,15 +1052,15 @@ function ViewerLockedSection() {
             <ShieldCheck className="h-8 w-8 text-[#84673F]" />
           </div>
           <h1 className="mt-5 text-2xl font-semibold text-[#173F46]">
-            Only Aviel can see this
+            {tr("Only Aviel can see this")}
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#756D64]">
-            This area contains private business information or controls. Your
-            Viewer account is working correctly, but this section is safely
-            locked.
+            {tr(
+              "This area contains private business information or controls. Your Viewer account is working correctly, but this section is safely locked.",
+            )}
           </p>
           <Badge className="mt-5 bg-[#DCEADF] text-[#2E6840]">
-            Read-only protection active
+            {tr("Read-only protection active")}
           </Badge>
         </CardContent>
       </Card>
@@ -988,6 +1083,7 @@ function Overview({
   setSelectedLead: (l: DashboardLead) => void;
   openWhatsApp: (l: DashboardLead) => void;
 }) {
+  const tr = useAdminTranslation();
   return (
     <>
       <SectionTitle
@@ -999,8 +1095,8 @@ function Overview({
             className="bg-[#174E57] hover:bg-[#0E343B]"
             onClick={() => setSection("leads")}
           >
-            <Inbox className="mr-2 h-4 w-4" />
-            View leads
+            <Inbox className="me-2 h-4 w-4" />
+            {tr("View leads")}
           </Button>
         }
       />
@@ -1051,10 +1147,10 @@ function Overview({
           <CardHeader className="flex-row items-center justify-between">
             <div>
               <CardTitle className="text-lg text-[#173F46]">
-                Priority inbox
+                {tr("Priority inbox")}
               </CardTitle>
               <p className="mt-1 text-xs text-[#786F65]">
-                New and unanswered customer requests
+                {tr("New and unanswered customer requests")}
               </p>
             </div>
             <Button
@@ -1062,8 +1158,8 @@ function Overview({
               size="sm"
               onClick={() => setSection("leads")}
             >
-              View all
-              <ChevronRight className="ml-1 h-4 w-4" />
+              {tr("View all")}
+              <ChevronRight className="ms-1 h-4 w-4 rtl-flip" />
             </Button>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -1084,7 +1180,7 @@ function Overview({
                         {lead.customerName}
                       </span>
                       <Badge className={statusStyle[lead.status]}>
-                        {lead.status}
+                        {tr(lead.status)}
                       </Badge>
                     </div>
                     <p className="mt-1 text-xs text-[#786F65]">
@@ -1096,8 +1192,8 @@ function Overview({
                     size="sm"
                     onClick={() => openWhatsApp(lead)}
                   >
-                    <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
-                    Reply
+                    <MessageCircle className="me-1.5 h-3.5 w-3.5" />
+                    {tr("Reply")}
                   </Button>
                 </div>
               ))}
@@ -1105,7 +1201,7 @@ function Overview({
         </Card>
         <Card className="border-[#D8D0C6] bg-[#173F46] text-white">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Quick actions</CardTitle>
+            <CardTitle className="text-lg text-white">{tr("Quick actions")}</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-2">
             {[
@@ -1117,10 +1213,10 @@ function Overview({
               <button
                 key={a.l}
                 onClick={() => setSection(a.s as Section)}
-                className="rounded-2xl border border-white/10 bg-white/7 p-4 text-left transition hover:bg-white/12"
+                className="rounded-2xl border border-white/10 bg-white/7 p-4 text-start transition hover:bg-white/12"
               >
                 <a.i className="mb-5 h-5 w-5 text-[#D8C092]" />
-                <span className="block text-sm">{a.l}</span>
+                <span className="block text-sm">{tr(a.l)}</span>
               </button>
             ))}
           </CardContent>
@@ -1140,7 +1236,7 @@ function Overview({
               <button
                 key={lead.id}
                 onClick={() => setSelectedLead(lead)}
-                className="flex w-full items-start gap-3 border-b border-[#E5DDD3] py-3 text-left last:border-0"
+                className="flex w-full items-start gap-3 border-b border-[#E5DDD3] py-3 text-start last:border-0"
               >
                 <div className="mt-1 rounded-xl bg-[#DFE8DA] p-2 text-[#466049]">
                   <CalendarClock className="h-4 w-4" />
@@ -1154,7 +1250,7 @@ function Overview({
                   </p>
                 </div>
                 <Badge className={statusStyle[lead.status]}>
-                  {lead.status}
+                  {tr(lead.status)}
                 </Badge>
               </button>
             ))}
@@ -1193,12 +1289,14 @@ function Overview({
 
 function Leads({
   leads,
+  accounts,
   query,
   setQuery,
   statusFilter,
   setStatusFilter,
   setSelectedLead,
 }: any) {
+  const tr = useAdminTranslation();
   return (
     <>
       <SectionTitle
@@ -1206,16 +1304,74 @@ function Leads({
         title="Leads CRM"
         description="Search, triage and move every real inquiry toward a clear next action."
       />
+      <Card className="mb-5 border-[#BFCFCB] bg-[#E8F0ED]">
+        <CardHeader>
+          <CardTitle className="text-xl text-[#173F46]">{tr("Registered accounts")}</CardTitle>
+          <p className="text-sm text-[#66736E]">
+            {tr("Account registrations appear here immediately. A service message appears in the lead pipeline only after the customer sends a request.")}
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-3 lg:grid-cols-2">
+          {(accounts as RegisteredAccount[]).map((account) => (
+            <div key={account.userId || account.email || String(account.id)} className="min-w-0 rounded-2xl border border-[#D2DDD9] bg-white p-4">
+              <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-[#173F46]">{account.displayName}</p>
+                    <Badge variant="outline" className="bg-[#F7F2EA]">
+                      {tr(account.accountType === "business" ? "Service provider account" : "Customer account")}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 break-all text-xs text-[#786F65]" dir="ltr">{account.email || account.vipNumber}</p>
+                  {account.phone ? (
+                    <p className="mt-1 text-xs text-[#786F65]" dir="ltr">{account.phone}</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-[#8A8177]">{tr("Phone will appear after account setup.")}</p>
+                  )}
+                  {account.vipNumber && (
+                    <p className="mt-1 text-xs text-[#786F65]" dir="ltr">{account.vipNumber}</p>
+                  )}
+                  {account.accountType === "business" && (
+                    <p className="mt-2 text-sm text-[#405155]">{account.businessName} · {account.businessCategory || tr("Category pending")}</p>
+                  )}
+                </div>
+                <div className="flex shrink-0 flex-row items-center gap-2 min-[420px]:flex-col min-[420px]:items-end">
+                  <Badge className={account.applicationStatus === "pending" || account.applicationStatus === "setup_incomplete" ? "bg-[#EEE4D4] text-[#765D38]" : "bg-[#DCEADF] text-[#2E6840]"}>
+                    {tr(account.applicationStatus)}
+                  </Badge>
+                  <span className="text-[11px] text-[#8A8177]">{account.createdAt}</span>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {account.phone && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={`https://wa.me/${account.phone.replace(/\D/g, "").replace(/^0/, "972")}`} target="_blank" rel="noreferrer">
+                      <MessageCircle className="me-1.5 h-3.5 w-3.5" />{tr("Open WhatsApp")}
+                    </a>
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => setQuery(account.displayName)}>
+                  <Search className="me-1.5 h-3.5 w-3.5" />{tr("Find service requests")}
+                </Button>
+              </div>
+            </div>
+          ))}
+          {!accounts.length && (
+            <div className="py-6 text-center text-sm text-[#786F65] lg:col-span-2">{tr("No registered customer or provider accounts yet.")}</div>
+          )}
+        </CardContent>
+      </Card>
       <Card className="border-[#D8D0C6] bg-[#FBF8F3]">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 md:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-[#8A8177]" />
+              <Search className="absolute start-3 top-3 h-4 w-4 text-[#8A8177]" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search name, phone, service or provider"
-                className="bg-white pl-9"
+                placeholder={tr("Search name, phone, service or provider")}
+                className="bg-white ps-9"
+                dir="auto"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -1223,10 +1379,10 @@ function Leads({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="all">{tr("All statuses")}</SelectItem>
                 {pipeline.map((status) => (
                   <SelectItem key={status} value={status}>
-                    {title(status)}
+                    {tr(status)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1236,11 +1392,11 @@ function Leads({
       </Card>
       <div className="mt-4 overflow-hidden rounded-2xl border border-[#D8D0C6] bg-[#FBF8F3]">
         <div className="hidden grid-cols-[1.2fr_1fr_.8fr_.8fr_1fr_38px] gap-4 border-b bg-[#ECE5DB] px-4 py-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#786F65] md:grid">
-          <span>Customer</span>
-          <span>Service</span>
-          <span>Source</span>
-          <span>Status</span>
-          <span>Provider</span>
+          <span>{tr("Customer")}</span>
+          <span>{tr("Service")}</span>
+          <span>{tr("Source")}</span>
+          <span>{tr("Status")}</span>
+          <span>{tr("Provider")}</span>
           <span />
         </div>
         {leads.map((lead: DashboardLead) => (
@@ -1255,7 +1411,7 @@ function Leads({
                 {lead.needsReply && (
                   <span
                     className="h-2 w-2 rounded-full bg-[#B8905B]"
-                    title="Needs reply"
+                    title={tr("Needs reply")}
                   />
                 )}
               </div>
@@ -1275,7 +1431,7 @@ function Leads({
               {lead.date}
             </p>
             <Badge className={`w-fit ${statusStyle[lead.status]}`}>
-              {lead.status}
+              {tr(lead.status)}
             </Badge>
             <p className="text-xs">{lead.provider}</p>
             <MoreHorizontal className="hidden h-4 w-4 md:block" />
@@ -1283,7 +1439,7 @@ function Leads({
         ))}
         {!leads.length && (
           <div className="p-12 text-center text-sm text-[#786F65]">
-            No real leads are stored yet.
+            {tr("No real leads are stored yet.")}
           </div>
         )}
       </div>
@@ -1298,6 +1454,7 @@ function WhatsAppOps({
   leads: DashboardLead[];
   openWhatsApp: (l: DashboardLead, m?: string) => void;
 }) {
+  const tr = useAdminTranslation();
   const pending = leads.filter((l) => l.needsReply);
   return (
     <>
@@ -1308,8 +1465,8 @@ function WhatsAppOps({
       />
       <div className="grid gap-6 xl:grid-cols-[1fr_1.62fr]">
         <Panel
-          title={`${pending.length} replies needed`}
-          subtitle="Oldest unanswered inquiries should be handled first"
+          title={`${pending.length} ${tr("replies needed")}`}
+          subtitle={tr("Oldest unanswered inquiries should be handled first")}
         >
           {pending.map((lead) => (
             <div
@@ -1330,7 +1487,7 @@ function WhatsAppOps({
                 className="bg-[#174E57]"
                 onClick={() => openWhatsApp(lead)}
               >
-                Reply
+                {tr("Reply")}
               </Button>
             </div>
           ))}
@@ -1346,9 +1503,9 @@ function WhatsAppOps({
             >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-[#173F46]">
-                  {template.title}
+                  {tr(template.title)}
                 </p>
-                <Badge variant="outline">English</Badge>
+                <Badge variant="outline">{tr("English")}</Badge>
               </div>
               <p className="mt-2 text-xs leading-5 text-[#786F65]">
                 {template.body}
@@ -1360,11 +1517,11 @@ function WhatsAppOps({
                   onClick={() =>
                     navigator.clipboard
                       ?.writeText(template.body)
-                      .then(() => toast.success("Template copied"))
+                      .then(() => toast.success(tr("Template copied")))
                   }
                 >
-                  <FileText className="mr-1.5 h-3.5 w-3.5" />
-                  Copy
+                  <FileText className="me-1.5 h-3.5 w-3.5" />
+                  {tr("Copy")}
                 </Button>
                 {pending[0] && (
                   <Button
@@ -1372,8 +1529,8 @@ function WhatsAppOps({
                     className="bg-[#174E57]"
                     onClick={() => openWhatsApp(pending[0], template.body)}
                   >
-                    <Send className="mr-1.5 h-3.5 w-3.5" />
-                    Use for next lead
+                    <Send className="me-1.5 h-3.5 w-3.5" />
+                    {tr("Use for next lead")}
                   </Button>
                 )}
               </div>
@@ -1392,6 +1549,7 @@ function Jobs({
   jobs: DashboardJob[];
   setJobs: React.Dispatch<React.SetStateAction<DashboardJob[]>>;
 }) {
+  const tr = useAdminTranslation();
   const changeJobStatus = async (job: DashboardJob, status: string) => {
     try {
       await cleanfixApi.updateJob(job.id, { status });
@@ -1400,9 +1558,9 @@ function Jobs({
           item.id === job.id ? { ...item, status } : item,
         ),
       );
-      toast.success(`${job.title} moved to ${status}`);
+      toast.success(`${job.title} ${tr("moved to")} ${tr(status)}`);
     } catch {
-      toast.error("The job status was not saved.");
+      toast.error(tr("The job status was not saved."));
     }
   };
   return (
@@ -1418,7 +1576,8 @@ function Jobs({
             <CardContent className="grid gap-4 p-5 md:grid-cols-[1.1fr_1fr_.8fr] md:items-center">
               <div>
                 <p className="text-xs font-semibold text-[#A47D4A]">
-                  Job #{job.id}
+                  {tr("Job #")}
+                  {job.id}
                 </p>
                 <p className="mt-1 font-medium text-[#173F46]">
                   {job.customerName}
@@ -1426,14 +1585,16 @@ function Jobs({
                 <p className="text-sm text-[#786F65]">{job.title}</p>
               </div>
               <div>
-                <p className="text-xs text-[#786F65]">Location and schedule</p>
+                <p className="text-xs text-[#786F65]">
+                  {tr("Location and schedule")}
+                </p>
                 <p className="mt-1 text-sm font-medium">
-                  {job.address || "Address not added"}
+                  {job.address || tr("Address not added")}
                 </p>
                 <p className="text-xs text-[#786F65]">
                   {job.scheduledFor
                     ? new Date(job.scheduledFor).toLocaleString("en-IL")
-                    : "Schedule not added"}
+                    : tr("Schedule not added")}
                 </p>
               </div>
               <Select
@@ -1447,7 +1608,7 @@ function Jobs({
                   {["scheduled", "in progress", "completed", "cancelled"].map(
                     (status) => (
                       <SelectItem key={status} value={status}>
-                        {title(status)}
+                        {tr(status)}
                       </SelectItem>
                     ),
                   )}
@@ -1490,6 +1651,7 @@ function BusinessAssistant({
   providers: AdminPartner[];
   services: AdminService[];
 }) {
+  const tr = useAdminTranslation();
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -1576,7 +1738,9 @@ function BusinessAssistant({
       ]);
     } catch {
       toast.error(
-        "The AI Assistant could not connect. Check the Railway AI settings and try again.",
+        tr(
+          "The AI Assistant could not connect. Check the Railway AI settings and try again.",
+        ),
       );
     } finally {
       setThinking(false);
@@ -1599,10 +1763,10 @@ function BusinessAssistant({
               </div>
               <div>
                 <CardTitle className="text-base text-white">
-                  Ask your business assistant
+                  {tr("Ask your business assistant")}
                 </CardTitle>
                 <p className="mt-1 text-xs text-white/65">
-                  Advice and drafts only · You remain in control
+                  {tr("Advice and drafts only · You remain in control")}
                 </p>
               </div>
             </div>
@@ -1615,11 +1779,12 @@ function BusinessAssistant({
                     <Bot className="h-7 w-7 text-[#174E57]" />
                   </div>
                   <h2 className="mt-4 text-lg font-semibold text-[#173F46]">
-                    How can I help you today?
+                    {tr("How can I help you today?")}
                   </h2>
                   <p className="mt-2 text-sm text-[#786F65]">
-                    Choose a starting question or write your own. English and
-                    Hebrew are both supported.
+                    {tr(
+                      "Choose a starting question or write your own. English and Hebrew are both supported.",
+                    )}
                   </p>
                 </div>
               )}
@@ -1637,7 +1802,7 @@ function BusinessAssistant({
                         onClick={() =>
                           navigator.clipboard
                             ?.writeText(message.content)
-                            .then(() => toast.success("Answer copied"))
+                            .then(() => toast.success(tr("Answer copied")))
                         }
                         className="mt-3 flex items-center gap-1.5 text-xs text-[#786F65] hover:text-[#174E57]"
                       >
@@ -1652,7 +1817,7 @@ function BusinessAssistant({
                 <div className="flex justify-start">
                   <div className="flex items-center gap-2 rounded-2xl border border-[#E0D7CC] bg-white px-4 py-3 text-sm text-[#786F65]">
                     <Sparkles className="h-4 w-4 animate-pulse text-[#A47D4A]" />
-                    Thinking about your business…
+                    {tr("Thinking about your business…")}
                   </div>
                 </div>
               )}
@@ -1668,7 +1833,9 @@ function BusinessAssistant({
                       ask();
                     }
                   }}
-                  placeholder="Ask about customers, pricing, marketing, the website, or your next step…"
+                  placeholder={tr(
+                    "Ask about customers, pricing, marketing, the website, or your next step…",
+                  )}
                   rows={2}
                   className="resize-none bg-[#FBF8F3]"
                 />
@@ -1678,12 +1845,13 @@ function BusinessAssistant({
                   className="h-auto bg-[#174E57] px-5 hover:bg-[#0E343B]"
                 >
                   <Send className="h-4 w-4" />
-                  <span className="sr-only">Send</span>
+                  <span className="sr-only">{tr("Send")}</span>
                 </Button>
               </div>
               <p className="mt-2 text-[11px] text-[#8A8177]">
-                Press Enter to send · Shift + Enter for a new line · Check
-                prices, dates, and promises before using a draft.
+                {tr(
+                  "Press Enter to send · Shift + Enter for a new line · Check prices, dates, and promises before using a draft.",
+                )}
               </p>
             </div>
           </CardContent>
@@ -1695,10 +1863,10 @@ function BusinessAssistant({
                 key={starter}
                 onClick={() => ask(starter)}
                 disabled={thinking}
-                className="flex w-full items-center gap-3 border-b border-[#E5DDD3] py-3 text-left text-sm last:border-0 hover:text-[#174E57]"
+                className="flex w-full items-center gap-3 border-b border-[#E5DDD3] py-3 text-start text-sm last:border-0 hover:text-[#174E57]"
               >
                 <Sparkles className="h-4 w-4 shrink-0 text-[#A47D4A]" />
-                <span className="flex-1">{starter}</span>
+                <span className="flex-1">{tr(starter)}</span>
                 <ChevronRight className="h-4 w-4 text-[#A49A8F]" />
               </button>
             ))}
@@ -1710,16 +1878,18 @@ function BusinessAssistant({
             <div className="space-y-3 text-sm">
               <div className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-                <span>Read the business summary shown in Manager OS</span>
+                <span>{tr("Read the business summary shown in Manager OS")}</span>
               </div>
               <div className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-                <span>Explain, plan, recommend, and prepare drafts</span>
+                <span>{tr("Explain, plan, recommend, and prepare drafts")}</span>
               </div>
               <div className="flex gap-2">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#A47D4A]" />
                 <span>
-                  Cannot publish, message, charge, delete, or change records
+                  {tr(
+                    "Cannot publish, message, charge, delete, or change records",
+                  )}
                 </span>
               </div>
             </div>
@@ -1737,6 +1907,7 @@ function Providers({
   providers: AdminPartner[];
   setProviders: React.Dispatch<React.SetStateAction<AdminPartner[]>>;
 }) {
+  const tr = useAdminTranslation();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({
     name: "",
@@ -1758,15 +1929,15 @@ function Providers({
         ),
       );
       toast.success(
-        `${provider.name} is now ${provider.isActive ? "inactive" : "active"}.`,
+        `${provider.name} ${tr("is now")} ${tr(provider.isActive ? "inactive" : "active")}.`,
       );
     } catch {
-      toast.error("The provider change was not saved.");
+      toast.error(tr("The provider change was not saved."));
     }
   };
   const add = async () => {
     if (!draft.name.trim()) {
-      toast.error("Please enter the provider name.");
+      toast.error(tr("Please enter the provider name."));
       return;
     }
     try {
@@ -1799,9 +1970,9 @@ function Providers({
         area: "Harish",
         description: "",
       });
-      toast.success("Provider saved to the database.");
+      toast.success(tr("Provider saved to the database."));
     } catch {
-      toast.error("The provider was not created.");
+      toast.error(tr("The provider was not created."));
     }
   };
   return (
@@ -1812,8 +1983,8 @@ function Providers({
         description="Add providers and control who is active in your real directory."
         action={
           <Button className="bg-[#174E57]" onClick={() => setAdding(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add provider
+            <Plus className="me-2 h-4 w-4" />
+            {tr("Add provider")}
           </Button>
         }
       />
@@ -1840,7 +2011,7 @@ function Providers({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#786F65]">Active</span>
+                  <span className="text-xs text-[#786F65]">{tr("Active")}</span>
                   <Switch
                     checked={provider.isActive}
                     onCheckedChange={() => toggle(provider)}
@@ -1877,7 +2048,7 @@ function Providers({
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="bg-[#FBF8F3]">
           <DialogHeader>
-            <DialogTitle>Add a provider</DialogTitle>
+            <DialogTitle>{tr("Add a provider")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <FieldInput
@@ -1895,6 +2066,7 @@ function Providers({
                 label="Phone"
                 value={draft.phone}
                 onChange={(phone) => setDraft({ ...draft, phone })}
+                dir="ltr"
               />
               <FieldInput
                 label="Area"
@@ -1909,7 +2081,7 @@ function Providers({
               large
             />
             <Button className="w-full bg-[#174E57]" onClick={add}>
-              Save provider
+              {tr("Save provider")}
             </Button>
           </div>
         </DialogContent>
@@ -1925,6 +2097,7 @@ function Services({
   items: AdminService[];
   setItems: React.Dispatch<React.SetStateAction<AdminService[]>>;
 }) {
+  const tr = useAdminTranslation();
   const [editing, setEditing] = useState<AdminService | null>(null);
   const toggle = async (service: AdminService, active: boolean) => {
     setItems((current) =>
@@ -1934,14 +2107,14 @@ function Services({
     );
     try {
       await cleanfixApi.updateService(service.id, { is_active: active });
-      toast.success(`${service.name} ${active ? "published" : "hidden"}`);
+      toast.success(`${service.name} ${tr(active ? "published" : "hidden")}`);
     } catch {
       setItems((current) =>
         current.map((item) =>
           item.id === service.id ? { ...item, active: service.active } : item,
         ),
       );
-      toast.error("The service change was not saved.");
+      toast.error(tr("The service change was not saved."));
     }
   };
   const save = async () => {
@@ -1971,9 +2144,9 @@ function Services({
         ),
       );
       setEditing(null);
-      toast.success("Service and price published.");
+      toast.success(tr("Service and price published."));
     } catch {
-      toast.error("The service was not saved.");
+      toast.error(tr("The service was not saved."));
     }
   };
   return (
@@ -2003,11 +2176,12 @@ function Services({
                     <Badge variant="outline">{service.category}</Badge>
                   </div>
                   <p className="mt-2 text-sm text-[#625B53]">
-                    {service.description || "No public description is stored."}
+                    {service.description || tr("No public description is stored.")}
                   </p>
                   {service.priceFrom && (
                     <p className="mt-2 font-medium text-[#A47D4A]">
-                      From ₪{service.priceFrom}
+                      {tr("From ₪")}
+                      {service.priceFrom}
                       {service.priceUnit ? ` ${service.priceUnit}` : ""}
                     </p>
                   )}
@@ -2017,11 +2191,11 @@ function Services({
                   size="sm"
                   onClick={() => setEditing({ ...service })}
                 >
-                  <PencilLine className="mr-2 h-4 w-4" />
-                  Edit
+                  <PencilLine className="me-2 h-4 w-4" />
+                  {tr("Edit")}
                 </Button>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-[#786F65]">Public</span>
+                  <span className="text-xs text-[#786F65]">{tr("Public")}</span>
                   <Switch
                     checked={service.active}
                     onCheckedChange={(active) => toggle(service, active)}
@@ -2047,18 +2221,20 @@ function Services({
           {editing && (
             <>
               <DialogHeader>
-                <DialogTitle>Edit service and price</DialogTitle>
+                <DialogTitle>{tr("Edit service and price")}</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 sm:grid-cols-2">
                 <FieldInput
                   label="English name"
                   value={editing.name}
                   onChange={(name) => setEditing({ ...editing, name })}
+                  dir="ltr"
                 />
                 <FieldInput
                   label="Hebrew name"
                   value={editing.nameHe}
                   onChange={(nameHe) => setEditing({ ...editing, nameHe })}
+                  dir="rtl"
                 />
                 <FieldArea
                   label="English description"
@@ -2083,6 +2259,7 @@ function Services({
                   onChange={(priceFrom) =>
                     setEditing({ ...editing, priceFrom })
                   }
+                  dir="ltr"
                 />
                 <FieldInput
                   label="Price unit (example: per visit)"
@@ -2104,15 +2281,17 @@ function Services({
                   onChange={(priceNoteHe) =>
                     setEditing({ ...editing, priceNoteHe })
                   }
+                  dir="rtl"
                 />
               </div>
               <FieldInput
                 label="Image URL (or choose an uploaded image in Website Studio)"
                 value={editing.imageUrl}
                 onChange={(imageUrl) => setEditing({ ...editing, imageUrl })}
+                dir="ltr"
               />
               <Button onClick={save} className="w-full bg-[#174E57]">
-                Publish service
+                {tr("Publish service")}
               </Button>
             </>
           )}
@@ -2165,6 +2344,7 @@ const marketBenchmarks = [
 ];
 
 function MarketPriceComparison({ items }: { items: AdminService[] }) {
+  const tr = useAdminTranslation();
   const comparisons = marketBenchmarks.map((benchmark) => {
     const service = items.find((item) =>
       benchmark.match.some((term) =>
@@ -2205,18 +2385,18 @@ function MarketPriceComparison({ items }: { items: AdminService[] }) {
               <div className="flex flex-col gap-3 min-[390px]:flex-row min-[390px]:items-start min-[390px]:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[#173F46]">
-                    {benchmark.label}
+                    {tr(benchmark.label)}
                   </p>
                   <p className="mt-1 text-xs leading-5 text-[#786F65]">
-                    {benchmark.unit}
+                    {tr(benchmark.unit)}
                   </p>
                 </div>
-                <Badge className={`w-fit shrink-0 ${tone}`}>{position}</Badge>
+                <Badge className={`w-fit shrink-0 ${tone}`}>{tr(position)}</Badge>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-xl bg-white p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#8A8177]">
-                    CleanFix from
+                    {tr("CleanFix from")}
                   </p>
                   <p className="mt-1 text-xl font-semibold text-[#173F46]">
                     {price == null || Number.isNaN(price)
@@ -2224,19 +2404,19 @@ function MarketPriceComparison({ items }: { items: AdminService[] }) {
                       : `₪${price.toLocaleString()}`}
                   </p>
                   <p className="mt-1 truncate text-[10px] text-[#8A8177]">
-                    {service?.name || "Not matched"}
+                    {service?.name || tr("Not matched")}
                   </p>
                 </div>
                 <div className="rounded-xl bg-[#F0EAE1] p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#8A8177]">
-                    Israel range
+                    {tr("Israel range")}
                   </p>
                   <p className="mt-1 text-xl font-semibold text-[#A47D4A]">
                     ₪{benchmark.low.toLocaleString()}–
                     {benchmark.high.toLocaleString()}
                   </p>
                   <p className="mt-1 text-[10px] text-[#8A8177]">
-                    VAT included by source
+                    {tr("VAT included by source")}
                   </p>
                 </div>
               </div>
@@ -2259,10 +2439,9 @@ function MarketPriceComparison({ items }: { items: AdminService[] }) {
         ))}
       </div>
       <p className="mt-3 text-xs leading-5 text-[#786F65]">
-        Market ranges are external references, not official government tariffs.
-        Confirm scope, VAT, materials, travel, urgency, apartment size, and
-        service quality before setting a customer price. Update the checked date
-        whenever the source is reviewed.
+        {tr(
+          "Market ranges are external references, not official government tariffs. Confirm scope, VAT, materials, travel, urgency, apartment size, and service quality before setting a customer price. Update the checked date whenever the source is reviewed.",
+        )}
       </p>
     </div>
   );
@@ -2329,6 +2508,7 @@ type LocalPricingBenchmark = {
 };
 
 function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
+  const tr = useAdminTranslation();
   const [references, setReferences] = useState<PricingReference[]>([]);
   const [estimates, setEstimates] = useState<PricingEstimate[]>([]);
   const [quotes, setQuotes] = useState<ServiceQuote[]>([]);
@@ -2380,7 +2560,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
       setLocalEvidence(l.items || []);
       setBenchmarks(b.items || []);
     } catch {
-      toast.error("Pricing workspace could not load.");
+      toast.error(tr("Pricing workspace could not load."));
     }
   };
   useEffect(() => {
@@ -2389,7 +2569,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
   const reference = references.find((item) => String(item.id) === selected);
   const create = async () => {
     if (!reference || description.trim().length < 10) {
-      toast.error("Choose verified evidence and describe the job clearly.");
+      toast.error(tr("Choose verified evidence and describe the job clearly."));
       return;
     }
     try {
@@ -2402,20 +2582,20 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
         customer_max: customerMax ? Number(customerMax) : null,
         provider_budget: providerBudget ? Number(providerBudget) : null,
       });
-      toast.success("Draft saved. It has not been sent to the customer.");
+      toast.success(tr("Draft saved. It has not been sent to the customer."));
       setDescription("");
       await load();
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || "Draft was not saved.");
+      toast.error(error?.response?.data?.detail || tr("Draft was not saved."));
     }
   };
   const approve = async (id: number) => {
     try {
       await cleanfixApi.approvePriceEstimate(id);
-      toast.success("Owner approval recorded. Nothing was sent automatically.");
+      toast.success(tr("Owner approval recorded. Nothing was sent automatically."));
       await load();
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || "Approval failed.");
+      toast.error(error?.response?.data?.detail || tr("Approval failed."));
     }
   };
   const chooseEstimate = (id: string) => {
@@ -2452,7 +2632,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
           : null,
         expires_at: new Date(quoteDraft.expires_at).toISOString(),
       });
-      toast.success("Private quote saved as a draft. Nothing was sent.");
+      toast.success(tr("Private quote saved as a draft. Nothing was sent."));
       setQuoteDraft((current) => ({
         ...current,
         estimate_id: "",
@@ -2463,7 +2643,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
       }));
       await load();
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || "Quote was not saved.");
+      toast.error(error?.response?.data?.detail || tr("Quote was not saved."));
     }
   };
   const publishQuote = async (id: number) => {
@@ -2484,7 +2664,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
       await load();
     } catch (error: any) {
       toast.error(
-        error?.response?.data?.detail || "Quote could not be published.",
+        error?.response?.data?.detail || tr("Quote could not be published."),
       );
     }
   };
@@ -2493,7 +2673,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
       local.sub_service.trim().length < 2 ||
       local.scope_notes.trim().length < 10
     ) {
-      toast.error("Add the service and exact scope.");
+      toast.error(tr("Add the service and exact scope."));
       return;
     }
     try {
@@ -2506,7 +2686,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
           ? Number(local.provider_amount)
           : null,
       });
-      toast.success("Local evidence saved for owner review.");
+      toast.success(tr("Local evidence saved for owner review."));
       setLocal({
         ...local,
         sub_service: "",
@@ -2516,16 +2696,16 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
       });
       await load();
     } catch {
-      toast.error("Local evidence was not saved.");
+      toast.error(tr("Local evidence was not saved."));
     }
   };
   const approveEvidence = async (id: number) => {
     try {
       await cleanfixApi.approveLocalPriceEvidence(id);
-      toast.success("Local evidence approved and counted.");
+      toast.success(tr("Local evidence approved and counted."));
       await load();
     } catch {
-      toast.error("Local evidence approval failed.");
+      toast.error(tr("Local evidence approval failed."));
     }
   };
   return (
@@ -2540,10 +2720,10 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
           title="1. Create a draft estimate"
           subtitle="Only green Verified rows can be used"
         >
-          <Label>Market reference</Label>
+          <Label>{tr("Market reference")}</Label>
           <Select value={selected} onValueChange={setSelected}>
             <SelectTrigger className="mt-2 bg-white">
-              <SelectValue placeholder="Choose a verified service" />
+              <SelectValue placeholder={tr("Choose a verified service")} />
             </SelectTrigger>
             <SelectContent>
               {references
@@ -2557,7 +2737,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
           </Select>
           {reference && (
             <div className="mt-3 rounded-xl bg-[#E4ECEA] p-3 text-xs text-[#31585E]">
-              <strong>{reference.source.publisher}</strong> · National reference
+              <strong>{reference.source.publisher}</strong> · {tr("National reference")}
               · {reference.vat_status}
               <br />
               <a
@@ -2566,19 +2746,19 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                 target="_blank"
                 rel="noreferrer"
               >
-                Open source
+                {tr("Open source")}
               </a>
             </div>
           )}
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
-              <Label>Customer</Label>
+              <Label>{tr("Customer")}</Label>
               <Select value={leadId} onValueChange={setLeadId}>
                 <SelectTrigger className="mt-1 bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No customer selected</SelectItem>
+                  <SelectItem value="none">{tr("No customer selected")}</SelectItem>
                   {leads.map((l) => (
                     <SelectItem key={l.id} value={String(l.id)}>
                       {l.customerName}
@@ -2606,23 +2786,26 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
               label="Customer minimum ₪"
               value={customerMin}
               onChange={setCustomerMin}
+              dir="ltr"
             />
             <FieldInput
               label="Customer maximum ₪"
               value={customerMax}
               onChange={setCustomerMax}
+              dir="ltr"
             />
             <FieldInput
               label="Provider budget ₪"
               value={providerBudget}
               onChange={setProviderBudget}
+              dir="ltr"
             />
           </div>
           <Button onClick={create} className="mt-4 w-full bg-[#174E57]">
-            Save draft for my review
+            {tr("Save draft for my review")}
           </Button>
           <p className="mt-2 text-xs text-[#786F65]">
-            Non-binding. Final scope and price require Aviel’s approval.
+            {tr("Non-binding. Final scope and price require Aviel’s approval.")}
           </p>
         </Panel>
         <Panel
@@ -2649,7 +2832,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                       : "bg-[#EEE4D4] text-[#765D38]"
                   }
                 >
-                  {e.status}
+                  {tr(e.status)}
                 </Badge>
               </div>
               {e.status === "draft" && (
@@ -2659,7 +2842,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                   onClick={() => approve(e.id)}
                 >
                   <Check className="mr-1 h-4 w-4" />
-                  Approve
+                  {tr("Approve")}
                 </Button>
               )}
             </div>
@@ -2670,10 +2853,10 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
           title="3. Prepare the customer quote"
           subtitle="A private link is created only after you publish"
         >
-          <Label>Approved estimate</Label>
+          <Label>{tr("Approved estimate")}</Label>
           <Select value={quoteDraft.estimate_id} onValueChange={chooseEstimate}>
             <SelectTrigger className="mt-2 bg-white">
-              <SelectValue placeholder="Choose an approved estimate" />
+              <SelectValue placeholder={tr("Choose an approved estimate")} />
             </SelectTrigger>
             <SelectContent>
               {estimates
@@ -2696,6 +2879,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
               onChange={(v) =>
                 setQuoteDraft({ ...quoteDraft, quoted_total: v })
               }
+              dir="ltr"
             />
             <FieldInput
               label="Deposit required ₪"
@@ -2703,6 +2887,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
               onChange={(v) =>
                 setQuoteDraft({ ...quoteDraft, deposit_required: v })
               }
+              dir="ltr"
             />
           </div>
           <div className="mt-3">
@@ -2729,7 +2914,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
             />
           </div>
           <Button onClick={createQuote} className="mt-4 w-full bg-[#174E57]">
-            Save private quote draft
+            {tr("Save private quote draft")}
           </Button>
           <div className="mt-5 space-y-3">
             {quotes.map((q) => (
@@ -2745,7 +2930,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                     </p>
                   </div>
                   <Badge className="bg-[#E4ECEA] text-[#31585E]">
-                    {q.status}
+                    {tr(q.status)}
                   </Badge>
                 </div>
                 {q.status === "draft" && (
@@ -2754,12 +2939,12 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                     className="mt-3 bg-[#174E57]"
                     onClick={() => publishQuote(q.id)}
                   >
-                    Create private customer link
+                    {tr("Create private customer link")}
                   </Button>
                 )}
                 {publishedLinks[q.id] && (
                   <div className="mt-3 rounded-xl bg-[#F0EAE1] p-3">
-                    <p className="break-all text-xs">{publishedLinks[q.id]}</p>
+                    <p className="break-all text-xs" dir="ltr">{publishedLinks[q.id]}</p>
                     <Button
                       size="sm"
                       variant="outline"
@@ -2768,11 +2953,10 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                         navigator.clipboard?.writeText(publishedLinks[q.id])
                       }
                     >
-                      Copy link again
+                      {tr("Copy link again")}
                     </Button>
                     <p className="mt-2 text-[10px] text-[#786F65]">
-                      For security, this link is available only in this browser
-                      session.
+                      {tr("For security, this link is available only in this browser session.")}
                     </p>
                   </div>
                 )}
@@ -2786,7 +2970,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label>Evidence type</Label>
+              <Label>{tr("Evidence type")}</Label>
               <Select
                 value={local.evidence_kind}
                 onValueChange={(v) => setLocal({ ...local, evidence_kind: v })}
@@ -2795,8 +2979,8 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="provider_quote">Provider quote</SelectItem>
-                  <SelectItem value="completed_job">Completed job</SelectItem>
+                  <SelectItem value="provider_quote">{tr("Provider quote")}</SelectItem>
+                  <SelectItem value="completed_job">{tr("Completed job")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2819,11 +3003,13 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
               label="Customer price ₪"
               value={local.customer_price}
               onChange={(v) => setLocal({ ...local, customer_price: v })}
+              dir="ltr"
             />
             <FieldInput
               label="Provider amount ₪"
               value={local.provider_amount}
               onChange={(v) => setLocal({ ...local, provider_amount: v })}
+              dir="ltr"
             />
           </div>
           <div className="mt-3">
@@ -2839,7 +3025,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
             className="mt-3 w-full"
             onClick={addEvidence}
           >
-            Save as pending evidence
+            {tr("Save as pending evidence")}
           </Button>
         </Panel>
         <Panel
@@ -2869,7 +3055,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                       : "bg-[#EEE4D4] text-[#765D38]"
                   }
                 >
-                  {item.status}
+                  {tr(item.status)}
                 </Badge>
               </div>
               {item.status === "pending" && (
@@ -2880,7 +3066,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                   onClick={() => approveEvidence(item.id)}
                 >
                   <Check className="mr-1 h-4 w-4" />
-                  Approve evidence
+                  {tr("Approve evidence")}
                 </Button>
               )}
             </div>
@@ -2909,9 +3095,9 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
             />
           </div>
           <p className="mt-4 text-sm leading-6 text-[#625B53]">
-            Harish and Pardes Hanna adjustments appear only after at least five
-            owner-approved comparable local records with both customer and
-            provider amounts.
+            {tr(
+              "Harish and Pardes Hanna adjustments appear only after at least five owner-approved comparable local records with both customer and provider amounts.",
+            )}
           </p>
           <div className="mt-4 space-y-2">
             {benchmarks.map((item) => (
@@ -2924,13 +3110,13 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                     {item.sub_service} · {item.geography}
                   </strong>
                   <span>
-                    {item.sample_count}/{item.minimum_samples} samples
+                    {item.sample_count}/{item.minimum_samples} {tr("samples")}
                   </span>
                 </div>
                 <p className="mt-1 text-[#786F65]">
                   {item.ready_for_guidance
                     ? `Customer average ₪${Number(item.customer_average).toFixed(0)} · Provider average ₪${Number(item.provider_average).toFixed(0)} · Retained ₪${Number(item.margin_average).toFixed(0)}`
-                    : "Local guidance remains hidden until enough comparable evidence exists."}
+                    : tr("Local guidance remains hidden until enough comparable evidence exists.")}
                 </p>
               </div>
             ))}
@@ -2942,6 +3128,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
 }
 
 function ContentControl() {
+  const tr = useAdminTranslation();
   const [items, setItems] = useState<CmsItem[]>([]);
   const [selected, setSelected] = useState<CmsItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -2969,7 +3156,7 @@ function ContentControl() {
         setSettings(siteSettings);
         setMedia(images || []);
       })
-      .catch(() => toast.error("Website content could not be loaded."))
+      .catch(() => toast.error(tr("Website content could not be loaded.")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -2977,7 +3164,7 @@ function ContentControl() {
     cleanfixApi
       .getDefaultRestorePoint()
       .then(setRestorePoint)
-      .catch(() => toast.error("The protected default could not be prepared."));
+      .catch(() => toast.error(tr("The protected default could not be prepared.")));
   }, []);
 
   const save = async () => {
@@ -2999,7 +3186,7 @@ function ContentControl() {
         "Website content published. The public page will use it on refresh.",
       );
     } catch {
-      toast.error("The content was not saved.");
+      toast.error(tr("The content was not saved."));
     } finally {
       setSaving(false);
     }
@@ -3014,9 +3201,9 @@ function ContentControl() {
           settings as unknown as Record<string, unknown>,
         ),
       );
-      toast.success("Website design published.");
+      toast.success(tr("Website design published."));
     } catch {
-      toast.error("The website design was not saved.");
+      toast.error(tr("The website design was not saved."));
     } finally {
       setSaving(false);
     }
@@ -3030,7 +3217,7 @@ function ContentControl() {
         file.name.replace(/\.[^.]+$/, ""),
       );
       setMedia((current) => [image, ...current]);
-      toast.success("Image uploaded. Choose where to use it.");
+      toast.success(tr("Image uploaded. Choose where to use it."));
     } catch {
       toast.error(
         "Image upload failed. Use JPG, PNG, WEBP, or GIF under 5 MB.",
@@ -3044,11 +3231,11 @@ function ContentControl() {
     setRestoring(true);
     try {
       await cleanfixApi.restoreDefaultWebsite();
-      toast.success("The original working website has been restored.");
+      toast.success(tr("The original working website has been restored."));
       setConfirmRestore(false);
       window.setTimeout(() => window.location.reload(), 700);
     } catch {
-      toast.error("The website was not restored. Nothing was changed.");
+      toast.error(tr("The website was not restored. Nothing was changed."));
     } finally {
       setRestoring(false);
     }
@@ -3068,11 +3255,11 @@ function ContentControl() {
               disabled={!restorePoint}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
-              Return to default
+              {tr("Return to default")}
             </Button>
             <Button variant="outline" asChild>
               <a href="/" target="_blank">
-                Open live preview
+                {tr("Open live preview")}
                 <ExternalLink className="ml-2 h-4 w-4" />
               </a>
             </Button>
@@ -3090,12 +3277,10 @@ function ContentControl() {
             </div>
             <div>
               <p className="text-sm font-medium text-[#173F46]">
-                {restorePoint?.name || "Preparing safety copy…"}
+                {restorePoint?.name || tr("Preparing safety copy…")}
               </p>
               <p className="mt-1 text-xs leading-5 text-[#786F65]">
-                Restores website words, colors, buttons, selected pictures,
-                services, prices, and visibility. It never changes accounts,
-                leads, jobs, providers, payments, or uploaded files.
+                {tr("Restores website words, colors, buttons, selected pictures, services, prices, and visibility. It never changes accounts, leads, jobs, providers, payments, or uploaded files.")}
               </p>
             </div>
           </div>
@@ -3103,7 +3288,7 @@ function ContentControl() {
         <Panel
           title="1. Words"
           subtitle={
-            loading ? "Loading…" : "Click a section to edit English and Hebrew"
+            loading ? tr("Loading…") : tr("Click a section to edit English and Hebrew")
           }
         >
           {items.map((item) => (
@@ -3118,11 +3303,11 @@ function ContentControl() {
               <div className="flex-1">
                 <p className="text-sm font-medium">{title(item.section_key)}</p>
                 <p className="line-clamp-1 text-xs text-[#786F65]">
-                  {item.title_en || "Untitled"} · EN/HE
+                  {item.title_en || tr("Untitled")} · EN/HE
                 </p>
               </div>
               <Badge variant="outline">
-                {item.is_active === false ? "Hidden" : "Published"}
+                {item.is_active === false ? tr("Hidden") : tr("Published")}
               </Badge>
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -3161,7 +3346,7 @@ function ContentControl() {
               ))}
             </div>
             <div className="mt-4">
-              <Label>Hero layout</Label>
+              <Label>{tr("Hero layout")}</Label>
               <Select
                 value={settings.hero_layout}
                 onValueChange={(hero_layout) =>
@@ -3173,16 +3358,16 @@ function ContentControl() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="text-left">
-                    Words left, picture right
+                    {tr("Words left, picture right")}
                   </SelectItem>
                   <SelectItem value="image-left">
-                    Picture left, words right
+                    {tr("Picture left, words right")}
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="mt-4">
-              <Label>Motion and visual effects</Label>
+              <Label>{tr("Motion and visual effects")}</Label>
               <Select
                 value={settings.effects_mode}
                 onValueChange={(effects_mode: "full" | "reduced" | "off") =>
@@ -3193,14 +3378,13 @@ function ContentControl() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="reduced">Reduced — recommended</SelectItem>
-                  <SelectItem value="full">Full — gentle motion</SelectItem>
-                  <SelectItem value="off">Off — no motion</SelectItem>
+                  <SelectItem value="reduced">{tr("Reduced — recommended")}</SelectItem>
+                  <SelectItem value="full">{tr("Full — gentle motion")}</SelectItem>
+                  <SelectItem value="off">{tr("Off — no motion")}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="mt-2 text-xs leading-5 text-[#786F65]">
-                Reduced is the safest default. A visitor's device accessibility
-                preference always overrides this setting and disables motion.
+                {tr("Reduced is the safest default. A visitor's device accessibility preference always overrides this setting and disables motion.")}
               </p>
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -3238,7 +3422,7 @@ function ContentControl() {
               disabled={saving}
               className="mt-5 w-full bg-[#174E57]"
             >
-              Publish design and buttons
+              {tr("Publish design and buttons")}
             </Button>
           </Panel>
         )}
@@ -3248,7 +3432,7 @@ function ContentControl() {
         >
           <label className="flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-[#CFC5B9] bg-white p-6 text-sm text-[#174E57]">
             <Upload className="mr-2 h-5 w-5" />
-            {uploading ? "Uploading…" : "Upload a picture (maximum 5 MB)"}
+            {uploading ? tr("Uploading…") : tr("Upload a picture (maximum 5 MB)")}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
@@ -3281,7 +3465,7 @@ function ContentControl() {
                       setSettings({ ...settings, hero_image_url: item.url })
                     }
                   >
-                    Hero
+                    {tr("Hero")}
                   </Button>
                   <Button
                     size="sm"
@@ -3295,7 +3479,7 @@ function ContentControl() {
                       setSettings({ ...settings, cta_image_url: item.url })
                     }
                   >
-                    Bottom
+                    {tr("Bottom")}
                   </Button>
                 </div>
               </div>
@@ -3303,7 +3487,7 @@ function ContentControl() {
             {!media.length && (
               <div className="col-span-full py-6 text-center text-sm text-[#786F65]">
                 <Image className="mx-auto mb-2 h-6 w-6" />
-                No uploaded pictures yet.
+                {tr("No uploaded pictures yet.")}
               </div>
             )}
           </div>
@@ -3313,27 +3497,26 @@ function ContentControl() {
               disabled={saving}
               className="mt-4 w-full bg-[#174E57]"
             >
-              Publish selected pictures
+              {tr("Publish selected pictures")}
             </Button>
           )}
         </Panel>
         <Panel title="How this works" subtitle="Three simple steps">
           <ol className="space-y-3 text-sm text-[#625B53]">
             <li>
-              <strong>1.</strong> Make one change.
+              <strong>1.</strong> {tr("Make one change.")}
             </li>
             <li>
-              <strong>2.</strong> Press the green Publish button in that box.
+              <strong>2.</strong> {tr("Press the green Publish button in that box.")}
             </li>
             <li>
-              <strong>3.</strong> Open live preview and refresh the page.
+              <strong>3.</strong> {tr("Open live preview and refresh the page.")}
             </li>
           </ol>
           <div className="mt-5 rounded-2xl bg-[#173F46] p-4 text-white">
-            <p className="font-medium">Safe by design</p>
+            <p className="font-medium">{tr("Safe by design")}</p>
             <p className="mt-1 text-xs text-white/70">
-              Your logo and essential structure stay protected. You can change
-              the parts customers see most.
+              {tr("Your logo and essential structure stay protected. You can change the parts customers see most.")}
             </p>
           </div>
         </Panel>
@@ -3346,7 +3529,7 @@ function ContentControl() {
           {selected && (
             <>
               <DialogHeader>
-                <DialogTitle>Edit {title(selected.section_key)}</DialogTitle>
+                <DialogTitle>{tr("Edit ")}{title(selected.section_key)}</DialogTitle>
               </DialogHeader>
               <div className="grid gap-5 sm:grid-cols-2">
                 <FieldArea
@@ -3384,9 +3567,9 @@ function ContentControl() {
               </div>
               <div className="flex items-center justify-between rounded-xl bg-[#F0EAE1] p-4">
                 <div>
-                  <p className="text-sm font-medium">Published on website</p>
+                  <p className="text-sm font-medium">{tr("Published on website")}</p>
                   <p className="text-xs text-[#786F65]">
-                    Turn this off to hide this saved text.
+                    {tr("Turn this off to hide this saved text.")}
                   </p>
                 </div>
                 <Switch
@@ -3401,7 +3584,7 @@ function ContentControl() {
                 disabled={saving}
                 className="w-full bg-[#174E57]"
               >
-                {saving ? "Publishing…" : "Publish words"}
+                {saving ? tr("Publishing…") : tr("Publish words")}
               </Button>
             </>
           )}
@@ -3410,19 +3593,16 @@ function ContentControl() {
       <Dialog open={confirmRestore} onOpenChange={setConfirmRestore}>
         <DialogContent className="max-w-md bg-[#FBF8F3]">
           <DialogHeader>
-            <DialogTitle>Return to the original working website?</DialogTitle>
+            <DialogTitle>{tr("Return to the original working website?")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm text-[#625B53]">
             <p>
-              This will replace your current website words, design choices,
-              selected pictures, and service presentation with the protected
-              default.
+              {tr("This will replace your current website words, design choices, selected pictures, and service presentation with the protected default.")}
             </p>
             <div className="rounded-xl bg-[#EEE4D4] p-4 text-[#765D38]">
-              <strong>Your business records stay safe.</strong>
+              <strong>{tr("Your business records stay safe.")}</strong>
               <br />
-              Accounts, leads, jobs, providers, payments, and uploaded files are
-              not changed.
+              {tr("Accounts, leads, jobs, providers, payments, and uploaded files are not changed.")}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Button
@@ -3430,7 +3610,7 @@ function ContentControl() {
                 onClick={() => setConfirmRestore(false)}
                 disabled={restoring}
               >
-                Cancel
+                {tr("Cancel")}
               </Button>
               <Button
                 onClick={restoreDefault}
@@ -3438,7 +3618,7 @@ function ContentControl() {
                 className="bg-[#8A4639] hover:bg-[#71372E]"
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
-                {restoring ? "Restoring…" : "Yes, restore default"}
+                {restoring ? tr("Restoring…") : tr("Yes, restore default")}
               </Button>
             </div>
           </div>
@@ -3461,9 +3641,10 @@ function FieldArea({
   large?: boolean;
   rtl?: boolean;
 }) {
+  const tr = useAdminTranslation();
   return (
     <div>
-      <Label>{label}</Label>
+      <Label>{tr(label)}</Label>
       {large ? (
         <Textarea
           value={value}
@@ -3487,17 +3668,21 @@ function FieldInput({
   label,
   value,
   onChange,
+  dir,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  dir?: "ltr" | "rtl" | "auto";
 }) {
+  const tr = useAdminTranslation();
   return (
     <div>
-      <Label>{label}</Label>
+      <Label>{tr(label)}</Label>
       <Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        dir={dir}
         className="mt-1.5 bg-white"
       />
     </div>
@@ -3513,6 +3698,7 @@ function FollowUps({
   openWhatsApp: (l: DashboardLead, m?: string) => void;
   completeFollowUp: (l: DashboardLead) => void;
 }) {
+  const tr = useAdminTranslation();
   const followups = leads.filter(
     (l) =>
       l.followUpStatus !== "completed" &&
@@ -3540,11 +3726,11 @@ function FollowUps({
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium">{lead.customerName}</p>
                 <Badge className={statusStyle[lead.status]}>
-                  {lead.status}
+                  {tr(lead.status)}
                 </Badge>
               </div>
               <p className="mt-1 text-xs text-[#786F65]">
-                {lead.service} · {lead.notes || "No notes added"}
+                {lead.service} · {lead.notes || tr("No notes added")}
               </p>
             </div>
             <div className="flex gap-2">
@@ -3561,12 +3747,12 @@ function FollowUps({
                 }
               >
                 <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
-                {lead.status === "completed" ? "Request review" : "Follow up"}
+                {lead.status === "completed" ? tr("Request review") : tr("Follow up")}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                aria-label="Mark follow-up complete"
+                aria-label={tr("Mark follow-up complete")}
                 onClick={() => completeFollowUp(lead)}
               >
                 <Check className="h-4 w-4" />
@@ -3922,6 +4108,7 @@ const platformEntries: PlatformEntry[] = [
 ];
 
 function PlatformDirectory() {
+  const tr = useAdminTranslation();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [costFilter, setCostFilter] = useState("all");
@@ -3968,7 +4155,7 @@ function PlatformDirectory() {
   const monthlyRecurringSummary = Object.entries(confirmedMonthlyTotals)
     .filter(([, total]) => total > 0)
     .map(([currency, total]) => `${total.toLocaleString()} ${currency}`)
-    .join(" · ") || "No confirmed recurring costs";
+    .join(" · ") || tr("No confirmed recurring costs");
   const usageBasedCount = platformEntries.filter((entry) =>
     /usage[- ]based|metered|consumption/.test(entry.planType.toLowerCase()),
   ).length;
@@ -3982,7 +4169,7 @@ function PlatformDirectory() {
   ).length;
   const formatCost = (entry: PlatformEntry) =>
     entry.confirmedCost === null
-      ? "Needs confirmation"
+      ? tr("Needs confirmation")
       : `${entry.confirmedCost.toLocaleString()} ${entry.currency || ""}`.trim();
 
   return (
@@ -4004,36 +4191,36 @@ function PlatformDirectory() {
             <div className="relative">
               <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#786F65]" />
               <Input
-                aria-label="Search platforms"
+                aria-label={tr("Search platforms")}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search name, purpose, owner, or notes"
+                placeholder={tr("Search name, purpose, owner, or notes")}
                 className="bg-white ps-9"
               />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger aria-label="Filter by category" className="bg-white"><SelectValue placeholder="Category" /></SelectTrigger>
+              <SelectTrigger aria-label={tr("Filter by category")} className="bg-white"><SelectValue placeholder={tr("Category")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
+                <SelectItem value="all">{tr("All categories")}</SelectItem>
                 {categories.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={costFilter} onValueChange={setCostFilter}>
-              <SelectTrigger aria-label="Filter by cost" className="bg-white"><SelectValue placeholder="Cost" /></SelectTrigger>
+              <SelectTrigger aria-label={tr("Filter by cost")} className="bg-white"><SelectValue placeholder={tr("Cost")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All costs</SelectItem>
-                <SelectItem value="confirmed">Confirmed cost</SelectItem>
-                <SelectItem value="unknown">Needs confirmation</SelectItem>
+                <SelectItem value="all">{tr("All costs")}</SelectItem>
+                <SelectItem value="confirmed">{tr("Confirmed cost")}</SelectItem>
+                <SelectItem value="unknown">{tr("Needs confirmation")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger aria-label="Filter by status" className="bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger aria-label={tr("Filter by status")} className="bg-white"><SelectValue placeholder={tr("Status")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="Production">Production</SelectItem>
-                <SelectItem value="Business tool">Business tool</SelectItem>
-                <SelectItem value="Required check">Required check</SelectItem>
-                <SelectItem value="Retired">Retired</SelectItem>
+                <SelectItem value="all">{tr("All statuses")}</SelectItem>
+                <SelectItem value="Production">{tr("Production")}</SelectItem>
+                <SelectItem value="Business tool">{tr("Business tool")}</SelectItem>
+                <SelectItem value="Required check">{tr("Required check")}</SelectItem>
+                <SelectItem value="Retired">{tr("Retired")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -4045,23 +4232,23 @@ function PlatformDirectory() {
             <CardHeader className="p-5 pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="rounded-2xl bg-[#DDE9E7] p-2.5"><platform.icon className="h-5 w-5 text-[#174E57]" /></div>
-                <Badge className={statusTone[platform.status]}>{platform.status}</Badge>
+                <Badge className={statusTone[platform.status]}>{tr(platform.status)}</Badge>
               </div>
               <CardTitle className="mt-3 text-lg text-[#173F46]">{platform.name}</CardTitle>
-              <p className="text-xs font-medium uppercase tracking-[.12em] text-[#A47D4A]">{platform.category}</p>
+              <p className="text-xs font-medium uppercase tracking-[.12em] text-[#A47D4A]">{tr(platform.category)}</p>
             </CardHeader>
             <CardContent className="space-y-3 p-5 pt-0">
-              <p className="text-sm leading-5 text-[#625B53]">{platform.purpose}</p>
+              <p className="text-sm leading-5 text-[#625B53]">{tr(platform.purpose)}</p>
               <dl className="grid grid-cols-2 gap-x-3 gap-y-3 text-xs">
-                <div><dt className="text-[#786F65]">Plan type</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{platform.planType}</dd></div>
-                <div><dt className="text-[#786F65]">Cadence</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{platform.cadence}</dd></div>
-                <div><dt className="text-[#786F65]">Confirmed cost</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{formatCost(platform)}</dd></div>
-                <div><dt className="text-[#786F65]">Currency</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{platform.currency || "Needs confirmation"}</dd></div>
-                <div><dt className="text-[#786F65]">Renewal</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{platform.renewalDate || "Needs confirmation"}</dd></div>
-                <div><dt className="text-[#786F65]">Account owner</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{platform.accountOwner}</dd></div>
-                <div><dt className="text-[#786F65]">Last verified</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{platform.lastVerified || "Not recorded"}</dd></div>
+                <div><dt className="text-[#786F65]">{tr("Plan type")}</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{tr(platform.planType)}</dd></div>
+                <div><dt className="text-[#786F65]">{tr("Cadence")}</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{tr(platform.cadence)}</dd></div>
+                <div><dt className="text-[#786F65]">{tr("Confirmed cost")}</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{formatCost(platform)}</dd></div>
+                <div><dt className="text-[#786F65]">{tr("Currency")}</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{platform.currency || tr("Needs confirmation")}</dd></div>
+                <div><dt className="text-[#786F65]">{tr("Renewal")}</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{platform.renewalDate || tr("Needs confirmation")}</dd></div>
+                <div><dt className="text-[#786F65]">{tr("Account owner")}</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{tr(platform.accountOwner)}</dd></div>
+                <div><dt className="text-[#786F65]">{tr("Last verified")}</dt><dd className="mt-0.5 font-medium text-[#4A4540]">{platform.lastVerified || tr("Not recorded")}</dd></div>
               </dl>
-              <p className="rounded-xl bg-[#F0EAE1] px-3 py-2 text-xs leading-5 text-[#625B53]"><strong className="text-[#4A4540]">Notes:</strong> {platform.notes}</p>
+              <p className="rounded-xl bg-[#F0EAE1] px-3 py-2 text-xs leading-5 text-[#625B53]"><strong className="text-[#4A4540]">{tr("Notes")}:</strong> {tr(platform.notes)}</p>
               <div className="grid grid-cols-2 gap-2 pt-1">
                 {(["Usage", "Billing", "Dashboard", "Documentation"] as PlatformActionName[]).map((action) => {
                   const href = platform.actions[action];
@@ -4069,12 +4256,12 @@ function PlatformDirectory() {
                   return href ? (
                     <Button key={action} variant="outline" size="sm" className="justify-start" asChild>
                       <a href={href} target="_blank" rel="noreferrer" aria-label={`${action} for ${platform.name}`}>
-                        <ActionIcon className="me-1.5 h-3.5 w-3.5" />{action}<ExternalLink className="ms-auto h-3.5 w-3.5" />
+                        <ActionIcon className="me-1.5 h-3.5 w-3.5" />{tr(action)}<ExternalLink className="ms-auto h-3.5 w-3.5" />
                       </a>
                     </Button>
                   ) : (
                     <span key={action} className="flex min-h-9 items-center rounded-md border border-dashed border-[#D8D0C6] px-2 text-xs text-[#786F65]" aria-label={`${action} for ${platform.name}: needs confirmation`}>
-                      <ActionIcon className="me-1.5 h-3.5 w-3.5" />Needs confirmation
+                      <ActionIcon className="me-1.5 h-3.5 w-3.5" />{tr("Needs confirmation")}
                     </span>
                   );
                 })}
@@ -4085,13 +4272,14 @@ function PlatformDirectory() {
       </div>
       {!filteredEntries.length && <EmptyState text="No platforms match these filters." />}
       <Panel title="Security boundary" subtitle="This static directory never reads or displays secrets">
-        <div className="flex gap-2 text-sm leading-5 text-[#625B53]"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#174E57]" /><span>Passwords, API keys, OAuth secrets, database addresses, and environment values stay inside their secure provider platform.</span></div>
+        <div className="flex gap-2 text-sm leading-5 text-[#625B53]"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#174E57]" /><span>{tr("Passwords, API keys, OAuth secrets, database addresses, and environment values stay inside their secure provider platform.")}</span></div>
       </Panel>
     </>
   );
 }
 
 function InternalOS() {
+  const tr = useAdminTranslation();
   const [viewers, setViewers] = useState<{ id: number; email: string }[]>([]);
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
@@ -4099,13 +4287,13 @@ function InternalOS() {
     cleanfixApi
       .listViewers()
       .then(setViewers)
-      .catch(() => toast.error("Viewer access list could not be loaded."));
+      .catch(() => toast.error(tr("Viewer access list could not be loaded.")));
   useEffect(() => {
     load();
   }, []);
   const add = async () => {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-      toast.error("Please enter a complete email address.");
+      toast.error(tr("Please enter a complete email address."));
       return;
     }
     setSaving(true);
@@ -4113,9 +4301,9 @@ function InternalOS() {
       await cleanfixApi.addViewer(email.trim());
       setEmail("");
       await load();
-      toast.success("Viewer access added. They can sign in with Google.");
+      toast.success(tr("Viewer access added. They can sign in with Google."));
     } catch {
-      toast.error("Viewer access was not added.");
+      toast.error(tr("Viewer access was not added."));
     } finally {
       setSaving(false);
     }
@@ -4126,7 +4314,7 @@ function InternalOS() {
       setViewers((current) => current.filter((item) => item.id !== viewer.id));
       toast.success(`${viewer.email} can no longer sign in as a Viewer.`);
     } catch {
-      toast.error("Viewer access was not removed.");
+      toast.error(tr("Viewer access was not removed."));
     }
   };
   return (
@@ -4148,6 +4336,7 @@ function InternalOS() {
               onChange={(event) => setEmail(event.target.value)}
               onKeyDown={(event) => event.key === "Enter" && add()}
               placeholder="friend@example.com"
+              dir="ltr"
               className="bg-white"
             />
             <Button
@@ -4156,12 +4345,11 @@ function InternalOS() {
               className="shrink-0 bg-[#174E57]"
             >
               <Plus className="mr-2 h-4 w-4" />
-              {saving ? "Adding…" : "Add viewer"}
+              {saving ? tr("Adding…") : tr("Add viewer")}
             </Button>
           </div>
           <p className="mt-3 text-xs leading-5 text-[#786F65]">
-            Viewers see a working read-only dashboard. Private areas show “Only
-            Aviel can see this.”
+            {tr("Viewers see a working read-only dashboard. Private areas show “Only Aviel can see this.”")}
           </p>
           <div className="mt-4 divide-y divide-[#E5DDD3]">
             {viewers.map((viewer) => (
@@ -4169,7 +4357,7 @@ function InternalOS() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#DDE9E7]">
                   <Users className="h-4 w-4 text-[#174E57]" />
                 </div>
-                <span className="min-w-0 flex-1 truncate text-sm">
+                <span className="min-w-0 flex-1 truncate text-sm" dir="ltr">
                   {viewer.email}
                 </span>
                 <Button
@@ -4178,7 +4366,7 @@ function InternalOS() {
                   onClick={() => remove(viewer)}
                   className="text-[#8A4639]"
                 >
-                  Remove
+                  {tr("Remove")}
                 </Button>
               </div>
             ))}
@@ -4207,7 +4395,7 @@ function InternalOS() {
             ].map((item) => (
               <div key={item} className="flex items-center gap-2 text-sm">
                 <BadgeCheck className="h-4 w-4 text-[#174E57]" />
-                {item}
+                {tr(item)}
               </div>
             ))}
           </div>
@@ -4226,34 +4414,49 @@ function Panel({
   subtitle: string;
   children: React.ReactNode;
 }) {
+  const tr = useAdminTranslation();
   return (
     <Card className="border-[#D8D0C6] bg-[#FBF8F3]">
       <CardHeader className="pb-2">
         <CardTitle className="font-sans text-base font-semibold text-[#173F46]">
-          {heading}
+          {tr(heading)}
         </CardTitle>
-        <p className="text-xs text-[#786F65]">{subtitle}</p>
+        <p className="text-xs text-[#786F65]">{tr(subtitle)}</p>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
   );
 }
 function EmptyState({ text }: { text: string }) {
-  return <div className="py-8 text-center text-sm text-[#786F65]">{text}</div>;
+  const tr = useAdminTranslation();
+  return <div className="py-8 text-center text-sm text-[#786F65]">{tr(text)}</div>;
 }
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+  ltr,
+}: {
+  label: string;
+  value: string;
+  ltr?: boolean;
+}) {
+  const tr = useAdminTranslation();
   return (
     <div className="min-w-0">
       <p className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#8A8177]">
-        {label}
+        {tr(label)}
       </p>
-      <p className="mt-1 break-words text-sm font-medium text-[#324346]">
+      <p
+        className="mt-1 break-words text-sm font-medium text-[#324346]"
+        dir={ltr ? "ltr" : "auto"}
+      >
         {value}
       </p>
     </div>
   );
 }
 function Checklist({ items }: { items: string[] }) {
+  const tr = useAdminTranslation();
   const [done, setDone] = useState<number[]>([]);
   return (
     <div className="space-y-2">
@@ -4267,7 +4470,7 @@ function Checklist({ items }: { items: string[] }) {
                 : [...current, i],
             )
           }
-          className="flex w-full items-center gap-3 rounded-xl border border-[#E0D7CC] bg-white p-3 text-left text-sm"
+          className="flex w-full items-center gap-3 rounded-xl border border-[#E0D7CC] bg-white p-3 text-start text-sm"
         >
           <span
             className={`flex h-5 w-5 items-center justify-center rounded-md border ${done.includes(i) ? "border-[#174E57] bg-[#174E57] text-white" : "border-[#CFC5B9]"}`}
@@ -4277,7 +4480,7 @@ function Checklist({ items }: { items: string[] }) {
           <span
             className={done.includes(i) ? "text-[#8A8177] line-through" : ""}
           >
-            {item}
+            {tr(item)}
           </span>
         </button>
       ))}
@@ -4285,16 +4488,17 @@ function Checklist({ items }: { items: string[] }) {
   );
 }
 function Connection({ name, state }: { name: string; state: string }) {
+  const tr = useAdminTranslation();
   const ready = ["Connected", "Available", "Via GitHub"].includes(state);
   return (
     <div className="flex items-center justify-between border-b border-[#E5DDD3] py-3 last:border-0">
-      <span className="text-sm">{name}</span>
+      <span className="text-sm">{tr(name)}</span>
       <Badge
         className={
           ready ? "bg-[#DCEADF] text-[#2E6840]" : "bg-[#EEE4D4] text-[#765D38]"
         }
       >
-        {state}
+        {tr(state)}
       </Badge>
     </div>
   );
