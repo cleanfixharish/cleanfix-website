@@ -83,6 +83,8 @@ import { absoluteApiUrl, cleanfixApi } from "@/lib/cleanfixApi";
 import { useAdminTranslation } from "@/lib/adminI18n";
 import AiVideoStudio from "@/components/admin/AiVideoStudio";
 import ShareOnboarding from "@/components/admin/ShareOnboarding";
+import BusinessRulesCenter from "@/components/admin/BusinessRulesCenter";
+import GrowthCenter from "@/components/admin/GrowthCenter";
 
 type Section =
   | "overview"
@@ -92,6 +94,8 @@ type Section =
   | "jobs"
   | "providers"
   | "services"
+  | "rules"
+  | "growth"
   | "pricing"
   | "content"
   | "sharing"
@@ -236,6 +240,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     label: "Business",
     items: [
       { id: "services", label: "Services & pricing", icon: Wrench },
+      { id: "rules", label: "Business rules", icon: ShieldCheck },
       { id: "assistant", label: "AI Assistant", icon: Bot },
     ],
   },
@@ -245,6 +250,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
       { id: "sharing", label: "Share & onboarding", icon: Share2 },
       { id: "video", label: "AI Video Studio", icon: Clapperboard },
       { id: "content", label: "Website editor", icon: Globe2 },
+      { id: "growth", label: "Growth Center", icon: Sparkles },
     ],
   },
   {
@@ -910,6 +916,8 @@ export default function AdminPage() {
             <MarketPriceComparison items={services} />
           </>
         )}
+        {!isViewer && section === "rules" && <BusinessRulesCenter />}
+        {!isViewer && section === "growth" && <GrowthCenter />}
         {!isViewer && section === "pricing" && (
           <PricingWorkspace leads={leads} />
         )}

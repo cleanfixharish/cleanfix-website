@@ -11,6 +11,8 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { absoluteApiUrl, cleanfixApi } from '@/lib/cleanfixApi';
 import { serviceDocumentaryMap, type DocumentaryId } from '@/lib/documentaryMedia';
+import TransformationGallery from '@/components/TransformationGallery';
+import { serviceStories, serviceThumbnailMap } from '@/lib/transformationStories';
 
 const fallbackServices = [
   { id: 'handyman', mark: '/assets/brand/v2/symbol-handyman.svg', photo: 'handyman-shelf' as DocumentaryId, name_en: 'Handyman services', name_he: 'שירותי הנדימן', desc_en: 'Practical repairs, mounting, assembly, installations and adjustments—handled carefully and clearly.', desc_he: 'תיקונים מעשיים, תלייה, הרכבה, התקנות והתאמות—בעבודה זהירה וברורה.', priority: true },
@@ -18,6 +20,7 @@ const fallbackServices = [
   { id: 'move', mark: '/assets/brand/v2/symbol-access.svg', photo: 'move-in-window-cleaning' as DocumentaryId, name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A thorough reset before receiving the key, moving in, or handing the property over.', desc_he: 'ניקיון יסודי לפני קבלת מפתח, כניסה לבית או מסירת הנכס.' },
   { id: 'ac', mark: '/assets/brand/v2/symbol-ac.svg', photo: 'ac-maintenance' as DocumentaryId, name_en: 'AC cleaning', name_he: 'ניקוי מזגנים', desc_en: 'Careful cleaning for fresher airflow and a more comfortable home environment.', desc_he: 'ניקוי זהיר לזרימת אוויר רעננה יותר ולסביבה ביתית נעימה.' },
   { id: 'windows', mark: '/assets/brand/v2/symbol-window.svg', photo: 'move-in-window-cleaning' as DocumentaryId, name_en: 'Window cleaning', name_he: 'ניקוי חלונות', desc_en: 'Glass, frames and tracks cleaned for brighter rooms and a polished finish.', desc_he: 'ניקוי זכוכית, מסגרות ומסילות לחדרים בהירים ולגימור מוקפד.' },
+  { id: 'gardening', mark: '/assets/brand/cf-home-support-emblem-128.png', photo: 'hero-managed-service' as DocumentaryId, name_en: 'Gardening & landscape design', name_he: 'גינון ועיצוב גינות', desc_en: 'Experienced gardeners and high-level designers for balconies, family gardens, water features and complete landscapes.', desc_he: 'גננים ומעצבי גינות ברמה גבוהה למרפסות, גינות משפחתיות, אלמנטי מים ונופים שלמים.' },
 ];
 
 export default function ServicesPage() {
@@ -37,9 +40,10 @@ export default function ServicesPage() {
       desc_en: item.description_en,
       desc_he: item.description_he,
       photo: serviceDocumentaryMap[String(item.slug || fallback.id)] || fallback.photo,
+      thumbnail: serviceThumbnailMap[String(item.slug || fallback.id)] || serviceThumbnailMap[fallback.id],
       priority: index === 0,
     };
-  }) : fallbackServices;
+  }) : fallbackServices.map((service) => ({ ...service, thumbnail: serviceThumbnailMap[service.id] }));
 
   return (
     <PublicSite>
@@ -60,12 +64,16 @@ export default function ServicesPage() {
               {services.map((service: any) => (
                 <Card key={service.id} className={`group min-w-0 overflow-hidden border-[#b8842f]/40 bg-[#fbf8f3] transition duration-300 hover:shadow-[0_21px_55px_rgba(8,31,40,.13)] ${service.priority ? 'md:col-span-2 lg:col-span-2' : ''}`}>
                   <div className={`grid h-full min-w-0 ${service.priority ? 'md:grid-cols-[1.618fr_1fr]' : ''}`}>
-                    <div className="aspect-[3/2] min-h-[240px] overflow-hidden bg-[#102e38]/10 md:aspect-auto md:h-full">
+                    <div className="relative aspect-[3/2] min-h-[240px] overflow-hidden bg-[#102e38]/10 md:aspect-auto md:h-full">
                       {service.image_url ? (
                         <img src={absoluteApiUrl(service.image_url)} alt={lang === 'en' ? service.name_en : service.name_he} width={1200} height={800} className="h-full w-full object-cover" loading="lazy" />
+                      ) : service.thumbnail ? (
+                        <img src={service.thumbnail} alt={lang === 'en' ? service.name_en : service.name_he} width={1536} height={1024} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" loading="lazy" decoding="async" />
                       ) : (
                         <DocumentaryImage id={service.photo} lang={lang} sizes={service.priority ? '(max-width: 640px) 100vw, 60vw' : '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw'} />
                       )}
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#081f28]/65 via-transparent to-transparent" />
+                      <span className="absolute bottom-3 start-3 rounded-full border border-[#f0c96f]/35 bg-[#081f28]/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-[#f7f2ea] backdrop-blur">{lang === 'en' ? 'Transformation view' : 'מבט על השינוי'}</span>
                     </div>
                     <CardContent className="flex min-w-0 flex-col p-6">
                       <div className="cf-gold-icon mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
@@ -104,6 +112,13 @@ export default function ServicesPage() {
             </div>
           </div>
         </section>
+        <section className="bg-[#102e38] py-10">
+          <div className="cf-shell flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
+            <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#f0c96f]">{lang === 'en' ? 'A complete gardening studio' : 'סטודיו מלא לגינון'}</p><h2 className="mt-2 text-3xl text-[#f7f2ea]">{lang === 'en' ? 'From a balcony planter to a complete landscape.' : 'מאדנית במרפסת ועד נוף שלם.'}</h2></div>
+            <Button asChild className="min-h-12 shrink-0 bg-[#c49332] text-[#081f28] hover:bg-[#f0c96f]"><Link to="/gardening">{lang === 'en' ? 'Explore gardens' : 'לגלות את הגינות'}<ArrowRight className="ms-2 h-4 w-4" /></Link></Button>
+          </div>
+        </section>
+        <TransformationGallery stories={serviceStories} titleEn="See the journey, not just the promise" titleHe="לראות את הדרך, לא רק את ההבטחה" introEn="Each visual story connects a real customer problem to a written scope, controlled fulfillment and a documented result." introHe="כל סיפור חזותי מחבר בעיה אמיתית של לקוח להיקף כתוב, ביצוע מבוקר ותוצאה מתועדת." />
       </main>
       <Footer />
     </PublicSite>

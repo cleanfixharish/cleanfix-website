@@ -66,6 +66,7 @@ export default function Header() {
   const navItems = [
     { href: '/', label: t.nav.home },
     { href: '/services', label: t.nav.services },
+    { href: '/gardening', label: lang === 'en' ? 'Gardens' : 'גינות' },
     { href: '/how-it-works', label: t.nav.howItWorks },
     { href: '/why-trust-us', label: t.nav.whyTrustUs },
     { href: '/partners', label: t.nav.partners },

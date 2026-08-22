@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from core.database import db_manager
+from core.environment import is_production_environment
 from sqlalchemy import Date, DateTime, MetaData, Table, func, select
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
@@ -18,7 +19,10 @@ MAX_CONCURRENT_LOADS = 5
 
 async def initialize_mock_data():
     """Populate tables with mock JSON data when they are empty."""
-    if os.getenv("ENABLE_MOCK_DATA", "").lower() not in ("true", "1"):
+    mock_enabled = os.getenv("ENABLE_MOCK_DATA", "").lower() in ("true", "1")
+    if mock_enabled and is_production_environment():
+        raise RuntimeError("Refusing to start production while ENABLE_MOCK_DATA is enabled")
+    if not mock_enabled:
         logger.info("Mock data disabled; set ENABLE_MOCK_DATA=true only in development")
         return
     if not db_manager.engine:

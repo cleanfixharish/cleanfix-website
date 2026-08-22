@@ -8,6 +8,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import Index from './pages/Index';
 import AccessibilityMenu from './components/AccessibilityMenu';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
+import SeoManager from './components/SeoManager';
 
 const ServicesPage = lazy(() => import('./pages/ServicesPage'));
 const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage'));
@@ -21,6 +22,11 @@ const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const AuthError = lazy(() => import('./pages/AuthError'));
 const AccountPage = lazy(() => import('./pages/AccountPage'));
 const AccessibilityPage = lazy(() => import('./pages/AccessibilityPage'));
+const GardeningPage = lazy(() => import('./pages/GardeningPage'));
+const HowWeWorkPage = lazy(() => import('./pages/HowWeWorkPage'));
+const LocalPartnersPage = lazy(() => import('./pages/LocalPartnersPage'));
+const ProviderWorkspacePage = lazy(() => import('./pages/ProviderWorkspacePage'));
+const PartnerStudioPage = lazy(() => import('./pages/PartnerStudioPage'));
 
 const queryClient = new QueryClient();
 
@@ -41,6 +47,11 @@ const AppRoutes = () => (
       <Route path="/quote/:token" element={<PublicQuotePage />} />
       <Route path="/account" element={<AccountPage />} />
       <Route path="/accessibility" element={<AccessibilityPage />} />
+      <Route path="/gardening" element={<GardeningPage />} />
+      <Route path="/how-we-work" element={<HowWeWorkPage />} />
+      <Route path="/local-partners" element={<LocalPartnersPage />} />
+      <Route path="/provider/*" element={<ProviderWorkspacePage />} />
+      <Route path="/partner/*" element={<PartnerStudioPage />} />
       <Route
         path="/admin"
         element={
@@ -66,6 +77,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <BrowserRouter>
+            <SeoManager />
             <AppRoutes />
             <AccessibilityMenu />
           </BrowserRouter>

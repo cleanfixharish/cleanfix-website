@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title data-mgx-overview="title">CleanFixHarish | Handyman & Home Services in Harish</title>
     <meta data-mgx-overview="description" name="description" content="Local handyman, post-renovation cleaning, move-in cleaning, AC cleaning, and window care in Harish. Send details by WhatsApp." />
+    <link rel="canonical" href="https://cleanfixharish.co.il/" />
     <meta name="author" content="CleanFix Harish" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -32,6 +33,18 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="msapplication-TileColor" content="#102E38" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
+    <style>
+      #cf-splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#081f28;transition:opacity .32s ease,visibility .32s ease}
+      #cf-splash.cf-ready{opacity:0;visibility:hidden;pointer-events:none}
+      .cf-splash-core{position:relative;display:grid;place-items:center;width:122px;height:122px}
+      .cf-splash-core:before,.cf-splash-core:after{content:"";position:absolute;inset:0;border:1px solid rgba(240,201,111,.34);border-radius:50%;animation:cf-orbit 1.4s cubic-bezier(.2,.7,.2,1) infinite}
+      .cf-splash-core:after{inset:12px;animation-direction:reverse;animation-duration:1.05s;border-color:rgba(196,147,50,.62)}
+      .cf-splash-core img{width:68px;height:68px;border-radius:18px;box-shadow:0 18px 55px rgba(0,0,0,.35)}
+      .cf-splash-word{margin-top:18px;color:#f7f2ea;font:600 22px/1.1 Georgia,serif;letter-spacing:.02em;text-align:center}
+      .cf-splash-rule{width:55px;height:2px;margin:12px auto 0;background:linear-gradient(90deg,#6f4818,#f0c96f,#6f4818)}
+      @keyframes cf-orbit{to{transform:rotate(360deg) scale(.96)}}
+      @media(prefers-reduced-motion:reduce){.cf-splash-core:before,.cf-splash-core:after{animation:none}}
+    </style>
 
     <!-- Open Graph -->
     <meta data-mgx-overview="og:title" property="og:title" content="CleanFixHarish | Handyman & Home Services in Harish" />
@@ -46,6 +59,7 @@
   </head>
 
   <body>
+    <div id="cf-splash" role="status" aria-label="Loading CleanFixHarish"><div><div class="cf-splash-core"><img src="/assets/brand/cf-gold-monogram-128.png" alt="" width="68" height="68" /></div><div class="cf-splash-word">CleanFixHarish</div><div class="cf-splash-rule"></div></div></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>

@@ -18,7 +18,13 @@ function mountApp() {
   }
 
   createRoot(document.getElementById('root')!).render(<App />);
+  window.requestAnimationFrame(() => {
+    window.setTimeout(() => document.getElementById('cf-splash')?.classList.add('cf-ready'), 180);
+  });
 }
+
+// Never let the branded splash hide a usable page if a script or network task stalls.
+window.setTimeout(() => document.getElementById('cf-splash')?.classList.add('cf-ready'), 1200);
 
 // Public first paint must not wait on /api/config. Same-origin relative URLs
 // work immediately; runtime config can still refine the API host afterwards.
