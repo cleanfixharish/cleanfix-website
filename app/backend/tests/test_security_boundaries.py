@@ -74,16 +74,20 @@ def test_frontend_shell_is_never_cached_but_hashed_assets_are_immutable(tmp_path
     photo_file.mkdir()
     photo = photo_file / "handyman-shelf.png"
     photo.write_bytes(b"png")
+    webp = photo_file / "handyman-shelf.webp"
+    webp.write_bytes(b"webp")
 
     shell_response = main.frontend_file_response(index_file)
     asset_response = main.frontend_file_response(asset_file)
     sw_response = main.frontend_file_response(sw_file)
     photo_response = main.frontend_file_response(photo)
+    webp_response = main.frontend_file_response(webp)
 
     assert shell_response.headers["cache-control"] == "no-store, no-cache, must-revalidate"
     assert asset_response.headers["cache-control"] == "public, max-age=31536000, immutable"
     assert sw_response.headers["cache-control"] == "no-cache, must-revalidate"
     assert photo_response.headers["cache-control"] == "public, max-age=3600"
+    assert webp_response.media_type == "image/webp"
 
 
 def test_account_directory_is_not_public():

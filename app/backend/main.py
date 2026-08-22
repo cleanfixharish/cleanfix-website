@@ -295,6 +295,13 @@ FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 FINGERPRINTED_ASSET = re.compile(r".+-[A-Za-z0-9_]{8,}\.(js|css)$")
 
+FRONTEND_MEDIA_TYPES = {
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+    ".woff2": "font/woff2",
+    ".webmanifest": "application/manifest+json",
+}
+
 
 def frontend_file_response(path: Path) -> FileResponse:
     """Serve hashed assets aggressively while never pinning an old app shell."""
@@ -306,7 +313,11 @@ def frontend_file_response(path: Path) -> FileResponse:
         cache_control = "public, max-age=31536000, immutable"
     else:
         cache_control = "public, max-age=3600"
-    return FileResponse(path, headers={"Cache-Control": cache_control})
+    return FileResponse(
+        path,
+        headers={"Cache-Control": cache_control},
+        media_type=FRONTEND_MEDIA_TYPES.get(path.suffix.lower()),
+    )
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
