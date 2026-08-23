@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, User, LogIn } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Navigate } from 'react-router-dom';
 
 interface ProtectedAdminRouteProps {
   children: React.ReactNode;
@@ -55,24 +56,7 @@ const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({
 
   // If the user is not logged in, redirect to the login page
   if (!user) {
-    return (
-      <div dir={dir} className="min-h-screen flex items-center justify-center bg-[#F2EDE5] p-4">
-        <Card className="w-full max-w-md border-[#D8D0C6] bg-[#FBF8F3]">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#DDE9E7]">
-              <Shield className="h-8 w-8 text-[#174E57]" />
-            </div>
-            <CardTitle className="text-xl text-[#173F46]">{copy.ownerAccess}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5 text-center">
-            <p className="text-sm text-[#756D64]">{copy.signInHelp}</p>
-            <Button onClick={login} className="w-full bg-[#174E57] hover:bg-[#103A41]">
-              <LogIn className="me-2 h-4 w-4" />{copy.secureSignIn}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <Navigate to="/account?return=/admin" replace />;
   }
 
   // If the user is not an admin, show an insufficient-permissions page

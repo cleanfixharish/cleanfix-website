@@ -97,13 +97,18 @@ def test_account_directory_is_not_public():
 
 
 def test_account_directory_rejects_non_admin():
+    from core.database import get_db
     from dependencies.auth import get_current_user
     from schemas.auth import UserResponse
 
     async def customer_user():
         return UserResponse(id="customer-1", email="customer@example.com", role="user")
 
+    async def unused_db():
+        yield None
+
     app.dependency_overrides[get_current_user] = customer_user
+    app.dependency_overrides[get_db] = unused_db
     try:
         response = client.get("/api/v1/account/profiles")
         assert response.status_code == 403
@@ -113,13 +118,18 @@ def test_account_directory_rejects_non_admin():
 
 
 def test_account_directory_rejects_viewer():
+    from core.database import get_db
     from dependencies.auth import get_current_user
     from schemas.auth import UserResponse
 
     async def viewer_user():
         return UserResponse(id="viewer-1", email="viewer@example.com", role="viewer")
 
+    async def unused_db():
+        yield None
+
     app.dependency_overrides[get_current_user] = viewer_user
+    app.dependency_overrides[get_db] = unused_db
     try:
         response = client.get("/api/v1/account/profiles")
         assert response.status_code == 403

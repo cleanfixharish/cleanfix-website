@@ -4288,8 +4288,9 @@ function PlatformDirectory() {
 
 function InternalOS() {
   const tr = useAdminTranslation();
-  const [viewers, setViewers] = useState<{ id: number; email: string }[]>([]);
+  const [viewers, setViewers] = useState<{ id: number; email: string; access_role: 'viewer' | 'admin' }[]>([]);
   const [email, setEmail] = useState("");
+  const [accessRole, setAccessRole] = useState<'viewer' | 'admin'>('viewer');
   const [saving, setSaving] = useState(false);
   const load = () =>
     cleanfixApi
@@ -4306,21 +4307,21 @@ function InternalOS() {
     }
     setSaving(true);
     try {
-      await cleanfixApi.addViewer(email.trim());
+      await cleanfixApi.addViewer(email.trim(), accessRole);
       setEmail("");
       await load();
-      toast.success(tr("Viewer access added. They can sign in with Google."));
+      toast.success(accessRole === 'admin' ? tr("Administrator access added. They can sign in with Google.") : tr("Viewer access added. They can sign in with Google."));
     } catch {
       toast.error(tr("Viewer access was not added."));
     } finally {
       setSaving(false);
     }
   };
-  const remove = async (viewer: { id: number; email: string }) => {
+  const remove = async (viewer: { id: number; email: string; access_role: 'viewer' | 'admin' }) => {
     try {
       await cleanfixApi.removeViewer(viewer.id);
       setViewers((current) => current.filter((item) => item.id !== viewer.id));
-      toast.success(`${viewer.email} can no longer sign in as a Viewer.`);
+      toast.success(`${viewer.email} no longer has ${viewer.access_role} dashboard access.`);
     } catch {
       toast.error(tr("Viewer access was not removed."));
     }
@@ -4334,8 +4335,8 @@ function InternalOS() {
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel
-          title="Viewer access"
-          subtitle="Let trusted people explore the dashboard without changing anything"
+          title="Dashboard access"
+          subtitle="Approve verified email addresses as administrators or read-only viewers"
         >
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
@@ -4347,17 +4348,21 @@ function InternalOS() {
               dir="ltr"
               className="bg-white"
             />
+            <Select value={accessRole} onValueChange={(value: 'viewer' | 'admin') => setAccessRole(value)}>
+              <SelectTrigger className="bg-white sm:w-36"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="viewer">{tr("Viewer")}</SelectItem><SelectItem value="admin">{tr("Administrator")}</SelectItem></SelectContent>
+            </Select>
             <Button
               onClick={add}
               disabled={saving}
               className="shrink-0 bg-[#174E57]"
             >
               <Plus className="mr-2 h-4 w-4" />
-              {saving ? tr("Adding…") : tr("Add viewer")}
+              {saving ? tr("Adding…") : tr("Approve access")}
             </Button>
           </div>
           <p className="mt-3 text-xs leading-5 text-[#786F65]">
-            {tr("Viewers see a working read-only dashboard. Private areas show “Only Aviel can see this.”")}
+            {tr("Google verifies the email. The server assigns the approved role and automatically opens the correct dashboard after sign-in.")}
           </p>
           <div className="mt-4 divide-y divide-[#E5DDD3]">
             {viewers.map((viewer) => (
@@ -4368,6 +4373,7 @@ function InternalOS() {
                 <span className="min-w-0 flex-1 truncate text-sm" dir="ltr">
                   {viewer.email}
                 </span>
+                <Badge variant="outline">{viewer.access_role === 'admin' ? tr("Administrator") : tr("Viewer")}</Badge>
                 <Button
                   variant="ghost"
                   size="sm"

@@ -20,10 +20,10 @@ export const cleanfixApi = {
   },
   async listViewers() {
     const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/viewers`);
-    return response.data as { id: number; email: string; is_active: boolean; created_at?: string }[];
+    return response.data as { id: number; email: string; access_role: 'viewer' | 'admin'; is_active: boolean; created_at?: string }[];
   },
-  async addViewer(email: string) {
-    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/viewers`, { email });
+  async addViewer(email: string, accessRole: 'viewer' | 'admin' = 'viewer') {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/viewers`, { email, access_role: accessRole });
     return response.data;
   },
   async removeViewer(id: number) {

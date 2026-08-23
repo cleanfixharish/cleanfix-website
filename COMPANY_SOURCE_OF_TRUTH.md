@@ -141,3 +141,11 @@ Israeli counsel, accountant and insurance adviser must approve the binding docum
 - These roles, states, permissions, privacy rules, field definitions and audit requirements are one platform contract. The public website, admin dashboard, installable PWA and any future Android, iOS or other client must consume the same authorized backend APIs; no client may implement a weaker parallel business logic.
 - Empty experiences show field names and explain when real information will appear. They never manufacture customers, jobs, businesses, reviews, balances, percentages or activity counts. Numeric zero is shown only when it is a real query result for a defined period.
 - Role-specific onboarding is bilingual and visual, with an equivalent text fallback and optional spoken narration. Tour completion is versioned per user, relationship, language and platform; a material workflow change reoffers the tour.
+
+## 11. Unified authentication and administrator routing
+
+- Customers, businesses, providers, viewers and administrators use one public authentication entrance. There is no separate or publicly advertised administrator login link.
+- Google sign-in and sign-up use verified OIDC claims. After authentication, the server assigns the role from owner-controlled access records and the client routes `admin` and `viewer` roles to `/admin`; ordinary users continue to `/account`.
+- An email address typed into the browser never grants privileges. Administrator and viewer access is approved, stored and checked server-side; removing access must cause protected API requests to fail even if an older browser token still claims the role.
+- The primary administrator email remains configured outside source control. Additional administrator or read-only viewer addresses may be approved through the protected owner dashboard.
+- Email/password or email-link authentication may be offered only through a managed provider with email verification, rate limits, secure recovery, one-time/expiring tokens and audit logs. The interface must not collect passwords or pretend email authentication works before that provider is connected.

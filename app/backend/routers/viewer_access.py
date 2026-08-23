@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from core.database import get_db
 from dependencies.auth import get_admin_user
@@ -15,11 +15,13 @@ router = APIRouter(prefix="/api/v1/admin/viewers", tags=["viewer-access"])
 
 class ViewerCreate(BaseModel):
     email: EmailStr
+    access_role: Literal["viewer", "admin"] = "viewer"
 
 
 class ViewerResponse(BaseModel):
     id: int
     email: str
+    access_role: str
     is_active: bool
     created_at: Optional[datetime] = None
 
@@ -44,8 +46,9 @@ async def add_viewer(
     viewer = result.scalar_one_or_none()
     if viewer:
         viewer.is_active = True
+        viewer.access_role = data.access_role
     else:
-        viewer = ViewerAccess(email=email, is_active=True)
+        viewer = ViewerAccess(email=email, access_role=data.access_role, is_active=True)
         db.add(viewer)
     await db.commit()
     await db.refresh(viewer)

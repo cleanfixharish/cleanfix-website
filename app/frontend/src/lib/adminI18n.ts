@@ -367,6 +367,13 @@ export const adminHebrew: Record<string, string> = {
   'Please enter a complete email address.': 'נא להזין כתובת אימייל מלאה.',
   'Viewer access added. They can sign in with Google.':
     'גישת צפייה נוספה. אפשר להיכנס עם Google.',
+  'Administrator access added. They can sign in with Google.':
+    'גישת מנהל נוספה. אפשר להיכנס עם Google.',
+  'Viewer': 'צופה',
+  'Administrator': 'מנהל',
+  'Approve access': 'אישור גישה',
+  'Google verifies the email. The server assigns the approved role and automatically opens the correct dashboard after sign-in.':
+    'Google מאמתת את האימייל. השרת מקצה את התפקיד המאושר ופותח אוטומטית את לוח הבקרה הנכון לאחר הכניסה.',
   'Viewer access was not added.': 'גישת הצפייה לא נוספה.',
   'can no longer sign in as a Viewer.': 'לא יכול יותר להיכנס כצופה.',
   'Viewer access was not removed.': 'גישת הצפייה לא הוסרה.',

@@ -8,6 +8,7 @@ from core.database import get_db
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from models.viewer_access import ViewerAccess
+from core.config import settings
 from schemas.auth import UserResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,10 +61,24 @@ async def get_current_user(token: str = Depends(get_bearer_token)) -> UserRespon
     )
 
 
-async def get_admin_user(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
+async def get_admin_user(
+    current_user: UserResponse = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> UserResponse:
     """Dependency to ensure current user has admin role."""
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    normalized_email = current_user.email.strip().lower()
+    primary_admin = getattr(settings, "admin_user_email", "").strip().lower()
+    if normalized_email != primary_admin:
+        result = await db.execute(
+            select(ViewerAccess).where(
+                ViewerAccess.email == normalized_email,
+                ViewerAccess.access_role == "admin",
+                ViewerAccess.is_active.is_(True),
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrator access has been removed")
     return current_user
 
 
@@ -76,7 +91,11 @@ async def get_dashboard_viewer(
 
     normalized_email = current_user.email.strip().lower()
     result = await db.execute(
-        select(ViewerAccess).where(ViewerAccess.email == normalized_email, ViewerAccess.is_active.is_(True))
+        select(ViewerAccess).where(
+            ViewerAccess.email == normalized_email,
+            ViewerAccess.access_role == "viewer",
+            ViewerAccess.is_active.is_(True),
+        )
     )
 
 
