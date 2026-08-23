@@ -34,7 +34,7 @@
     <meta name="msapplication-TileColor" content="#102E38" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
     <style>
-      #cf-splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#081f28;transition:opacity .32s ease,visibility .32s ease}
+      #cf-splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#081f28;transition:opacity .32s ease,visibility .32s ease;animation:cf-splash-exit .32s ease .55s forwards}
       #cf-splash.cf-ready{opacity:0;visibility:hidden;pointer-events:none}
       .cf-splash-core{position:relative;display:grid;place-items:center;width:122px;height:122px}
       .cf-splash-core:before,.cf-splash-core:after{content:"";position:absolute;inset:0;border:1px solid rgba(240,201,111,.34);border-radius:50%;animation:cf-orbit 1.4s cubic-bezier(.2,.7,.2,1) infinite}
@@ -43,7 +43,8 @@
       .cf-splash-word{margin-top:18px;color:#f7f2ea;font:600 22px/1.1 Georgia,serif;letter-spacing:.02em;text-align:center}
       .cf-splash-rule{width:55px;height:2px;margin:12px auto 0;background:linear-gradient(90deg,#6f4818,#f0c96f,#6f4818)}
       @keyframes cf-orbit{to{transform:rotate(360deg) scale(.96)}}
-      @media(prefers-reduced-motion:reduce){.cf-splash-core:before,.cf-splash-core:after{animation:none}}
+      @keyframes cf-splash-exit{to{opacity:0;visibility:hidden;pointer-events:none}}
+      @media(prefers-reduced-motion:reduce){#cf-splash{animation-delay:.2s}.cf-splash-core:before,.cf-splash-core:after{animation:none}}
     </style>
 
     <!-- Open Graph -->
