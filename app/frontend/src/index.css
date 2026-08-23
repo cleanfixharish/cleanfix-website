@@ -421,7 +421,7 @@
  * Touch input remains detectable, so keep the public journey mobile-first on
  * coarse-pointer devices until there is genuinely desktop-sized room.
  */
-@media (hover: none) and (pointer: coarse) and (max-width: 1100px) {
+@media (hover: none) and (pointer: coarse) and (max-width: 1600px) {
   .public-site .public-grid,
   .public-site .public-hero-grid,
   .public-site .public-services-grid,
@@ -454,6 +454,23 @@
 
   .public-site header .public-header-inline-cta {
     display: none !important;
+  }
+
+  .public-site h1 {
+    font-size: clamp(2.25rem, 9vw, 3.25rem) !important;
+    line-height: 1.02 !important;
+  }
+
+  .public-site h2 {
+    font-size: clamp(1.75rem, 7vw, 2.5rem) !important;
+    line-height: 1.1 !important;
+  }
+
+  .public-site p,
+  .public-site a,
+  .public-site button {
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
   }
 }
 

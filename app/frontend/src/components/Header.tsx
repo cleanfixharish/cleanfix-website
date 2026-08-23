@@ -8,15 +8,12 @@ import { getWhatsAppLink } from '@/lib/whatsapp';
 import { useAuth } from '@/contexts/AuthContext';
 import { requestPwaInstall, subscribeToPwaInstall } from '@/lib/pwaInstall';
 
-const ANDROID_APK_URL = 'https://github.com/cleanfixharish/cleanfix-website/releases/download/android-latest/CleanFixHarish-android.apk';
-
 export default function Header() {
   const { t, lang, setLang, dir } = useLanguage();
   const { user } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [canInstall, setCanInstall] = useState(false);
   const [platform, setPlatform] = useState<'ios' | 'android' | 'desktop'>('desktop');
   const [showModal, setShowModal] = useState(false);
 
@@ -30,38 +27,23 @@ export default function Header() {
     const android = /Android/.test(ua);
     setPlatform(ios ? 'ios' : android ? 'android' : 'desktop');
 
-    return subscribeToPwaInstall(({ installed, canInstall }) => {
+    return subscribeToPwaInstall(({ installed }) => {
       setIsInstalled(installed);
-      setCanInstall(canInstall);
       if (installed) setShowModal(false);
     });
   }, []);
 
   const handleInstallClick = useCallback(async () => {
-    // Android visitors asked for the native tester app. Keep this URL stable;
-    // the release workflow replaces the APK after every verified Android change.
-    if (platform === 'android') {
-      window.location.assign(ANDROID_APK_URL);
-      return;
-    }
-
-    // Always try the browser's native installer first. This avoids a state timing
-    // race and makes supported browsers go straight to their install confirmation.
+    // Use the browser's verified PWA installer on every supported platform.
     const outcome = await requestPwaInstall();
     if (outcome === 'accepted') {
       setIsInstalled(true);
       return;
     }
 
-    // iOS uses Add to Home Screen instead of beforeinstallprompt. Unsupported
-    // desktop browsers do not show a dead install control.
-    if (outcome === 'unavailable' && platform === 'ios') setShowModal(true);
+    // iOS and browsers without the native event get clear platform instructions.
+    if (outcome === 'unavailable') setShowModal(true);
   }, [platform]);
-
-  // Don't show install button if already installed
-  if (isInstalled && !showModal) {
-    // Still render the header, just without install button
-  }
 
   const navItems = [
     { href: '/', label: t.nav.home },
@@ -78,7 +60,7 @@ export default function Header() {
   const installText = {
     en: {
       button: 'Install App',
-      androidButton: 'Download Android app',
+      androidButton: 'Install App',
       modalTitle: 'One-click install is unavailable here',
       iosStep1: 'Tap the Share button at the bottom of Safari',
       iosStep2: 'Scroll down and tap "Add to Home Screen"',
@@ -92,7 +74,7 @@ export default function Header() {
     },
     he: {
       button: 'התקן',
-      androidButton: 'הורדת אפליקציה לאנדרואיד',
+      androidButton: 'התקנת האפליקציה',
       modalTitle: 'התקנה בלחיצה אחת אינה זמינה בדפדפן זה',
       iosStep1: 'לחץ על כפתור השיתוף בתחתית ספארי',
       iosStep2: 'גלול למטה ולחץ "הוסף למסך הבית"',
@@ -122,7 +104,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden min-w-0 items-center gap-0.5 xl:flex">
+          <nav className="hidden min-w-0 items-center gap-0.5 2xl:flex">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -141,7 +123,7 @@ export default function Header() {
           {/* Right Actions */}
           <div className="flex shrink-0 items-center gap-1.5">
             {/* Install App Button — always visible unless installed */}
-            {!isInstalled && (platform === 'android' || canInstall || platform === 'ios') && (
+            {!isInstalled && (
               <Button
                 variant="outline"
                 size="sm"
@@ -151,7 +133,7 @@ export default function Header() {
                 className="min-h-11 gap-1.5 border-[#b8842f]/45 bg-[#fbf8f3] text-[#102e38] transition-all hover:border-[#b8842f]/70 hover:bg-[#e8d8be]/45 hover:text-[#102e38]"
               >
                 <Download className="h-4 w-4" />
-                <span className="hidden text-xs font-semibold 2xl:inline">
+                <span className="hidden text-xs font-semibold min-[360px]:inline">
                   {platform === 'android' ? it.androidButton : it.button}
                 </span>
               </Button>
@@ -174,7 +156,7 @@ export default function Header() {
               href={getWhatsAppLink()}
               target="_blank"
               rel="noopener noreferrer"
-              className="public-header-inline-cta hidden xl:inline-flex"
+              className="public-header-inline-cta hidden 2xl:inline-flex"
             >
               <Button size="sm" className="min-h-11 gap-1.5 bg-[#102e38] text-[#f7f2ea] hover:bg-[#163f49]">
                 <MessageCircle className="h-4 w-4 text-[#f0c96f]" />
@@ -183,13 +165,13 @@ export default function Header() {
             </a>
 
             {/* Get Quote */}
-            <Link to="/quote" className="public-header-inline-cta hidden xl:inline-flex">
+            <Link to="/quote" className="public-header-inline-cta hidden 2xl:inline-flex">
               <Button size="sm" variant="default" className="min-h-11">
                 {t.nav.getQuote}
               </Button>
             </Link>
 
-            <Link to={user?.role === 'admin' ? '/admin' : '/account'} className="public-header-inline-cta hidden xl:inline-flex">
+            <Link to={user?.role === 'admin' ? '/admin' : '/account'} className="public-header-inline-cta hidden 2xl:inline-flex">
               <Button size="sm" variant="outline" className="min-h-11 gap-1.5 border-[#b8842f]/55 bg-[#fbf8f3]">
                 <UserRound className="h-4 w-4" />
                 <span className="hidden xl:inline">{user ? (lang === 'en' ? 'My dashboard' : 'האזור שלי') : (lang === 'en' ? 'Join / Sign in' : 'הרשמה / כניסה')}</span>
@@ -198,7 +180,7 @@ export default function Header() {
 
             {/* Mobile Menu */}
             <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild className="xl:hidden">
+              <SheetTrigger asChild className="2xl:hidden">
                 <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={lang === 'he' ? 'פתיחת תפריט הניווט' : 'Open navigation menu'}>
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -220,6 +202,15 @@ export default function Header() {
                     </Link>
                   ))}
                   <hr className="my-2" />
+                  {!isInstalled && (
+                    <Button
+                      className="w-full gap-2 bg-[#102e38] text-[#f7f2ea] hover:bg-[#163f49]"
+                      onClick={() => { setOpen(false); void handleInstallClick(); }}
+                    >
+                      <Download className="h-4 w-4 text-[#f0c96f]" />
+                      {platform === 'android' ? it.androidButton : it.button}
+                    </Button>
+                  )}
                   <Link to="/quote" onClick={() => setOpen(false)}>
                     <Button className="w-full">{t.nav.getQuote}</Button>
                   </Link>
@@ -235,16 +226,6 @@ export default function Header() {
                       {t.hero.whatsapp}
                     </Button>
                   </a>
-                  {!isInstalled && (platform === 'android' || canInstall || platform === 'ios') && (
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/5"
-                      onClick={() => { setOpen(false); handleInstallClick(); }}
-                    >
-                      <Download className="h-4 w-4" />
-                      {platform === 'android' ? it.androidButton : it.button}
-                    </Button>
-                  )}
                   <Link to="/admin" onClick={() => setOpen(false)}>
                     <Button variant="ghost" className="w-full text-muted-foreground">
                       {t.nav.admin}
