@@ -78,6 +78,7 @@ export const documentaryAssets: Record<DocumentaryId, DocumentaryAsset> = {
 };
 
 export const serviceDocumentaryMap: Record<string, DocumentaryId> = {
+  cleaning: 'post-renovation-cleaning',
   handyman: 'handyman-shelf',
   'post-renovation': 'post-renovation-cleaning',
   move: 'move-in-window-cleaning',
@@ -85,7 +86,7 @@ export const serviceDocumentaryMap: Record<string, DocumentaryId> = {
   windows: 'move-in-window-cleaning',
 };
 
-export type ServiceVisualKey = 'handyman' | 'post-renovation' | 'move' | 'ac' | 'windows' | 'gardening';
+export type ServiceVisualKey = 'cleaning' | 'handyman' | 'post-renovation' | 'move' | 'ac' | 'windows' | 'gardening';
 
 const serviceVisualKeywords: Array<[ServiceVisualKey, string[]]> = [
   ['post-renovation', ['post-renovation', 'renovation', 'construction dust', 'שיפוץ', 'אבק בנייה']],
@@ -94,6 +95,7 @@ const serviceVisualKeywords: Array<[ServiceVisualKey, string[]]> = [
   ['gardening', ['garden', 'gardening', 'landscape', 'balcony planting', 'גינה', 'גינון', 'עיצוב נוף']],
   ['handyman', ['handyman', 'mounting', 'small repair', 'installation', 'הנדימן', 'תלייה', 'תיקון קטן']],
   ['move', ['move-in', 'move out', 'move-out', 'moving', 'כניסה', 'יציאה', 'מעבר דירה']],
+  ['cleaning', ['home cleaning', 'house cleaning', 'deep cleaning', 'cleaner', 'ניקיון בית', 'ניקיון יסודי']],
 ];
 
 export function resolveServiceVisualKey(service: Record<string, unknown>): ServiceVisualKey | undefined {

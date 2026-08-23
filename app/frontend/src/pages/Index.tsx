@@ -21,6 +21,7 @@ type ContentBlock = {
 };
 
 const fallbackServices = [
+  { id: 'cleaning', mark: '/assets/brand/v2/symbol-cleaning.svg', photo: 'post-renovation-cleaning' as DocumentaryId, name_en: 'Home cleaning', name_he: 'ניקיון הבית', desc_en: 'Careful home cleaning with a clear scope and accountable follow-through.', desc_he: 'ניקיון בית מוקפד עם היקף ברור ומעקב אחראי.' },
   { id: 'handyman', mark: '/assets/brand/v2/symbol-handyman.svg', photo: 'handyman-shelf' as DocumentaryId, name_en: 'Handyman', name_he: 'הנדימן', desc_en: 'Small repairs, mounting and practical apartment fixes.', desc_he: 'תיקונים קטנים, תלייה ועבודות מעשיות בדירה.', featured: true },
   { id: 'post-renovation', mark: '/assets/brand/v2/symbol-cleaning.svg', photo: 'post-renovation-cleaning' as DocumentaryId, name_en: 'Post-renovation cleaning', name_he: 'ניקיון אחרי שיפוץ', desc_en: 'Detailed dust and surface cleaning that helps the home feel finished.', desc_he: 'ניקוי יסודי של אבק ומשטחים כדי שהבית ירגיש מוכן.' },
   { id: 'move', mark: '/assets/brand/v2/symbol-access.svg', photo: 'move-in-window-cleaning' as DocumentaryId, name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A clean reset before entering or handing over a home.', desc_he: 'התחלה נקייה לפני כניסה לבית או מסירה שלו.' },
