@@ -10,6 +10,12 @@ http.interceptors.request.use((config) => {
 });
 
 export const cleanfixApi = {
+  async listPublicPartners(limit = 50) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/entities/partners/public`, {
+      params: { limit },
+    });
+    return response.data;
+  },
   async listAccountProfiles() {
     const response = await http.get(`${getAPIBaseURL()}/api/v1/account/profiles`);
     return response.data;

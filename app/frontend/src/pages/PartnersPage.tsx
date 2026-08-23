@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Phone, MessageCircle, MapPin, Building2, ShieldCheck } from 'lucide-react';
-import { client } from '@/lib/api';
+import { cleanfixApi } from '@/lib/cleanfixApi';
 import { getWhatsAppLink } from '@/lib/whatsapp';
 
 const OFFICIAL_PHONE_DISPLAY = '050-827-5505';
@@ -21,8 +21,8 @@ interface Partner {
   business_type: string;
   description_en: string;
   description_he: string;
-  phone: string;
-  whatsapp: string;
+  has_phone: boolean;
+  has_whatsapp: boolean;
   area: string;
   partner_type: string;
   is_active: boolean;
@@ -36,12 +36,8 @@ export default function PartnersPage() {
   useEffect(() => {
     const fetchPartners = async () => {
       try {
-        const response = await client.entities.partners.query({
-          query: { is_active: true },
-          sort: 'sort_order',
-          limit: 50,
-        });
-        setPartners(response.data?.items || []);
+        const response = await cleanfixApi.listPublicPartners();
+        setPartners(response.items || []);
       } catch (err) {
         console.error('Failed to fetch partners:', err);
       } finally {
@@ -84,7 +80,7 @@ export default function PartnersPage() {
           </div>
         )}
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
-          {partner.phone && (
+          {partner.has_phone && (
             <a href={`tel:${OFFICIAL_PHONE_LINK}`} aria-label={`${t.partners.callNow}: ${OFFICIAL_PHONE_DISPLAY}`}>
               <Button size="sm" variant="outline" className="gap-1.5">
                 <Phone className="h-3.5 w-3.5" />
@@ -92,7 +88,7 @@ export default function PartnersPage() {
               </Button>
             </a>
           )}
-          {partner.whatsapp && (
+          {partner.has_whatsapp && (
             <a href={getWhatsAppLink(getPartnerMessage(partner))} target="_blank" rel="noopener noreferrer">
               <Button size="sm" variant="outline" className="gap-1.5 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10">
                 <MessageCircle className="h-3.5 w-3.5" />

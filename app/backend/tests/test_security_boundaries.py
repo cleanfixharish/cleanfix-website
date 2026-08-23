@@ -55,7 +55,7 @@ def test_render_service_worker_is_available_for_cache_retirement(monkeypatch):
     )
     assert response.status_code == 200
     assert "IS_LEGACY_RENDER_ORIGIN" in response.text
-    assert "cleanfix-harish-v6-mobile-recovery" in response.text
+    assert "cleanfix-harish-v7-mobile-install-recovery" in response.text
     assert "shouldNeverCache" in response.text
     assert "isSameOrigin" in response.text
     assert "'/'," not in response.text
@@ -227,6 +227,35 @@ def test_admin_endpoints_reject_anonymous_requests():
     for method, path in protected_requests:
         response = client.request(method, path, json={})
         assert response.status_code == 401, (method, path, response.text)
+
+
+def test_public_partner_directory_route_is_anonymous_and_contact_safe():
+    from routers.partners import PublicPartnerResponse
+
+    matching_routes = [
+        route
+        for route in app.routes
+        if getattr(route, "path", None) == "/api/v1/entities/partners/public"
+        and "GET" in getattr(route, "methods", set())
+    ]
+    assert matching_routes
+    assert all(not route.dependencies for route in matching_routes)
+
+    public_partner = PublicPartnerResponse.model_validate(
+        {
+            "id": 1,
+            "name": "Safe Partner",
+            "partner_type": "partner",
+            "phone": "0500000000",
+            "whatsapp": "0500000000",
+            "email": "private@example.com",
+            "has_phone": True,
+            "has_whatsapp": True,
+        }
+    ).model_dump()
+    assert "phone" not in public_partner
+    assert "whatsapp" not in public_partner
+    assert "email" not in public_partner
 
 
 def test_public_lead_creation_remains_available_without_authentication():

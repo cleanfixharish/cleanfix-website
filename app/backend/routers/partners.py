@@ -81,6 +81,24 @@ class PartnersListResponse(BaseModel):
     limit: int
 
 
+class PublicPartnerResponse(BaseModel):
+    """Public directory fields. Direct partner contact details stay private."""
+    id: int
+    name: str
+    business_type: Optional[str] = None
+    description_en: Optional[str] = None
+    description_he: Optional[str] = None
+    area: Optional[str] = None
+    partner_type: str
+    has_phone: bool = False
+    has_whatsapp: bool = False
+
+
+class PublicPartnersListResponse(BaseModel):
+    items: List[PublicPartnerResponse]
+    total: int
+
+
 class PartnersBatchCreateRequest(BaseModel):
     """Batch create request"""
     items: List[PartnersData]
@@ -103,6 +121,34 @@ class PartnersBatchDeleteRequest(BaseModel):
 
 
 # ---------- Routes ----------
+@router.get("/public", response_model=PublicPartnersListResponse)
+async def query_public_partners(
+    limit: int = Query(50, ge=1, le=200, description="Maximum active partners to return"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return active directory entries without private contact information."""
+    result = await PartnersService(db).get_list(
+        limit=limit,
+        query_dict={"is_active": True},
+        sort="sort_order",
+    )
+    items = [
+        {
+            "id": partner.id,
+            "name": partner.name,
+            "business_type": partner.business_type,
+            "description_en": partner.description_en,
+            "description_he": partner.description_he,
+            "area": partner.area,
+            "partner_type": partner.partner_type,
+            "has_phone": bool(partner.phone),
+            "has_whatsapp": bool(partner.whatsapp),
+        }
+        for partner in result["items"]
+    ]
+    return {"items": items, "total": len(items)}
+
+
 @router.get("", response_model=PartnersListResponse, dependencies=[Depends(get_admin_user)])
 async def query_partnerss(
     query: str = Query(None, description="Query conditions (JSON string)"),
