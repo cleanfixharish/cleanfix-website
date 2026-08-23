@@ -29,8 +29,8 @@ export default function HowItWorksPage() {
                 <h1 className="mb-3 text-3xl font-bold md:text-4xl">{t.howItWorks.title}</h1>
                 <p className="mx-auto max-w-lg text-muted-foreground lg:mx-0">{t.howItWorks.subtitle}</p>
               </div>
-              <div className="cf-photo min-w-0 overflow-hidden rounded-[24px]" style={{ aspectRatio: '3 / 2' }}>
-                <DocumentaryImage id="handyman-shelf" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
+              <div className="cf-photo cf-media-reveal min-w-0 overflow-hidden rounded-[24px]" style={{ aspectRatio: '3 / 2' }}>
+                <DocumentaryImage id="service-journey" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
               </div>
             </div>
           </div>
@@ -40,7 +40,7 @@ export default function HowItWorksPage() {
           <div className="cf-shell">
             <div className="mx-auto max-w-2xl space-y-12">
               {steps.map((step, i) => (
-                <div key={i} className="flex min-w-0 items-start gap-6">
+                <div key={i} className="cf-process-step flex min-w-0 items-start gap-6 rounded-[21px] border border-[#b8842f]/20 bg-[#fbf8f3] p-5 shadow-sm">
                   <div className="shrink-0">
                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                       {step.icon}

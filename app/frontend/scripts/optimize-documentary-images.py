@@ -14,6 +14,8 @@ SOURCES = [
     ROOT / "cleanfix-mobile-v3" / "move-in-window-cleaning.png",
     ROOT / "cleanfix-mobile-v3" / "post-renovation-cleaning.png",
     ROOT / "cleanfix-documentary" / "hero-managed-service.png",
+    ROOT / "cleanfix-documentary" / "quality-handover.png",
+    ROOT / "cleanfix-documentary" / "service-journey.png",
 ]
 
 

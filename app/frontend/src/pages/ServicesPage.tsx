@@ -10,7 +10,7 @@ import { getWhatsAppServiceLink } from '@/lib/whatsapp';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { absoluteApiUrl, cleanfixApi } from '@/lib/cleanfixApi';
-import { serviceDocumentaryMap, type DocumentaryId } from '@/lib/documentaryMedia';
+import { resolveServiceVisualKey, serviceDocumentaryMap, type DocumentaryId } from '@/lib/documentaryMedia';
 import TransformationGallery from '@/components/TransformationGallery';
 import { serviceStories, serviceThumbnailMap } from '@/lib/transformationStories';
 
@@ -32,15 +32,16 @@ export default function ServicesPage() {
   }, []);
 
   const services = liveServices.length ? liveServices.map((item, index) => {
-    const fallback = fallbackServices[index % fallbackServices.length];
+    const visualKey = resolveServiceVisualKey(item);
+    const fallback = fallbackServices.find((service) => service.id === visualKey) || fallbackServices[index % fallbackServices.length];
     return {
       ...fallback,
       ...item,
       id: item.id,
       desc_en: item.description_en,
       desc_he: item.description_he,
-      photo: serviceDocumentaryMap[String(item.slug || fallback.id)] || fallback.photo,
-      thumbnail: serviceThumbnailMap[String(item.slug || fallback.id)] || serviceThumbnailMap[fallback.id],
+      photo: serviceDocumentaryMap[visualKey || String(item.slug || fallback.id)] || fallback.photo,
+      thumbnail: serviceThumbnailMap[visualKey || String(item.slug || fallback.id)] || serviceThumbnailMap[fallback.id],
       priority: index === 0,
     };
   }) : fallbackServices.map((service) => ({ ...service, thumbnail: serviceThumbnailMap[service.id] }));

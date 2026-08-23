@@ -10,7 +10,16 @@ type PublicSiteProps = {
 
 export default function PublicSite({ children, className }: PublicSiteProps) {
   useEffect(() => {
-    cleanfixApi.getSiteSettings().then(applyThemeVariables).catch(() => undefined);
+    cleanfixApi.getSiteSettings().then((settings) => {
+      applyThemeVariables(settings);
+      document.documentElement.dataset.effects = settings.effects_mode || 'reduced';
+    }).catch(() => {
+      document.documentElement.dataset.effects = 'reduced';
+    });
+
+    return () => {
+      delete document.documentElement.dataset.effects;
+    };
   }, []);
 
   return (

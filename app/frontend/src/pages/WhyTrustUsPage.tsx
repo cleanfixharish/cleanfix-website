@@ -40,8 +40,8 @@ export default function WhyTrustUsPage() {
                 <h1 className="mb-3 text-3xl font-bold md:text-4xl">{t.whyTrust.title}</h1>
                 <p className="mx-auto max-w-lg text-muted-foreground lg:mx-0">{t.whyTrust.subtitle}</p>
               </div>
-              <div className="cf-photo min-w-0 overflow-hidden rounded-[24px]" style={{ aspectRatio: '3 / 2' }}>
-                <DocumentaryImage id="ac-maintenance" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
+              <div className="cf-photo cf-media-reveal min-w-0 overflow-hidden rounded-[24px]" style={{ aspectRatio: '3 / 2' }}>
+                <DocumentaryImage id="quality-handover" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
               </div>
             </div>
           </div>
@@ -51,7 +51,7 @@ export default function WhyTrustUsPage() {
           <div className="cf-shell">
             <div className="public-grid grid min-w-0 grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {trustPoints.map((point, i) => (
-                <div key={i} className="flex min-w-0 gap-4">
+                <div key={i} className="cf-trust-card flex min-w-0 gap-4 rounded-[21px] border border-[#b8842f]/20 bg-[#fbf8f3] p-5 shadow-sm">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     {point.icon}
                   </div>

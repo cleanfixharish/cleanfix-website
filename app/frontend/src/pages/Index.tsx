@@ -9,7 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { absoluteApiUrl, cleanfixApi } from '@/lib/cleanfixApi';
-import { documentaryAssets, type DocumentaryId } from '@/lib/documentaryMedia';
+import { documentaryAssets, resolveServiceVisualKey, type DocumentaryId } from '@/lib/documentaryMedia';
 import { getWhatsAppLink, getWhatsAppQuoteMessage } from '@/lib/whatsapp';
 
 type ContentBlock = {
@@ -21,11 +21,11 @@ type ContentBlock = {
 };
 
 const fallbackServices = [
-  { mark: '/assets/brand/v2/symbol-handyman.svg', photo: 'handyman-shelf' as DocumentaryId, name_en: 'Handyman', name_he: 'הנדימן', desc_en: 'Small repairs, mounting and practical apartment fixes.', desc_he: 'תיקונים קטנים, תלייה ועבודות מעשיות בדירה.', featured: true },
-  { mark: '/assets/brand/v2/symbol-cleaning.svg', photo: 'post-renovation-cleaning' as DocumentaryId, name_en: 'Post-renovation cleaning', name_he: 'ניקיון אחרי שיפוץ', desc_en: 'Detailed dust and surface cleaning that helps the home feel finished.', desc_he: 'ניקוי יסודי של אבק ומשטחים כדי שהבית ירגיש מוכן.' },
-  { mark: '/assets/brand/v2/symbol-access.svg', photo: 'move-in-window-cleaning' as DocumentaryId, name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A clean reset before entering or handing over a home.', desc_he: 'התחלה נקייה לפני כניסה לבית או מסירה שלו.' },
-  { mark: '/assets/brand/v2/symbol-ac.svg', photo: 'ac-maintenance' as DocumentaryId, name_en: 'AC cleaning', name_he: 'ניקוי מזגנים', desc_en: 'Practical cleaning for a fresher home environment.', desc_he: 'ניקוי מעשי לסביבה ביתית רעננה יותר.' },
-  { mark: '/assets/brand/v2/symbol-window.svg', photo: 'move-in-window-cleaning' as DocumentaryId, name_en: 'Window cleaning', name_he: 'ניקוי חלונות', desc_en: 'Glass, frames and tracks cleaned for a brighter space.', desc_he: 'ניקוי זכוכית, מסגרות ומסילות לחלל בהיר יותר.' },
+  { id: 'handyman', mark: '/assets/brand/v2/symbol-handyman.svg', photo: 'handyman-shelf' as DocumentaryId, name_en: 'Handyman', name_he: 'הנדימן', desc_en: 'Small repairs, mounting and practical apartment fixes.', desc_he: 'תיקונים קטנים, תלייה ועבודות מעשיות בדירה.', featured: true },
+  { id: 'post-renovation', mark: '/assets/brand/v2/symbol-cleaning.svg', photo: 'post-renovation-cleaning' as DocumentaryId, name_en: 'Post-renovation cleaning', name_he: 'ניקיון אחרי שיפוץ', desc_en: 'Detailed dust and surface cleaning that helps the home feel finished.', desc_he: 'ניקוי יסודי של אבק ומשטחים כדי שהבית ירגיש מוכן.' },
+  { id: 'move', mark: '/assets/brand/v2/symbol-access.svg', photo: 'move-in-window-cleaning' as DocumentaryId, name_en: 'Move-in & move-out cleaning', name_he: 'ניקיון כניסה ויציאה', desc_en: 'A clean reset before entering or handing over a home.', desc_he: 'התחלה נקייה לפני כניסה לבית או מסירה שלו.' },
+  { id: 'ac', mark: '/assets/brand/v2/symbol-ac.svg', photo: 'ac-maintenance' as DocumentaryId, name_en: 'AC cleaning', name_he: 'ניקוי מזגנים', desc_en: 'Practical cleaning for a fresher home environment.', desc_he: 'ניקוי מעשי לסביבה ביתית רעננה יותר.' },
+  { id: 'windows', mark: '/assets/brand/v2/symbol-window.svg', photo: 'move-in-window-cleaning' as DocumentaryId, name_en: 'Window cleaning', name_he: 'ניקוי חלונות', desc_en: 'Glass, frames and tracks cleaned for a brighter space.', desc_he: 'ניקוי זכוכית, מסגרות ומסילות לחלל בהיר יותר.' },
 ];
 
 const documentaryMoments: Array<{ id: DocumentaryId; en: string; he: string }> = [
@@ -78,7 +78,11 @@ export default function Index() {
     return typeof value === 'string' && value.trim() ? value : fallback;
   };
   const services = liveServices.length
-    ? liveServices.map((item, index) => ({ ...fallbackServices[index % fallbackServices.length], ...item, mark: fallbackServices[index % fallbackServices.length].mark, photo: fallbackServices[index % fallbackServices.length].photo, desc_en: item.description_en, desc_he: item.description_he }))
+    ? liveServices.map((item, index) => {
+        const visualKey = resolveServiceVisualKey(item);
+        const fallback = fallbackServices.find((service) => service.id === visualKey) || fallbackServices[index % fallbackServices.length];
+        return { ...fallback, ...item, mark: fallback.mark, photo: fallback.photo, desc_en: item.description_en, desc_he: item.description_he };
+      })
     : fallbackServices;
   const primaryButton = (lang === 'en' ? site.primary_cta_en : site.primary_cta_he) || t.hero.cta;
   const secondaryButton = (lang === 'en' ? site.secondary_cta_en : site.secondary_cta_he) || t.hero.whatsapp;
@@ -129,9 +133,9 @@ export default function Index() {
             <div className="mb-12 text-center"><p className="cf-eyebrow mb-3">{t.services.eyebrow}</p><h2 className="mb-3 text-4xl font-bold text-[#081f28] md:text-5xl">{t.services.title}</h2><p className="mx-auto max-w-2xl text-muted-foreground">{t.services.subtitle}</p></div>
             <div className="public-grid public-services-grid grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-6">
               {services.slice(0, 5).map((service: any, index: number) => (
-                <Card key={service.id || index} className={`group min-w-0 overflow-hidden border-[#b8842f]/35 bg-[#f7f2ea] transition ${service.featured ? 'sm:col-span-2 lg:col-span-2' : 'lg:col-span-1'}`}>
-                  <div className="aspect-[3/2] overflow-hidden bg-[#102e38]/10">
-                    <DocumentaryImage id={service.photo} lang={lang} sizes={service.featured ? '(max-width: 640px) 100vw, 50vw' : '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 20vw'} />
+                <Card key={service.id || index} className={`cf-visual-card group min-w-0 overflow-hidden border-[#b8842f]/35 bg-[#f7f2ea] transition ${service.featured ? 'sm:col-span-2 lg:col-span-2' : 'lg:col-span-1'}`}>
+                  <div className="cf-media-frame aspect-[3/2] overflow-hidden bg-[#102e38]/10">
+                    <DocumentaryImage id={service.photo} lang={lang} className="cf-media-image" sizes={service.featured ? '(max-width: 640px) 100vw, 50vw' : '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 20vw'} />
                   </div>
                   <CardContent className="flex h-full flex-col gap-4 p-6"><div className="cf-gold-icon flex h-14 w-14 items-center justify-center rounded-2xl"><img src={service.mark} alt="" width={48} height={48} className="h-12 w-12" /></div><div><h3 className="font-medium">{lang === 'en' ? service.name_en : service.name_he}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{lang === 'en' ? service.desc_en : service.desc_he}</p></div></CardContent>
                 </Card>
