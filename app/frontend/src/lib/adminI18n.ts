@@ -65,6 +65,8 @@ export const adminHebrew: Record<string, string> = {
   'View providers': 'צפייה בבעלי מקצוע',
   'Send WhatsApp': 'שליחת וואטסאפ',
   'Review jobs': 'סקירת עבודות',
+  'Inbound email': 'דואר נכנס',
+  'Open received email': 'פתיחת הדואר שהתקבל',
   'Active work': 'עבודה פעילה',
   'Real leads marked scheduled or in progress': 'לידים אמיתיים שסומנו כמתוזמנים או בתהליך',
   'No active work is recorded yet.': 'עדיין לא נרשמה עבודה פעילה.',

@@ -1227,6 +1227,22 @@ function Overview({
                 <span className="block text-sm">{tr(a.l)}</span>
               </button>
             ))}
+            <a
+              href="https://resend.com/emails/receiving"
+              target="_blank"
+              rel="noreferrer"
+              className="col-span-2 flex items-center gap-3 rounded-2xl border border-[#D8C092]/35 bg-[#D8C092]/12 p-4 text-start transition hover:bg-[#D8C092]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D8C092]"
+              aria-label={tr("Open received email")}
+            >
+              <Inbox className="h-5 w-5 shrink-0 text-[#D8C092]" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium">{tr("Inbound email")}</span>
+                <span className="mt-0.5 block truncate text-xs text-white/70" dir="ltr">
+                  inbox@auth.cleanfixharish.co.il
+                </span>
+              </span>
+              <ExternalLink className="h-4 w-4 shrink-0 text-[#D8C092]" />
+            </a>
           </CardContent>
         </Card>
       </div>
@@ -3859,6 +3875,27 @@ const platformEntries: PlatformEntry[] = [
       Billing: undefined,
       Dashboard: "https://dash.cloudflare.com/",
       Documentation: "https://developers.cloudflare.com/",
+    },
+  },
+  {
+    name: "Resend",
+    category: "Email",
+    purpose: "Sends account emails and receives messages for the dedicated authentication domain.",
+    planType: "Free tier — confirm current limits",
+    cadence: "Monthly",
+    confirmedCost: 0,
+    currency: "USD",
+    renewalDate: null,
+    accountOwner: "CleanFixHarish owner",
+    status: "Production",
+    notes: "Use the Receiving dashboard as the operational inbound-email view. Secrets remain inside Resend and Supabase.",
+    lastVerified: "2026-08-23",
+    icon: Inbox,
+    actions: {
+      Usage: "https://resend.com/metrics",
+      Billing: "https://resend.com/settings/billing",
+      Dashboard: "https://resend.com/emails/receiving",
+      Documentation: "https://resend.com/docs/dashboard/receiving/introduction",
     },
   },
   {
