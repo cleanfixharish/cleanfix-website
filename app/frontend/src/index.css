@@ -263,7 +263,11 @@
   .cf-eyebrow {
     @apply text-xs font-extrabold uppercase;
     letter-spacing: 0.2em;
-    color: #9a681f;
+    color: #875714;
+  }
+
+  .cf-navy-panel .cf-eyebrow {
+    color: #f0c96f;
   }
 
   .cf-gold-rule {
