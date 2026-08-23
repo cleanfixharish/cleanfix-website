@@ -71,6 +71,23 @@ class RPApi {
     return response.data;
   }
 
+  async getBusinessAccess(): Promise<{
+    account_type: 'business';
+    relationships: Array<{ relationship_type: 'managed_provider' | 'referral_partner'; status: 'pending' | 'active' | 'paused' | 'rejected' | 'revoked' }>;
+  }> {
+    const response = await this.client.get(`${this.getBaseURL()}/api/v1/business-access/me`);
+    return response.data;
+  }
+
+  async getBusinessPortalContext(kind: 'provider' | 'partner'): Promise<{
+    relationship_id: number;
+    relationship_type: 'managed_provider' | 'referral_partner';
+    status: 'active';
+  }> {
+    const response = await this.client.get(`${this.getBaseURL()}/api/v1/business-access/${kind}/context`);
+    return response.data;
+  }
+
   async updateProfile(data: Record<string, unknown>) {
     const response = await this.client.put(`${this.getBaseURL()}/api/v1/account/profile`, data);
     return response.data;

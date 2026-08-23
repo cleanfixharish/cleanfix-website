@@ -18,7 +18,7 @@ from core.auth import (
 from core.config import settings
 from core.database import get_db
 from core.environment import legacy_platform_token_exchange_enabled
-from dependencies.auth import get_current_user
+from dependencies.auth import get_current_user, get_optional_current_user
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from models.auth import User
@@ -435,9 +435,9 @@ async def exchange_supabase_token(
     return TokenExchangeResponse(token=app_token)
 
 
-@router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: UserResponse = Depends(get_current_user)):
-    """Get current user info."""
+@router.get("/me", response_model=Optional[UserResponse])
+async def get_current_user_info(current_user: Optional[UserResponse] = Depends(get_optional_current_user)):
+    """Return the current user, or null when the visitor is signed out."""
     return current_user
 
 

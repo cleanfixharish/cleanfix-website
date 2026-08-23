@@ -27,7 +27,7 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="mb-3 text-sm font-semibold text-[#f0c96f]">{lang === 'en' ? 'Quick Links' : 'קישורים מהירים'}</h4>
+            <h2 className="mb-3 text-sm font-semibold text-[#f0c96f]">{lang === 'en' ? 'Quick Links' : 'קישורים מהירים'}</h2>
             <div className="flex flex-col gap-2">
               <Link to="/services" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
                 {t.nav.services}
@@ -55,7 +55,7 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="mb-3 text-sm font-semibold text-[#f0c96f]">{t.contact.title}</h4>
+            <h2 className="mb-3 text-sm font-semibold text-[#f0c96f]">{t.contact.title}</h2>
             <div className="flex flex-col gap-3">
               <a
                 href={getWhatsAppLink()}
@@ -86,7 +86,7 @@ export default function Footer() {
             </div>
 
             {/* Social Media */}
-            <h4 className="mb-3 mt-6 text-sm font-semibold text-[#f0c96f]">{lang === 'en' ? 'Follow Us' : 'עקבו אחרינו'}</h4>
+            <h2 className="mb-3 mt-6 text-sm font-semibold text-[#f0c96f]">{lang === 'en' ? 'Follow Us' : 'עקבו אחרינו'}</h2>
             <div className="flex items-center gap-2">
               <a
                 href="https://facebook.com/cleanfixharish"

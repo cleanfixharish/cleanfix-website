@@ -162,7 +162,7 @@ export default function Header() {
               variant="ghost"
               size="sm"
               onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
-              aria-label={lang === 'en' ? 'Switch site to Hebrew' : 'החלפת האתר לאנגלית'}
+              aria-label={lang === 'en' ? 'עב — Switch site to Hebrew' : 'EN — החלפת האתר לאנגלית'}
               className="min-h-11 min-w-11 gap-1.5"
             >
               <Globe className="h-4 w-4" />

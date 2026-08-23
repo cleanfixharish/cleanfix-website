@@ -179,6 +179,11 @@ export const cleanfixApi = {
     return response.data as { content: string; model?: string };
   },
 
+  async generateThemePalette(data: { color: string; type: 'complementary' | 'analogous' | 'triadic' }) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/theme-palettes/generate`, data);
+    return response.data;
+  },
+
   async generateVideo(data: {
     prompt: string;
     image?: string;

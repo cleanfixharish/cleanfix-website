@@ -18,7 +18,6 @@ from core.auth import AccessTokenError, decode_access_token
 
 # MODULE_IMPORTS_START
 from services.database import check_database_health, initialize_database, close_database
-from services.mock_data import initialize_mock_data
 from services.auth import initialize_admin_user
 from services.pricing_baseline import ensure_pricing_baseline
 from core.database import db_manager
@@ -70,7 +69,6 @@ async def lifespan(app: FastAPI):
     if db_manager.async_session_maker:
         async with db_manager.async_session_maker() as pricing_session:
             await ensure_pricing_baseline(pricing_session)
-    await initialize_mock_data()
     await initialize_admin_user()
     # MODULE_STARTUP_END
 
@@ -297,7 +295,7 @@ async def readiness_check():
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
-FINGERPRINTED_ASSET = re.compile(r".+-[A-Za-z0-9_]{8,}\.(js|css)$")
+FINGERPRINTED_ASSET = re.compile(r".+-[A-Za-z0-9_-]{8,}\.(js|css)$")
 
 FRONTEND_MEDIA_TYPES = {
     ".webp": "image/webp",

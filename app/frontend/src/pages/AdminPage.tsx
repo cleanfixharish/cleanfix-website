@@ -85,6 +85,7 @@ import AiVideoStudio from "@/components/admin/AiVideoStudio";
 import ShareOnboarding from "@/components/admin/ShareOnboarding";
 import BusinessRulesCenter from "@/components/admin/BusinessRulesCenter";
 import GrowthCenter from "@/components/admin/GrowthCenter";
+import ThemeStudio from "@/components/admin/ThemeStudio";
 
 type Section =
   | "overview"
@@ -3342,33 +3343,10 @@ function ContentControl() {
             title="2. Look and buttons"
             subtitle="Choose safe brand colors and the homepage layout"
           >
-            <div className="grid gap-4 sm:grid-cols-3">
-              {(
-                [
-                  ["Main color", "primary_color"],
-                  ["Gold accent", "accent_color"],
-                  ["Page background", "surface_color"],
-                ] as const
-              ).map(([label, key]) => (
-                <label key={key} className="text-xs text-[#625B53]">
-                  {label}
-                  <div className="mt-2 flex items-center gap-2 rounded-xl border bg-white p-2">
-                    <input
-                      type="color"
-                      value={settings[key]}
-                      onChange={(event) =>
-                        setSettings({
-                          ...settings,
-                          [key]: event.target.value.toUpperCase(),
-                        })
-                      }
-                      className="h-9 w-12"
-                    />
-                    <span>{settings[key]}</span>
-                  </div>
-                </label>
-              ))}
-            </div>
+            <ThemeStudio
+              value={settings}
+              onChange={(colors) => setSettings({ ...settings, ...colors })}
+            />
             <div className="mt-4">
               <Label>{tr("Hero layout")}</Label>
               <Select

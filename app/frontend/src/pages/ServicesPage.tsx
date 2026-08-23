@@ -68,7 +68,14 @@ export default function ServicesPage() {
                       {service.image_url ? (
                         <img src={absoluteApiUrl(service.image_url)} alt={lang === 'en' ? service.name_en : service.name_he} width={1200} height={800} className="h-full w-full object-cover" loading="lazy" />
                       ) : service.thumbnail ? (
-                        <img src={service.thumbnail} alt={lang === 'en' ? service.name_en : service.name_he} width={1536} height={1024} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" loading="lazy" decoding="async" />
+                        <picture>
+                          <source
+                            type="image/webp"
+                            srcSet={`${service.thumbnail.replace('-1536.webp', '-960.webp')} 960w, ${service.thumbnail} 1536w`}
+                            sizes={service.priority ? '(max-width: 640px) 100vw, 60vw' : '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw'}
+                          />
+                          <img src={service.thumbnail} alt={lang === 'en' ? service.name_en : service.name_he} width={1536} height={1024} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" loading="lazy" decoding="async" />
+                        </picture>
                       ) : (
                         <DocumentaryImage id={service.photo} lang={lang} sizes={service.priority ? '(max-width: 640px) 100vw, 60vw' : '(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw'} />
                       )}

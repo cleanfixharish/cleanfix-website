@@ -219,6 +219,7 @@ def test_admin_endpoints_reject_anonymous_requests():
         ("GET", "/api/v1/quotes"),
         ("GET", "/api/v1/entities/jobs"),
         ("POST", "/api/v1/site-media"),
+        ("POST", "/api/v1/theme-palettes/generate"),
         ("POST", "/api/v1/aihub/gentxt"),
         ("POST", "/api/v1/storage/create-bucket"),
     )

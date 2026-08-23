@@ -1,13 +1,16 @@
 import hashlib
 import logging
 from datetime import datetime
-from typing import Optional
+from dataclasses import dataclass
+from typing import Literal, Optional
 
 from core.auth import AccessTokenError, decode_access_token
 from core.database import get_db
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from models.viewer_access import ViewerAccess
+from models.account_profile import AccountProfile
+from models.business_relationship import BusinessRelationship
 from core.config import settings
 from schemas.auth import UserResponse
 from sqlalchemy import select
@@ -16,6 +19,63 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+BusinessRelationshipType = Literal["managed_provider", "referral_partner"]
+
+
+@dataclass(frozen=True)
+class BusinessPortalPrincipal:
+    user: UserResponse
+    relationship_id: int
+    relationship_type: BusinessRelationshipType
+
+
+async def _get_business_portal_principal(
+    relationship_type: BusinessRelationshipType,
+    current_user: UserResponse,
+    db: AsyncSession,
+) -> BusinessPortalPrincipal:
+    """Authorize one exact, active business relationship.
+
+    Account type and JWT role are deliberately insufficient. This prevents a
+    customer, pending applicant, revoked business, or the other business portal
+    role from crossing the boundary.
+    """
+    if current_user.role != "user":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="An approved business relationship is required",
+        )
+
+    profile_result = await db.execute(
+        select(AccountProfile).where(AccountProfile.user_id == current_user.id)
+    )
+    profile = profile_result.scalar_one_or_none()
+    if profile is None or profile.account_type != "business":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="A business account is required",
+        )
+
+    relationship_result = await db.execute(
+        select(BusinessRelationship).where(
+            BusinessRelationship.user_id == current_user.id,
+            BusinessRelationship.relationship_type == relationship_type,
+            BusinessRelationship.status == "active",
+        )
+    )
+    relationship = relationship_result.scalar_one_or_none()
+    if relationship is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Active {relationship_type} approval is required",
+        )
+
+    return BusinessPortalPrincipal(
+        user=current_user,
+        relationship_id=relationship.id,
+        relationship_type=relationship_type,
+    )
 
 
 async def get_bearer_token(
@@ -98,10 +158,23 @@ async def get_dashboard_viewer(
         )
     )
 
-
     if result.scalar_one_or_none() is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Viewer access has been removed")
     return current_user
+
+
+async def get_managed_provider(
+    current_user: UserResponse = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> BusinessPortalPrincipal:
+    return await _get_business_portal_principal("managed_provider", current_user, db)
+
+
+async def get_referral_partner(
+    current_user: UserResponse = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> BusinessPortalPrincipal:
+    return await _get_business_portal_principal("referral_partner", current_user, db)
 
 
 async def get_optional_current_user(

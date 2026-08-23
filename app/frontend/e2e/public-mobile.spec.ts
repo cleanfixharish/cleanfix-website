@@ -9,6 +9,8 @@ const publicRoutes = [
   '/about',
   '/how-it-works',
   '/why-trust-us',
+  '/provider',
+  '/partner',
 ];
 
 async function assertNoHorizontalOverflow(page: Page) {
@@ -42,7 +44,29 @@ async function assertUsableTouchTargets(page: Page) {
   expect(tooSmall, JSON.stringify(tooSmall)).toEqual([]);
 }
 
+async function mockUnauthenticatedApi(page: Page) {
+  await page.route('**/api/config', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ API_BASE_URL: '' }),
+  }));
+  await page.route('**/api/v1/auth/me', (route) => route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Not authenticated' }),
+  }));
+  await page.route('**/api/v1/auth/status', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ configured: true, provider: 'supabase', email_configured: true, email_signup_configured: false }),
+  }));
+}
+
 test.describe('public mobile coverage', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockUnauthenticatedApi(page);
+  });
+
   for (const route of publicRoutes) {
     test(`${route} stays inside the viewport`, async ({ page }) => {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
@@ -82,7 +106,7 @@ test.describe('public mobile coverage', () => {
 
     await page.goto('/services');
     const serviceWebp = page.locator('main source[type="image/webp"]').first();
-    await expect(serviceWebp).toHaveAttribute('srcset', /\/assets\/images\/cleanfix-mobile-v3\/web\/.+\.webp 480w/);
+    await expect(serviceWebp).toHaveAttribute('srcset', /\/assets\/images\/transformations\/.+-960\.webp 960w/);
     await expect(page.locator('main picture img').first()).toHaveAttribute('loading', 'lazy');
   });
 
@@ -92,9 +116,39 @@ test.describe('public mobile coverage', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', /rtl|ltr/);
     await assertNoHorizontalOverflow(page);
   });
+
+  for (const route of ['/provider', '/partner']) {
+    test(`${route} is gated and does not expose fabricated dashboard data`, async ({ page }) => {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('heading', { name: /sign-in required/i })).toBeVisible();
+      await expect(page.getByText(/₪0|0%/)).toHaveCount(0);
+      await assertNoHorizontalOverflow(page);
+    });
+  }
+
+  for (const portal of [
+    { route: '/provider', relationship: 'managed_provider', heading: /managed-provider request is pending/i },
+    { route: '/partner', relationship: 'referral_partner', heading: /independent-business request is pending/i },
+  ]) {
+    test(`${portal.route} keeps a pending business relationship outside the portal`, async ({ page }) => {
+      await page.addInitScript(() => localStorage.setItem('cleanfix_access_token', 'test-token'));
+      await page.route('**/api/v1/auth/me', (route) => route.fulfill({ json: { id: 'business-1', email: 'business@example.test', role: 'user' } }));
+      await page.route('**/api/v1/account/profile', (route) => route.fulfill({ json: { account_type: 'business' } }));
+      await page.route('**/api/v1/business-access/me', (route) => route.fulfill({ json: { account_type: 'business', relationships: [{ relationship_type: portal.relationship, status: 'pending' }] } }));
+      await page.route('**/api/v1/business-access/*/context', (route) => route.fulfill({ status: 500, json: { detail: 'Context must not be requested for pending access' } }));
+
+      await page.goto(portal.route, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('heading', { name: portal.heading })).toBeVisible();
+      await expect(page.getByText('Account-specific tour')).toHaveCount(0);
+    });
+  }
 });
 
 test.describe('android desktop-site recovery', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockUnauthenticatedApi(page);
+  });
+
   for (const route of publicRoutes) {
     test(`${route} does not keep a desktop multi-column canvas`, async ({ page }, testInfo) => {
       test.skip(testInfo.project.name !== 'android-desktop-site', '980px coarse-pointer project only');

@@ -32,6 +32,15 @@
     --sidebar-accent-foreground: 38 43% 97%;
     --sidebar-border: 190 27% 27%;
     --sidebar-ring: 40 59% 48%;
+    --cf-primary: #102e38;
+    --cf-primary-foreground: #ffffff;
+    --cf-accent: #b8842f;
+    --cf-accent-foreground: #081f28;
+    --cf-surface: #f7f2ea;
+  }
+
+  .public-site {
+    background-color: var(--cf-surface);
   }
 
   .dark {
@@ -121,8 +130,7 @@
   }
 
   main p a:not([role="button"]),
-  main li a:not([role="button"]),
-  footer a:not([role="button"]) {
+  main li a:not([role="button"]) {
     color: #805416;
     font-weight: 650;
     text-decoration-line: underline;
@@ -135,10 +143,18 @@
   }
 
   main p a:not([role="button"]):hover,
-  main li a:not([role="button"]):hover,
-  footer a:not([role="button"]):hover {
+  main li a:not([role="button"]):hover {
     color: #102e38;
     text-decoration-color: #6f4818;
+  }
+
+  footer a:not([role="button"]) {
+    color: #e8d8be;
+    font-weight: 600;
+  }
+
+  footer a:not([role="button"]):hover {
+    color: #ffffff;
   }
 
   a:focus-visible,

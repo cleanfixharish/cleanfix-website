@@ -34,6 +34,18 @@ const documentaryMoments: Array<{ id: DocumentaryId; en: string; he: string }> =
   { id: 'move-in-window-cleaning', en: 'A clear reset before keys change hands', he: 'איפוס ברור לפני החלפת מפתחות' },
 ];
 
+function readableTextColor(background: string) {
+  const hex = background.trim().replace('#', '');
+  if (!/^[\da-f]{6}$/i.test(hex)) return '#081f28';
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255);
+  const luminance = channels
+    .map((channel) => (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4))
+    .reduce((total, channel, index) => total + channel * [0.2126, 0.7152, 0.0722][index], 0);
+  const contrastWithNavy = (luminance + 0.05) / 0.063;
+  const contrastWithWhite = 1.05 / (luminance + 0.05);
+  return contrastWithNavy >= contrastWithWhite ? '#081f28' : '#ffffff';
+}
+
 export default function Index() {
   const { t, lang } = useLanguage();
   const [cms, setCms] = useState<Record<string, ContentBlock>>({});
@@ -71,6 +83,7 @@ export default function Index() {
   const primaryButton = (lang === 'en' ? site.primary_cta_en : site.primary_cta_he) || t.hero.cta;
   const secondaryButton = (lang === 'en' ? site.secondary_cta_en : site.secondary_cta_he) || t.hero.whatsapp;
   const hero = documentaryAssets['hero-managed-service'];
+  const primaryTextColor = readableTextColor(site.primary_color || '#102E38');
 
   return (
     <PublicSite>
@@ -85,7 +98,7 @@ export default function Index() {
                 <h1 className="mb-5 break-words text-4xl font-bold leading-[1.02] text-[#081f28] sm:text-5xl md:text-[3.8rem]">{cmsValue('hero', 'title', t.hero.title)}</h1>
                 <p className="mb-8 text-base leading-relaxed text-muted-foreground md:text-lg">{cmsValue('hero', 'content', t.hero.subtitle)}</p>
                 <div className="public-hero-actions flex flex-col gap-3 min-[430px]:flex-row min-[430px]:flex-wrap">
-                  <Link to="/quote" className="min-w-0"><Button size="lg" className="w-full min-h-11 gap-2 text-white" style={{ backgroundColor: site.primary_color }}>{primaryButton}<ArrowRight className="h-4 w-4 rtl-flip" /></Button></Link>
+                  <Link to="/quote" className="min-w-0"><Button size="lg" className="w-full min-h-11 gap-2" style={{ backgroundColor: site.primary_color, color: primaryTextColor }}>{primaryButton}<ArrowRight className="h-4 w-4 rtl-flip" /></Button></Link>
                   <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="min-w-0"><Button size="lg" variant="outline" className="w-full min-h-11 gap-2 border-[#b8842f]/60 bg-[#f7f2ea]/80 text-[#102e38]"><MessageCircle className="h-5 w-5" />{secondaryButton}</Button></a>
                 </div>
                 <Link to="/account" className="mt-5 flex max-w-md items-center gap-3 rounded-2xl border border-[#b8842f]/40 bg-[#fbf8f3]/80 p-3 text-[#102e38] no-underline shadow-sm">
@@ -157,10 +170,10 @@ export default function Index() {
           </div>
         </section>
 
-        <section className="text-white" style={{ backgroundColor: site.primary_color }}><div className="cf-shell py-[55px] md:py-[89px]"><p className="cf-eyebrow">{t.home.localSupport}</p><h2 className="mb-4 text-4xl font-bold text-white md:text-5xl">{t.home.ctaTitle}</h2><p className="mb-8 max-w-xl text-white/80">{t.home.ctaSubtitle}</p><Link to="/quote"><Button size="lg" className="min-h-11 bg-[#e8d8be] text-[#102e38] hover:bg-[#f7f2ea]">{primaryButton}</Button></Link></div></section>
+        <section style={{ backgroundColor: site.primary_color, color: primaryTextColor }}><div className="cf-shell py-[55px] md:py-[89px]"><p className="cf-eyebrow" style={{ color: primaryTextColor }}>{t.home.localSupport}</p><h2 className="mb-4 text-4xl font-bold md:text-5xl">{t.home.ctaTitle}</h2><p className="mb-8 max-w-xl">{t.home.ctaSubtitle}</p><Link to="/quote"><Button size="lg" className="min-h-11 bg-[#e8d8be] text-[#102e38] hover:bg-[#f7f2ea]">{primaryButton}</Button></Link></div></section>
       </main>
 
-      <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] end-4 z-50 flex min-h-14 items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 font-semibold text-white shadow-lg" aria-label={t.home.chatWhatsApp}><MessageCircle className="h-6 w-6 text-white" /><span className="text-sm">{t.hero.whatsapp}</span></a>
+      <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] end-4 z-50 flex min-h-14 items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 font-semibold text-[#0b2815] shadow-lg" aria-label={`${t.hero.whatsapp} — WhatsApp`}><MessageCircle className="h-6 w-6" /><span className="text-sm">{t.hero.whatsapp}</span></a>
       <Footer />
     </PublicSite>
   );
