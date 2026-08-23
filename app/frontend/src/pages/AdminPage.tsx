@@ -147,7 +147,7 @@ type RegisteredAccount = {
   email: string;
   phone: string;
   area: string;
-  vipNumber: string;
+  accountNumber: string;
   businessName: string;
   businessCategory: string;
   applicationStatus: string;
@@ -402,7 +402,7 @@ function mapRegisteredAccounts(accountResponse: any[], tr: (text: string) => str
     email: account.email || "",
     phone: account.phone || "",
     area: account.area || "Harish",
-    vipNumber: account.vip_number || "",
+    accountNumber: account.account_number || "",
     businessName: account.business_name || "",
     businessCategory: account.business_category || "",
     applicationStatus: account.application_status || "setup_incomplete",
@@ -1330,14 +1330,14 @@ function Leads({
                       {tr(account.accountType === "business" ? "Service provider account" : "Customer account")}
                     </Badge>
                   </div>
-                  <p className="mt-1 break-all text-xs text-[#786F65]" dir="ltr">{account.email || account.vipNumber}</p>
+                  <p className="mt-1 break-all text-xs text-[#786F65]" dir="ltr">{account.email || account.accountNumber}</p>
                   {account.phone ? (
                     <p className="mt-1 text-xs text-[#786F65]" dir="ltr">{account.phone}</p>
                   ) : (
                     <p className="mt-1 text-xs text-[#8A8177]">{tr("Phone will appear after account setup.")}</p>
                   )}
-                  {account.vipNumber && (
-                    <p className="mt-1 text-xs text-[#786F65]" dir="ltr">{account.vipNumber}</p>
+                  {account.accountNumber && (
+                    <p className="mt-1 text-xs text-[#786F65]" dir="ltr">{account.accountNumber}</p>
                   )}
                   {account.accountType === "business" && (
                     <p className="mt-2 text-sm text-[#405155]">{account.businessName} · {account.businessCategory || tr("Category pending")}</p>

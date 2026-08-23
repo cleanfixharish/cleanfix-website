@@ -19,6 +19,7 @@ const QuotePage = lazy(() => import('./pages/QuotePage'));
 const PublicQuotePage = lazy(() => import('./pages/PublicQuotePage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
+const SupabaseAuthCallback = lazy(() => import('./pages/SupabaseAuthCallback'));
 const AuthError = lazy(() => import('./pages/AuthError'));
 const AccountPage = lazy(() => import('./pages/AccountPage'));
 const AccessibilityPage = lazy(() => import('./pages/AccessibilityPage'));
@@ -65,6 +66,7 @@ const AppRoutes = () => (
         }
       />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/auth/supabase-callback" element={<SupabaseAuthCallback />} />
       <Route path="/auth/error" element={<AuthError />} />
     </Routes>
   </Suspense>

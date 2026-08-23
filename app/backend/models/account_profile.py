@@ -13,7 +13,7 @@ class AccountProfile(Base):
     area = Column(String(100), nullable=True)
     preferred_language = Column(String(5), nullable=False, server_default="en")
     whatsapp_opt_in = Column(Boolean, nullable=False, server_default="false")
-    vip_number = Column(String(30), unique=True, index=True, nullable=False)
+    account_number = Column(String(30), unique=True, index=True, nullable=False)
     business_name = Column(String(200), nullable=True)
     business_category = Column(String(150), nullable=True)
     business_description = Column(Text, nullable=True)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, Crown, Heart, MessageCircle, Shield, UserRound } from 'lucide-react';
+import { ArrowRight, BadgeCheck, ClipboardCheck, Heart, MessageCircle, Shield, UserRound } from 'lucide-react';
 import DocumentaryImage from '@/components/DocumentaryImage';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
@@ -89,7 +89,7 @@ export default function Index() {
                   <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="min-w-0"><Button size="lg" variant="outline" className="w-full min-h-11 gap-2 border-[#b8842f]/60 bg-[#f7f2ea]/80 text-[#102e38]"><MessageCircle className="h-5 w-5" />{secondaryButton}</Button></a>
                 </div>
                 <Link to="/account" className="mt-5 flex max-w-md items-center gap-3 rounded-2xl border border-[#b8842f]/40 bg-[#fbf8f3]/80 p-3 text-[#102e38] no-underline shadow-sm">
-                  <span className="cf-gold-icon flex h-11 w-11 items-center justify-center rounded-xl"><Crown className="h-5 w-5 text-[#f0c96f]" /></span>
+                  <span className="cf-gold-icon flex h-11 w-11 items-center justify-center rounded-xl"><ClipboardCheck className="h-5 w-5 text-[#f0c96f]" /></span>
                   <span className="min-w-0 flex-1"><strong className="block text-sm">{t.home.vipTitle}</strong><span className="block text-xs text-[#5d6b6d]">{t.home.vipSubtitle}</span></span><UserRound className="h-5 w-5 shrink-0" />
                 </Link>
               </div>
@@ -160,7 +160,7 @@ export default function Index() {
         <section className="text-white" style={{ backgroundColor: site.primary_color }}><div className="cf-shell py-[55px] md:py-[89px]"><p className="cf-eyebrow">{t.home.localSupport}</p><h2 className="mb-4 text-4xl font-bold text-white md:text-5xl">{t.home.ctaTitle}</h2><p className="mb-8 max-w-xl text-white/80">{t.home.ctaSubtitle}</p><Link to="/quote"><Button size="lg" className="min-h-11 bg-[#e8d8be] text-[#102e38] hover:bg-[#f7f2ea]">{primaryButton}</Button></Link></div></section>
       </main>
 
-      <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] end-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-lg" aria-label={t.home.chatWhatsApp}><MessageCircle className="h-7 w-7 text-white" /></a>
+      <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] end-4 z-50 flex min-h-14 items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 font-semibold text-white shadow-lg" aria-label={t.home.chatWhatsApp}><MessageCircle className="h-6 w-6 text-white" /><span className="text-sm">{t.hero.whatsapp}</span></a>
       <Footer />
     </PublicSite>
   );

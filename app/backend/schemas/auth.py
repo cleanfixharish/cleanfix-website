@@ -25,3 +25,9 @@ class TokenExchangeResponse(BaseModel):
     """Response body for issued application token."""
 
     token: str
+
+
+class SupabaseTokenExchangeRequest(BaseModel):
+    """Short-lived Supabase access token exchanged for a CleanFixHarish token."""
+
+    access_token: str

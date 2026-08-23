@@ -24,11 +24,16 @@ class AuthService:
         start_time = time.time()
         logger.debug(f"[DB_OP] Starting get_or_create_user - platform_sub: {platform_sub}")
         # Try to find existing user
-        result = await self.db.execute(select(User).where(User.id == platform_sub))
+        normalized_email = email.strip().lower()
+        result = await self.db.execute(
+            select(User)
+            .where((User.id == platform_sub) | (User.email == normalized_email))
+            .order_by((User.id == platform_sub).desc())
+            .limit(1)
+        )
         user = result.scalar_one_or_none()
         logger.debug(f"[DB_OP] User lookup completed in {time.time() - start_time:.4f}s - found: {user is not None}")
 
-        normalized_email = email.strip().lower()
         admin_email = getattr(settings, "admin_user_email", "").strip().lower()
         access_result = await self.db.execute(
             select(ViewerAccess).where(ViewerAccess.email == normalized_email, ViewerAccess.is_active.is_(True))

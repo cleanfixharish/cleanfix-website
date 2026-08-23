@@ -42,8 +42,16 @@ class RPApi {
     window.location.assign(`${this.getBaseURL()}/api/v1/auth/login`);
   }
 
-  async getStatus(): Promise<{ configured: boolean; provider: string }> {
+  async getStatus(): Promise<{ configured: boolean; provider: string; email_configured: boolean; email_signup_configured: boolean }> {
     const response = await this.client.get(`${this.getBaseURL()}/api/v1/auth/status`);
+    return response.data;
+  }
+
+  async exchangeSupabaseToken(accessToken: string) {
+    const response = await this.client.post(`${this.getBaseURL()}/api/v1/auth/supabase/exchange`, {
+      access_token: accessToken,
+    });
+    this.storeSession(response.data.token);
     return response.data;
   }
 

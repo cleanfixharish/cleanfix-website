@@ -197,6 +197,37 @@
   transition-duration: 0.01ms !important;
 }
 
+.a11y-readable-font body,
+.a11y-readable-font h1,
+.a11y-readable-font h2,
+.a11y-readable-font h3,
+.a11y-readable-font h4,
+.a11y-readable-font h5,
+.a11y-readable-font h6 {
+  font-family: Arial, "Noto Sans Hebrew", sans-serif !important;
+  letter-spacing: normal !important;
+}
+
+.a11y-grayscale body {
+  filter: grayscale(1);
+}
+
+.a11y-text-spacing body {
+  letter-spacing: 0.08em !important;
+  line-height: 1.75 !important;
+  word-spacing: 0.12em !important;
+}
+
+.a11y-large-pointer,
+.a11y-large-pointer * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 2v24l6-6 4 9 5-2-4-9h9z' fill='white' stroke='black' stroke-width='2'/%3E%3C/svg%3E") 4 2, auto !important;
+}
+
+:focus-visible {
+  outline: 3px solid #d09a32 !important;
+  outline-offset: 3px !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

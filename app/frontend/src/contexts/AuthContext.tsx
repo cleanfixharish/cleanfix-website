@@ -71,6 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       setError(null);
+      await import('../lib/supabaseAuth').then(({ signOutSupabase }) => signOutSupabase());
       await authApi.logout();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Logout failed');

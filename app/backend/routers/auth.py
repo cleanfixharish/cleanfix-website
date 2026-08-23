@@ -24,6 +24,7 @@ from fastapi.responses import RedirectResponse
 from models.auth import User
 from schemas.auth import (
     PlatformTokenExchangeRequest,
+    SupabaseTokenExchangeRequest,
     TokenExchangeResponse,
     UserResponse,
 )
@@ -46,12 +47,19 @@ async def require_legacy_platform_token_exchange() -> None:
 @router.get("/status")
 async def auth_status():
     """Expose only whether sign-in is configured, never credential values."""
+    email_provider_configured = bool(
+        os.getenv("SUPABASE_URL", "").strip()
+        and os.getenv("SUPABASE_PUBLISHABLE_KEY", "").strip()
+    )
     return {
         "configured": bool(
             os.getenv("OIDC_CLIENT_ID", "").strip()
             and os.getenv("OIDC_CLIENT_SECRET", "").strip()
         ),
         "provider": "google",
+        "email_configured": email_provider_configured,
+        "email_signup_configured": email_provider_configured
+        and os.getenv("SUPABASE_EMAIL_PUBLIC_ENABLED", "").strip().lower() in {"1", "true", "yes"},
     }
 
 
@@ -383,6 +391,48 @@ async def exchange_platform_token(
     return TokenExchangeResponse(
         token=app_token,
     )
+
+
+@router.post("/supabase/exchange", response_model=TokenExchangeResponse)
+async def exchange_supabase_token(
+    payload: SupabaseTokenExchangeRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Validate a Supabase session server-side and issue the existing app JWT."""
+    supabase_url = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+    publishable_key = os.getenv("SUPABASE_PUBLISHABLE_KEY", "").strip()
+    if not supabase_url or not publishable_key:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Email authentication is unavailable")
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"{supabase_url}/auth/v1/user",
+                headers={
+                    "apikey": publishable_key,
+                    "Authorization": f"Bearer {payload.access_token}",
+                },
+            )
+    except httpx.HTTPError as exc:
+        logger.warning("Supabase user validation unavailable: %s", type(exc).__name__)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Unable to verify email session") from exc
+
+    if response.status_code != status.HTTP_200_OK:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired email session")
+
+    identity = response.json()
+    email = str(identity.get("email") or "").strip().lower()
+    if not identity.get("id") or not email or not identity.get("email_confirmed_at"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Please verify your email address first")
+
+    metadata = identity.get("user_metadata") if isinstance(identity.get("user_metadata"), dict) else {}
+    name = str(metadata.get("full_name") or metadata.get("name") or derive_name_from_email(email))[:255]
+    auth_service = AuthService(db)
+    user = await auth_service.get_or_create_user(
+        platform_sub=f"supabase:{identity['id']}", email=email, name=name
+    )
+    app_token, _, _ = await auth_service.issue_app_token(user=user)
+    return TokenExchangeResponse(token=app_token)
 
 
 @router.get("/me", response_model=UserResponse)

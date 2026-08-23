@@ -274,7 +274,11 @@ def api_root():
 @app.get("/api/config")
 def frontend_runtime_config():
     """Same-origin production config; local development may override with Vite env."""
-    return {"API_BASE_URL": os.environ.get("VITE_API_BASE_URL", "")}
+    return {
+        "API_BASE_URL": os.environ.get("VITE_API_BASE_URL", ""),
+        "SUPABASE_URL": os.environ.get("SUPABASE_URL", ""),
+        "SUPABASE_PUBLISHABLE_KEY": os.environ.get("SUPABASE_PUBLISHABLE_KEY", ""),
+    }
 
 
 @app.get("/health")

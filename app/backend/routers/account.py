@@ -32,7 +32,7 @@ class AccountProfileUpdate(BaseModel):
 class AccountProfileResponse(AccountProfileUpdate):
     id: int
     email: str
-    vip_number: str
+    account_number: str
     application_status: str
 
 
@@ -46,7 +46,7 @@ class AdminAccountProfileResponse(BaseModel):
     area: Optional[str] = "Harish"
     preferred_language: str = "en"
     whatsapp_opt_in: bool = False
-    vip_number: str = ""
+    account_number: str = ""
     business_name: Optional[str] = None
     business_category: Optional[str] = None
     business_description: Optional[str] = None
@@ -95,7 +95,7 @@ def build_admin_directory_entry(
         area=profile.area or "Harish",
         preferred_language=profile.preferred_language or "en",
         whatsapp_opt_in=bool(profile.whatsapp_opt_in),
-        vip_number=profile.vip_number or "",
+        account_number=profile.account_number or "",
         business_name=profile.business_name,
         business_category=profile.business_category,
         business_description=profile.business_description,
@@ -114,7 +114,7 @@ def response(profile: AccountProfile, email: str) -> AccountProfileResponse:
         area=profile.area,
         preferred_language=profile.preferred_language,
         whatsapp_opt_in=profile.whatsapp_opt_in,
-        vip_number=profile.vip_number,
+        account_number=profile.account_number,
         business_name=profile.business_name,
         business_category=profile.business_category,
         business_description=profile.business_description,
@@ -174,7 +174,7 @@ async def upsert_account_profile(
     else:
         profile = AccountProfile(
             user_id=current_user.id,
-            vip_number=f"CFH-{secrets.token_hex(4).upper()}",
+            account_number=f"CFH-{secrets.token_hex(4).upper()}",
             **values,
         )
         db.add(profile)

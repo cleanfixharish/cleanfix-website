@@ -149,3 +149,13 @@ Israeli counsel, accountant and insurance adviser must approve the binding docum
 - An email address typed into the browser never grants privileges. Administrator and viewer access is approved, stored and checked server-side; removing access must cause protected API requests to fail even if an older browser token still claims the role.
 - The primary administrator email remains configured outside source control. Additional administrator or read-only viewer addresses may be approved through the protected owner dashboard.
 - Email/password or email-link authentication may be offered only through a managed provider with email verification, rate limits, secure recovery, one-time/expiring tokens and audit logs. The interface must not collect passwords or pretend email authentication works before that provider is connected.
+- Supabase Auth is the managed provider for email/password signup, verification, login, recovery and session protection.
+- Supabase sessions are validated server-side before CleanFixHarish issues its own role-bearing token. Supabase `user_metadata` never grants administrator or viewer authority.
+- Google and email identities with the same verified address resolve to the existing CleanFixHarish user record where one exists.
+
+## 12. Accessibility controls
+
+- Accessibility preferences are opt-in, device-local, keyboard operable and free of paid dependencies.
+- Read-aloud and spoken control descriptions use the device speech engine and never read password or form values.
+- Spoken hover/focus descriptions are off by default because they can conflict with screen readers.
+- Display aids include larger text, higher contrast, underlined links, reduced motion, readable font, grayscale, text spacing, large pointer and visible keyboard focus.

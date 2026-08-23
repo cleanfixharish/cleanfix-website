@@ -173,7 +173,7 @@ def test_completed_profile_keeps_customer_details_in_admin_directory():
         area="Harish",
         preferred_language="he",
         whatsapp_opt_in=True,
-        vip_number="CFH-ABCD1234",
+        account_number="CFH-ABCD1234",
         business_name="Harish Plumbing",
         business_category="Plumbing",
         business_description="Local repairs",
@@ -186,7 +186,7 @@ def test_completed_profile_keeps_customer_details_in_admin_directory():
     assert entry.account_type == "business"
     assert entry.display_name == "Harish Plumbing"
     assert entry.phone == "0508275505"
-    assert entry.vip_number == "CFH-ABCD1234"
+    assert entry.account_number == "CFH-ABCD1234"
     assert entry.application_status == "pending"
 
 
