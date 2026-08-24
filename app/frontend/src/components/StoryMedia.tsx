@@ -44,12 +44,12 @@ export default function StoryMedia({ compact = false }: { compact?: boolean }) {
             const audioType = audioFile.endsWith('.m4a') ? 'audio/mp4' : 'audio/mpeg';
             const mediaBase = he ? HEBREW_MEDIA_RELEASE_BASE : ENGLISH_MEDIA_RELEASE_BASE;
             return (
-              <article key={episode.key} className="min-w-0 rounded-[24px] border border-[#f0c96f]/25 bg-[#123640] p-5 shadow-xl sm:p-6">
+              <article key={`${episode.key}-${languageCode}`} className="min-w-0 rounded-[24px] border border-[#f0c96f]/25 bg-[#123640] p-5 shadow-xl sm:p-6">
                 <div className="flex items-start gap-3">
                   <span className="cf-gold-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"><Headphones className="h-5 w-5 text-[#f0c96f]" /></span>
                   <div className="min-w-0"><h3 className="font-semibold text-[#f7f2ea]">{he ? episode.titleHe : episode.titleEn}</h3><p className="mt-1 text-sm leading-6 text-[#e8d8be]/85">{he ? episode.descriptionHe : episode.descriptionEn}</p></div>
                 </div>
-                <audio className="mt-5 w-full" controls preload="none"><source src={`${mediaBase}/media/${audioFile}`} type={audioType} />{he ? 'הדפדפן אינו תומך בנגן האודיו.' : 'Your browser does not support the audio player.'}</audio>
+                <audio key={audioFile} className="mt-5 w-full" controls preload="none" aria-label={he ? `${episode.titleHe} — פודקאסט בעברית` : `${episode.titleEn} — English podcast`}><source src={`${mediaBase}/media/${audioFile}`} type={audioType} />{he ? 'הדפדפן אינו תומך בנגן האודיו.' : 'Your browser does not support the audio player.'}</audio>
                 <a className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c96f] underline-offset-4 hover:underline" href={`/media/${fileBase}.txt`} target="_blank" rel="noreferrer"><Download className="me-2 h-4 w-4" />{he ? 'קריאת תסריט או הערות הפרק (נפתח בלשונית חדשה)' : 'Read the episode script or source notes (opens a new tab)'}</a>
               </article>
             );
