@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { MessageCircle, ArrowRight, Shield, Users, MapPin, Heart } from 'lucide-react';
 import { getWhatsAppLink, getWhatsAppQuoteMessage } from '@/lib/whatsapp';
+import StoryMedia from '@/components/StoryMedia';
 
 export default function AboutPage() {
   const { t, lang } = useLanguage();
@@ -66,6 +67,8 @@ export default function AboutPage() {
           </div>
         </section>
 
+        <StoryMedia />
+
         <section className="bg-card py-12 md:py-16">
           <div className="cf-shell text-center">
             <h2 className="mb-4 text-2xl font-bold">
@@ -75,7 +78,7 @@ export default function AboutPage() {
               <Link to="/quote" className="min-w-0">
                 <Button size="lg" className="w-full min-h-11 gap-2">
                   {t.hero.cta}
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className={`h-4 w-4 ${lang === 'he' ? 'rotate-180' : ''}`} />
                 </Button>
               </Link>
               <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="min-w-0">

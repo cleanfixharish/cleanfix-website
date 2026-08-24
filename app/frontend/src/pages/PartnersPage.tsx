@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Phone, MessageCircle, MapPin, Building2, ShieldCheck } from 'lucide-react';
 import { cleanfixApi } from '@/lib/cleanfixApi';
 import { getWhatsAppLink } from '@/lib/whatsapp';
+import StoryMedia from '@/components/StoryMedia';
 
 const OFFICIAL_PHONE_DISPLAY = '050-827-5505';
 const OFFICIAL_PHONE_LINK = '+972508275505';
@@ -131,7 +132,7 @@ export default function PartnersPage() {
               </Card>
             ) : (
               <Tabs defaultValue="all">
-                <TabsList className="mb-6">
+                <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-1 sm:inline-grid sm:w-auto sm:grid-cols-4">
                   <TabsTrigger value="all">{lang === 'en' ? 'All' : 'הכל'}</TabsTrigger>
                   <TabsTrigger value="internal">{t.partners.ourTeam}</TabsTrigger>
                   <TabsTrigger value="partners">{t.partners.directPartners}</TabsTrigger>
@@ -161,6 +162,7 @@ export default function PartnersPage() {
             )}
           </div>
         </section>
+        <StoryMedia compact />
       </main>
       <Footer />
     </PublicSite>

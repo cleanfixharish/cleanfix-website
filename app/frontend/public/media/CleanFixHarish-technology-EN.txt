@@ -1,0 +1,27 @@
+CleanFixHarish: the technology behind the service
+
+A beautiful website can collect attention. But what turns a service request into a controlled business process after the customer presses Send?
+
+The answer is not one clever button. It is a connected system with one operating truth.
+
+CleanFixHarish is designed so the public website, the installable web application, the customer account, the service-provider workspace, and the owner dashboard use the same records and the same role rules. A phone should not create one version of the business while a desktop creates another.
+
+The public experience is built for Hebrew and English, right-to-left and left-to-right reading, small and large screens, keyboard use, reduced motion, and accessible contrast. It can work as a progressive web application, which means a supported phone can install it from the website without needing a separate app-store download.
+
+One secure entrance can serve different account types. A verified customer should reach customer information. An approved provider should reach the provider workspace. An approved administrator should reach the admin dashboard. Simply typing an administrator's email address is never enough. The server must confirm the signed-in identity and the approved role.
+
+Think of permissions like keys in a building. A customer key opens the customer's own room. A provider key opens only the information needed for an assigned job. An owner key opens the control room. Painting a door to look closed is not security; the lock must be on the server.
+
+The operating journey connects a request, the job scope, an estimate, an owner-approved quote, the customer's decision, booking, provider assignment, progress evidence, money records, quality review, and follow-up. Important changes can record who acted, when they acted, what changed, and why.
+
+The owner dashboard should show real information, not invented demo customers or pretend revenue. When no job is active, an empty field should explain what will appear there later. When a job is active, the next required action should be clear.
+
+The website studio gives the owner controlled tools for approved text, Hebrew and English content, public visibility, service presentation, selected pictures, buttons, layout, motion, and brand colors. A live theme studio can preview color harmonies and export design settings. Publishing remains an owner action.
+
+Artificial intelligence can help explain a request, summarize information, draft text, identify missing details, and support media creation. But AI should not publish a final price, promise availability, assign a provider, charge or refund money, approve a payout, close a complaint, or alter protected business records on its own. The dashboard should make the difference between advice and authority visible.
+
+Privacy also shapes the system. A provider needs the assignment and agreed payout, not the company's margin or a reusable customer directory. A customer needs safe progress, not internal notes. Private media and signed-in responses should never be stored in a public website cache.
+
+Production safety matters too. Source history is backed up in GitHub. A known-good release can be marked with a date and time. A focused change is built, tested, deployed, and checked on the live site. A return-to-default control may restore approved presentation settings, but it must never erase accounts, requests, jobs, payments, evidence, or uploads.
+
+The technology advantage is not the number of tools. It is the ability to keep responsibility, scope, permissions, money, and quality connected. The website is the front door. The durable value is the operating discipline behind it: one traceable journey from the first request to the final quality decision, with important authority kept in responsible human hands.
