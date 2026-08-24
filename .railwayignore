@@ -1,0 +1,3 @@
+app/frontend/public/media/*.mp3
+app/frontend/public/media/*.m4a
+app/frontend/public/downloads/*.pptx

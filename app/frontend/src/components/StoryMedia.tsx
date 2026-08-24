@@ -17,6 +17,8 @@ const episodes: Episode[] = [
   { key: 'elevator', titleEn: 'The elevator pitch', titleHe: 'נאום המעלית', descriptionEn: 'The shortest explanation of the problem, the answer, and why CleanFixHarish is different.', descriptionHe: 'ההסבר הקצר ביותר על הבעיה, הפתרון ולמה CleanFixHarish שונה.' },
 ];
 
+const MEDIA_RELEASE_BASE = 'https://raw.githubusercontent.com/cleanfixharish/cleanfix-website/7629386/app/frontend/public';
+
 export default function StoryMedia({ compact = false }: { compact?: boolean }) {
   const { lang } = useLanguage();
   const he = lang === 'he';
@@ -44,7 +46,7 @@ export default function StoryMedia({ compact = false }: { compact?: boolean }) {
                   <span className="cf-gold-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"><Headphones className="h-5 w-5 text-[#f0c96f]" /></span>
                   <div className="min-w-0"><h3 className="font-semibold text-[#f7f2ea]">{he ? episode.titleHe : episode.titleEn}</h3><p className="mt-1 text-sm leading-6 text-[#e8d8be]/85">{he ? episode.descriptionHe : episode.descriptionEn}</p></div>
                 </div>
-                <audio className="mt-5 w-full" controls preload="none"><source src={`/media/${fileBase}.${audioExtension}`} type={audioType} />{he ? 'הדפדפן אינו תומך בנגן האודיו.' : 'Your browser does not support the audio player.'}</audio>
+                <audio className="mt-5 w-full" controls preload="none"><source src={`${MEDIA_RELEASE_BASE}/media/${fileBase}.${audioExtension}`} type={audioType} />{he ? 'הדפדפן אינו תומך בנגן האודיו.' : 'Your browser does not support the audio player.'}</audio>
                 <a className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c96f] underline-offset-4 hover:underline" href={`/media/${fileBase}.txt`} target="_blank" rel="noreferrer"><Download className="me-2 h-4 w-4" />{he ? 'קריאת תסריט או הערות הפרק (נפתח בלשונית חדשה)' : 'Read the episode script or source notes (opens a new tab)'}</a>
               </article>
             );
@@ -55,7 +57,7 @@ export default function StoryMedia({ compact = false }: { compact?: boolean }) {
           <div className="min-w-0">
             <p className="text-xs leading-5 text-[#e8d8be]/75">{he ? 'הפרקים נוצרו בסיוע AI ומבוססים על מקורות החברה. פרטים משפטיים, כספיים ותפעוליים כפופים למסמכים המאושרים.' : 'These AI-assisted episodes are grounded in company sources. Legal, financial, and operational details remain subject to approved documents.'}</p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button asChild className="min-h-11 bg-[#e8d8be] text-[#102e38] hover:bg-[#f7f2ea]"><a href="/downloads/CleanFixHarish-Story-Deck-EN.pptx" download><Presentation className="me-2 h-4 w-4" />{he ? 'הורדת המצגת באנגלית' : 'Download the presentation'}</a></Button>
+              <Button asChild className="min-h-11 bg-[#e8d8be] text-[#102e38] hover:bg-[#f7f2ea]"><a href={`${MEDIA_RELEASE_BASE}/downloads/CleanFixHarish-Story-Deck-EN.pptx`}><Presentation className="me-2 h-4 w-4" />{he ? 'הורדת המצגת באנגלית' : 'Download the presentation'}</a></Button>
               <Button asChild variant="outline" className="min-h-11 border-[#f0c96f]/50 bg-transparent text-[#f7f2ea] hover:bg-white/10 hover:text-white"><a href="https://cleanfixharish.co.il/" aria-label={he ? 'פתיחת דף הבית של CleanFixHarish' : 'Open the CleanFixHarish home page'}><QrCode className="me-2 h-4 w-4" />{he ? 'פתיחת דף הבית' : 'Open the home page'}</a></Button>
             </div>
           </div>
