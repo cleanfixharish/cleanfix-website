@@ -1,0 +1,14 @@
+Perform a strictly read-only implementation audit of this CleanFixHarish repository. Do not edit files, run deployments, or change data.
+
+The agreed product is a managed local home-services operator. The canonical loop is: request -> qualified scope -> owner-approved quote -> booking -> provider assignment -> completion evidence -> customer payment -> quality close/rework -> provider payout -> review/repeat work.
+
+Review the existing frontend and backend and return:
+1. A route/component/data-model gap map for the grouped admin architecture: Today; Sales (Requests, Quotes, Customers); Operations (Schedule, Jobs, Issues); Providers (Directory, Applications, Job offers, Payouts); Money (Pricing, Payments, Provider payouts, Profitability); Growth (Services, Reviews, Campaigns); Website & System (Website Studio, Team/Viewers, Platforms, Settings, Security/Audit).
+2. The smallest safe P0 implementation sequence that preserves current behavior and completes the first-20-paid-jobs loop.
+3. Exact changes needed for mobile navigation and mobile job/request cards.
+4. Exact design for an owner-controlled visual-effects setting with Full, Reduced, and Off, always overridden by prefers-reduced-motion.
+5. Security/privacy risks, especially viewer masking, admin authorization, quote tokens, uploads, and AI permissions.
+6. Which existing code should be reused, which should be refactored, and what should not be built yet.
+7. A concise acceptance-test matrix.
+
+Separate observed facts from recommendations and cite file paths/components. Do not make changes.

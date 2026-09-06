@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f3b3e" />
+  <title>CleanFixHarish | Premium Home Services in Harish</title>
+  <meta name="description" content="Premium handyman, cleaning, AC cleaning, and window care in Harish. Local service, fast WhatsApp response, fair pricing." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <style>
+    :root {
+      --bg: #f6f2eb;
+      --surface: #fbf8f3;
+      --surface-2: #efe7dd;
+      --text: #1f1d1a;
+      --muted: #67635d;
+      --line: rgba(31,29,26,.12);
+      --brand: #0f3b3e;
+      --brand-2: #1c5b60;
+      --brand-soft: rgba(15,59,62,.10);
+      --white: #ffffff;
+      --radius: 22px;
+      --shadow: 0 18px 50px rgba(21, 24, 27, 0.08);
+      --max: 1180px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #f8f5ef 0%, #f4efe7 100%);
+    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+    .wrap { width: min(var(--max), calc(100% - 32px)); margin: 0 auto; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20; backdrop-filter: blur(10px);
+      background: rgba(246,242,235,.75); border-bottom: 1px solid var(--line);
+    }
+    .nav { display:flex; align-items:center; justify-content:space-between; padding:14px 0; gap:16px; }
+    .brand { display:flex; align-items:center; gap:14px; font-weight:700; letter-spacing:.02em; }
+    .brand-mark {
+      width: 42px; height: 42px; border-radius: 14px; background: var(--brand); color: var(--white);
+      display:grid; place-items:center; box-shadow: var(--shadow);
+    }
+    .brand-text small { display:block; color:var(--muted); font-weight:500; }
+    .nav-actions { display:flex; gap:12px; align-items:center; }
+    .pill {
+      border:1px solid var(--line); background: rgba(255,255,255,.65); padding:12px 16px; border-radius:999px;
+      font-size:14px;
+    }
+    .cta {
+      background: var(--brand); color: var(--white); padding: 13px 18px; border-radius: 999px;
+      font-weight: 700; box-shadow: 0 12px 28px rgba(15,59,62,.24);
+    }
+    .hero { padding: 48px 0 28px; }
+    .hero-grid {
+      display:grid; grid-template-columns: 1.1fr .9fr; gap:28px; align-items:stretch;
+    }
+    .panel {
+      background: rgba(255,255,255,.62); border:1px solid rgba(255,255,255,.75);
+      border-radius: 32px; box-shadow: var(--shadow);
+    }
+    .hero-copy { padding: 42px; }
+    .eyebrow {
+      display:inline-flex; gap:10px; align-items:center; padding:9px 14px; border-radius:999px;
+      background: var(--brand-soft); color:var(--brand); font-size:13px; font-weight:700; letter-spacing:.04em;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: clamp(2.4rem, 4vw, 4.6rem); line-height: 1.02; margin: 18px 0 14px;
+      letter-spacing: -.04em;
+    }
+    .sub { font-size: 1.08rem; color: var(--muted); max-width: 60ch; line-height: 1.75; }
+    .cta-row { display:flex; flex-wrap:wrap; gap:14px; margin-top:26px; }
+    .secondary {
+      padding: 13px 18px; border-radius: 999px; border:1px solid var(--line); background: rgba(255,255,255,.75); font-weight:700;
+    }
+    .micro { margin-top:18px; color:var(--muted); font-size:14px; }
+    .hero-visual {
+      min-height: 100%; overflow: hidden; position: relative;
+      background: radial-gradient(circle at top right, rgba(15,59,62,.18), transparent 30%), linear-gradient(140deg, #f3ede4, #e9e2d7);
+    }
+    .hero-art {
+      position:absolute; inset:0; padding:30px; display:flex; flex-direction:column; justify-content:space-between;
+    }
+    .mock-card {
+      background: rgba(255,255,255,.74); border:1px solid rgba(255,255,255,.8); border-radius: 28px; padding:22px; width:min(360px, 100%);
+      box-shadow: var(--shadow); margin-left:auto;
+    }
+    .service-chip-wrap { display:flex; flex-wrap:wrap; gap:10px; }
+    .service-chip {
+      padding: 10px 14px; border-radius: 999px; background: rgba(15,59,62,.08); color: var(--brand); font-weight:600; font-size:14px;
+    }
+    section { padding: 26px 0; }
+    .section-head { display:flex; align-items:end; justify-content:space-between; gap:20px; margin-bottom:20px; }
+    h2 { font-size: clamp(1.8rem, 2.8vw, 3rem); margin:0; letter-spacing:-.03em; }
+    .lead { color:var(--muted); max-width: 62ch; line-height:1.75; }
+    .cards { display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; }
+    .card { padding: 26px; }
+    .card h3 { margin:0 0 12px; font-size:1.18rem; }
+    .card p { margin:0; color:var(--muted); line-height:1.75; }
+    .badge { display:inline-block; margin-bottom:14px; color:var(--brand); background:var(--brand-soft); border-radius:999px; padding:8px 12px; font-size:12px; font-weight:700; }
+    .split { display:grid; grid-template-columns: .95fr 1.05fr; gap:18px; }
+    .list { display:grid; gap:14px; }
+    .list-item { padding:18px 18px; border-radius:20px; background: rgba(255,255,255,.58); border:1px solid var(--line); }
+    .list-item strong { display:block; margin-bottom:6px; }
+    .form-wrap { padding: 28px; }
+    form { display:grid; gap:14px; }
+    .field { display:grid; gap:8px; }
+    label { font-weight:700; font-size:14px; }
+    input, select, textarea {
+      width:100%; border:1px solid var(--line); background: rgba(255,255,255,.85); border-radius:18px;
+      padding: 15px 16px; font: inherit; color: var(--text);
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .submit { border:none; cursor:pointer; }
+    .foot { padding: 28px 0 44px; color:var(--muted); }
+    .lang-note { font-size:13px; color:var(--muted); }
+    .lang-line { display:block; color:var(--muted); margin-top:6px; }
+    @media (max-width: 980px) {
+      .hero-grid, .cards, .split { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .wrap { width: min(var(--max), calc(100% - 20px)); }
+      .nav { flex-direction:column; align-items:flex-start; }
+      .nav-actions { width:100%; flex-wrap:wrap; }
+      .hero-copy, .form-wrap { padding:24px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      h1 { font-size: 2.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap nav">
+      <div class="brand" aria-label="CleanFixHarish logo">
+        <div class="brand-mark">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 11.5 12 4l9 7.5"></path>
+            <path d="M6.5 10.5V20h11V10.5"></path>
+            <path d="m9 14 2 2 4-4"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          CleanFixHarish
+          <small>קלינפיקס חריש</small>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <a class="pill" href="tel:+972508275505">050-827-5505</a>
+        <a class="cta" href="https://wa.me/972508275505?text=Hello%20CleanFixHarish%2C%20I%20need%20help%20with%20a%20service%20in%20Harish." target="_blank" rel="noopener noreferrer">WhatsApp Now</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="panel hero-copy">
+          <span class="eyebrow">Harish · Premium · Local</span>
+          <h1>
+            Premium Home Services in Harish
+            <span class="lang-line">שירותי בית פרימיום בחריש</span>
+          </h1>
+          <p class="sub">
+            Handyman work, post-renovation cleaning, move-in and move-out cleaning, AC cleaning, and window care — delivered with calm professionalism, fair pricing, and fast WhatsApp response.
+            <span class="lang-line">שירותי הנדימן, ניקיון אחרי שיפוץ, ניקיון כניסה ויציאה, ניקוי מזגנים וניקוי חלונות — ברמה גבוהה, במחיר הוגן ובתגובה מהירה ב‑WhatsApp.</span>
+          </p>
+          <div class="cta-row">
+            <a class="cta" href="https://wa.me/972508275505?text=Hello%20CleanFixHarish%2C%20I%20would%20like%20a%20quote." target="_blank" rel="noopener noreferrer">WhatsApp us now</a>
+            <a class="secondary" href="#quote">Request a quote</a>
+          </div>
+          <p class="micro">
+            Local Harish-based service · Fast response · Fair pricing · Trusted people
+            <span class="lang-line">שירות מקומי בחריש · תגובה מהירה · מחיר הוגן · אנשים אמינים</span>
+          </p>
+        </div>
+
+        <div class="panel hero-visual" aria-label="Premium brand visual placeholder">
+          <div class="hero-art">
+            <div class="service-chip-wrap">
+              <span class="service-chip">Handyman</span>
+              <span class="service-chip">Cleaning</span>
+              <span class="service-chip">AC Care</span>
+              <span class="service-chip">Window Cleaning</span>
+            </div>
+            <div class="mock-card">
+              <div class="badge">Primary Focus · Handyman</div>
+              <h3 style="margin:0 0 10px; font-size:1.4rem;">Small repairs, installations, and precise home help</h3>
+              <p style="margin:0; color:var(--muted); line-height:1.75;">Shelves, curtains, lights, minor fixes, touch-ups, and practical apartment help — clean, elegant, and local.</p>
+              <p class="lang-note">התקנות, תיקונים קטנים, מדפים, וילונות, תאורה ועזרה מעשית לדירה.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <h2>Core services <span class="lang-line">השירותים המרכזיים</span></h2>
+          </div>
+          <p class="lead">The first version is focused, simple, and built to convert local Harish leads quickly. Handyman is pushed strongly, with cleaning and AC/window services supporting it.</p>
+        </div>
+        <div class="cards">
+          <article class="panel card">
+            <span class="badge">Primary service</span>
+            <h3>Handyman & small repairs <span class="lang-line">הנדימן ותיקונים קטנים</span></h3>
+            <p>Installations, shelves, curtains, light fixtures, minor door and cabinet fixes, small drywall work, and practical apartment help without the hassle of a big renovation.</p>
+          </article>
+          <article class="panel card">
+            <span class="badge">Cleaning</span>
+            <h3>Post-renovation & move cleaning <span class="lang-line">ניקיון אחרי שיפוץ וכניסה / יציאה</span></h3>
+            <p>Deep apartment cleaning before moving in, after moving out, or after renovation — dust, paint, surfaces, bathrooms, kitchens, and finishing details.</p>
+          </article>
+          <article class="panel card">
+            <span class="badge">Support service</span>
+            <h3>AC & window care <span class="lang-line">ניקוי מזגנים וחלונות</span></h3>
+            <p>Air-conditioner cleaning for a fresher home, plus bright, clear windows and tracks that make the whole apartment feel lighter.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap split">
+        <div class="panel card">
+          <h2>Why CleanFixHarish <span class="lang-line">למה קלינפיקס חריש</span></h2>
+          <p class="lead">No fake promises. No fake reviews. Just a local Harish-first service built around fast response, careful work, and fair pricing.</p>
+        </div>
+        <div class="list">
+          <div class="list-item"><strong>Local Harish service · שירות מקומי בחריש</strong><span>We focus on Harish and nearby areas only, so response can stay practical and personal.</span></div>
+          <div class="list-item"><strong>Fair pricing · מחיר הוגן</strong><span>Quote-first pricing so every job fits the work required, without exaggerated packages.</span></div>
+          <div class="list-item"><strong>Trusted people · אנשים אמינים</strong><span>The brand is built to become a reliable local source for practical home help and vetted service connections.</span></div>
+          <div class="list-item"><strong>Fast WhatsApp response · תגובה מהירה ב‑WhatsApp</strong><span>Quick first contact keeps the service simple and cost-effective for customers.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quote">
+      <div class="wrap split">
+        <div class="panel card">
+          <h2>Request a quote <span class="lang-line">בקשת הצעת מחיר</span></h2>
+          <p class="lead">Short forms convert better. Tell us what you need and we’ll respond as quickly as possible by WhatsApp or phone.</p>
+          <div class="cta-row">
+            <a class="cta" href="https://wa.me/972508275505?text=Hello%20CleanFixHarish%2C%20I%20want%20to%20send%20you%20details%20for%20a%20job." target="_blank" rel="noopener noreferrer">Open WhatsApp</a>
+            <a class="secondary" href="mailto:info@cleanfixharish.co.il">Email us</a>
+          </div>
+        </div>
+        <div class="panel form-wrap">
+          <form action="mailto:info@cleanfixharish.co.il" method="post" enctype="text/plain">
+            <div class="grid-2">
+              <div class="field">
+                <label for="name">Full name / שם מלא</label>
+                <input id="name" name="Full name" type="text" placeholder="Your name" required />
+              </div>
+              <div class="field">
+                <label for="phone">Phone / WhatsApp / טלפון</label>
+                <input id="phone" name="Phone" type="tel" placeholder="050..." required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="service">Type of service / סוג השירות</label>
+              <select id="service" name="Service type" required>
+                <option value="">Choose one</option>
+                <option>Handyman / Small repairs</option>
+                <option>Post-renovation cleaning</option>
+                <option>Move-in / Move-out cleaning</option>
+                <option>AC cleaning</option>
+                <option>Window cleaning</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="notes">Notes / הערות</label>
+              <textarea id="notes" name="Notes" placeholder="Describe the job"></textarea>
+            </div>
+            <button class="cta submit" type="submit">Send request / שלח בקשה</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <strong>CleanFixHarish · קלינפיקס חריש</strong><br />
+      Premium local home services in Harish · שירותי בית פרימיום בחריש<br />
+      <a href="tel:+972508275505">050-827-5505</a> · <a href="mailto:info@cleanfixharish.co.il">info@cleanfixharish.co.il</a>
+    </div>
+  </footer>
+</body>
+</html>

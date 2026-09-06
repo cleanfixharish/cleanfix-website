@@ -1,0 +1,49 @@
+CleanFixHarish — one accountable path for local home services
+
+Purpose of this source
+
+Create a concise, engaging audio overview for customers, service providers, and potential partners or investors. The episode should be approximately 6–8 minutes, use plain English, and avoid inflated promises. Open with a strong question: why should a customer have to coordinate several people, prices, messages, and quality problems alone just to complete one household job?
+
+The central idea
+
+CleanFixHarish is a managed local home-services company for Harish. It is not an open marketplace, a provider directory, or a lead auction. The customer hires CleanFixHarish. CleanFixHarish clarifies the request, defines the written scope, prepares the quote, coordinates the approved provider when one is needed, follows the work, and remains the customer’s contact through the documented quality-close process.
+
+The customer experience
+
+The customer begins with a simple mobile-friendly request in Hebrew or English. They choose a service, describe the work, add useful photographs, explain access and timing needs, and provide contact and consent information. The system gives the request one clear record instead of scattering the job across unrelated messages.
+
+Before a final price is approved, the work must be understood. The scope states what is included, what is excluded, who handles materials, and what may require a new decision. A quote is reviewed by the owner. Accepting a quote begins the next operational step; it does not pretend that payment, scheduling, or provider assignment has already happened.
+
+During a managed job, CleanFixHarish coordinates the provider and the customer-facing process. Material changes are not handled as informal verbal extras. The affected work pauses until the updated scope, customer price, provider payout, and schedule effect are reviewed and approved. Completion evidence and customer feedback support a documented quality review. CleanFixHarish does not publish an unlimited “100 percent satisfaction” promise; it promises to remain the responsible contact and review documented issues under the service and remediation policy.
+
+What service providers receive
+
+Approved service providers work on private CleanFixHarish assignments for a clearly agreed payout. They do not buy leads or compete in a lowest-price auction. Before accepting an offer, a provider can receive the relevant scope, general area, schedule window, responsibilities, required evidence, and exact proposed payout. Private customer details are released only after a confirmed assignment and only as needed.
+
+Providers can accept or decline work, report progress, request a documented scope change, report safety or access problems, and submit completion evidence. They cannot privately change the customer price, collect an unofficial payment, replace themselves without approval, or financially close the job. CleanFixHarish controls the customer relationship, while the provider receives a clearer brief, less administrative uncertainty, and a defined payment path.
+
+Independent local businesses are different
+
+Some complementary services may be offered by independent referral businesses rather than under the CleanFixHarish managed-service relationship. When this happens, the distinction must be explicit: the independent business uses its own brand, contracts and collects directly, and does not receive a CleanFixHarish service guarantee. Sponsored placement must be labelled. A referral partner is never silently mixed with an internal managed provider.
+
+How the technology supports the process
+
+The public website and installable web application are responsive and bilingual. Customers can discover services, submit requests, sign in, and follow customer-safe information. The owner dashboard connects requests, quotes, providers, jobs, content, and next actions. Managed providers and independent referral partners receive separate, role-limited workspaces.
+
+The platform uses a React interface, a FastAPI backend, PostgreSQL data, Supabase authentication for supported account flows, and Railway production hosting. GitHub preserves the code history and verified recovery points. The system is designed so that hiding a button is never treated as security: permissions must also be enforced by the backend.
+
+Artificial intelligence may help explain information, detect missing details, summarize, and draft. It may not autonomously promise availability, publish a final quote, assign a provider, charge or refund money, approve payout, or close a complaint. Material decisions remain owner-controlled.
+
+Why this can become a durable business
+
+The opportunity is not simply to list more providers. It is to make local service delivery easier to understand and easier to trust. A single managed record can reduce lost details, unclear responsibility, surprise extras, and repeated coordination. Providers can receive better-prepared work. Customers can have one responsible contact. The owner can see the entire operational journey and learn from real jobs instead of invented dashboard data.
+
+The business is intentionally validating its first paid jobs carefully. Every quote, collected payment, provider payout, direct cost, issue, rework event, and customer outcome should be recorded honestly. Growth decisions should follow real evidence. Paid promotion of independent businesses remains gated until the core service has sufficient reviewed work and appropriate legal and accounting approval.
+
+Closing hook and call to action
+
+Close by returning to the opening question: household work should not require the customer to become a project manager. CleanFixHarish is building one accountable local path—from a clear request to a checked result. Customers can visit cleanfixharish.co.il to explore services or submit a request. Qualified local providers can apply through the account flow. Potential partners can review the presentation and contact CleanFixHarish to discuss the operating model.
+
+Tone and truth rules
+
+Sound warm, intelligent, local, and practical. Keep the pace energetic but not rushed. Use short sections and recurring hooks. Do not invent customers, revenue, reviews, licences, completed projects, response times, availability, or investment returns. Clearly distinguish current working platform capabilities from processes that still require owner, legal, accounting, insurance, or operational approval before paid scale.
