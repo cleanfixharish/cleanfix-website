@@ -5,7 +5,7 @@
 **Scope:** Android, iOS, phone/tablet web, installable PWA, and release engineering  
 **Audit mode:** repository inspection only; no app code, deployment, signing keys, or production data changed.
 
-**Post-audit update:** `docs/product/SITEMAP_AND_WIREFRAMES.md` was created after this inspection and now provides the missing sitemap and responsive wireframe baseline. It still requires product approval and implementation/QA reconciliation.
+**Post-audit update:** `docs/product/SITEMAP_AND_WIREFRAMES.md` was created after this inspection and now provides the missing sitemap and responsive wireframe baseline. The public mobile Playwright suite then completed with 118 passed, 50 skipped, and 0 failed across six phone/landscape projects. Android `testDebugUnitTest`, `lintDebug`, and `assembleDebug` also completed successfully and produced a debug APK; the unit-test task was `NO-SOURCE`. These results strengthen the automated baseline but do not replace real-device, live-backend, signed-release, or store validation.
 
 ## Executive decision
 
@@ -17,9 +17,9 @@ Android is a real customer-app foundation, not a release candidate. It can submi
 
 | Surface | What exists | Readiness | Blocking evidence/gaps |
 |---|---|---:|---|
-| Responsive web | Vite React app, viewport-fit metadata, mobile UI hooks, public mobile Playwright spec | Validation required | Run the complete phone/tablet, Hebrew/RTL, keyboard, upload, network, and accessibility matrix |
+| Responsive web | Vite React app, viewport-fit metadata, mobile UI hooks; public mobile Playwright run: 118 passed, 50 skipped, 0 failed | Automated phone baseline passed | Run real-device phone/tablet, Hebrew/RTL, keyboard, upload, production-like network/API, and accessibility matrices |
 | PWA | `manifest.json`, `sw.js`, install prompt, icons, Apple metadata, same-origin cache exclusions for API/auth/navigation | P1 validation required | Verify final HTTPS install/resume/update behavior on Chrome Android, Safari iOS, desktop; add/verify screenshots and manifest asset coverage |
-| Android | Kotlin/Compose app, API client, HTTPS App Link intent, custom scheme, CI debug build and prerelease APK workflow | Foundation only | Bilingual/RTL, photo upload, icons/listing, Digital Asset Links, release signing, tests, privacy/Data safety, internal track, crash/ANR baseline |
+| Android | Kotlin/Compose app, API client, HTTPS App Link intent, custom scheme; debug lint/build passed and debug APK produced | Foundation build verified | Add behavioral tests (`testDebugUnitTest` currently has no sources), bilingual/RTL, photo upload, icons/listing, Digital Asset Links, release signing, privacy/Data safety, internal track, crash/ANR baseline |
 | iOS | No Xcode project, Swift source, scheme, signing configuration, or App Store workflow found | Not ready | Decide whether PWA is sufficient for P0; if native is required, create a separately scoped iOS product and release track |
 | Tablet | Responsive product intent and release-gate cases for 768x1024, 1024x768, and iPad split view | Unproven | Execute portrait, landscape, split-view, text scaling, keyboard, and two-pane/navigation checks |
 | Release engineering | Web CI, Android CI, Android tester release, dated-release policy and cross-platform gates documented | Partial | Add signed artifact provenance, environment separation checks, staged promotion, rollback/kill switch evidence, and mobile observability |

@@ -6,19 +6,20 @@ Decision: **public web production is online; the full cross-platform product is 
 
 ## Current readiness bar
 
-**Provisional readiness: 68%**
+**Provisional readiness: 70%**
 
-`[██████████████░░░░░░] 68%`
+`[██████████████░░░░░░] 70%`
 
-This is a gate-based estimate, not a claim that 64% of the work is safe to ship. It reflects meaningful implementation and test evidence while unresolved release, information-architecture, environment, and live-verification gates remain.
+This is a gate-based estimate, not a claim that 70% of the work is safe to ship. It reflects meaningful implementation and test evidence while unresolved signed mobile release, iOS, observability, operations, finance/compliance, and live workflow gates remain.
 
 | Workstream | Status | Evidence | Release implication |
 |---|---|---|---|
 | Product surface and routes | Green/Amber | `app/frontend/src/App.tsx` defines public, quote, account, provider, partner, admin, and auth routes; `docs/product/SITEMAP_AND_WIREFRAMES.md` now maps the role-safe journeys. | The baseline IA exists and now needs product approval plus implementation reconciliation. |
 | Sitemap and SEO plumbing | Green/Amber | `app/frontend/vite.config.ts` generates `sitemap.xml` and `robots.txt`; the successful production build contains both, and the live public routes return 200. | Reconcile `/how-it-works` and `/how-we-work`, then complete canonical/noindex validation. |
 | Wireframe / UX specification | Green/Amber | A responsive low-fidelity wireframe package now exists at `docs/product/SITEMAP_AND_WIREFRAMES.md`. | Review it with product/operations and turn approved states into implementation tickets. |
-| Frontend quality | Green | `pnpm lint`, `pnpm typecheck`, and `pnpm build` all completed successfully; 2,086 modules transformed and the production bundle/prerender output was generated. | Add full browser/device evidence and retain the release artifact. |
+| Frontend quality | Green | `pnpm lint`, `pnpm typecheck`, and `pnpm build` all completed successfully; 2,086 modules transformed and the production bundle/prerender output was generated. The public mobile Playwright suite completed with 118 passed, 50 skipped, and 0 failed across six phone/landscape projects. | Add real-device, tablet, install/update, accessibility, and production-like backend evidence; retain the release artifact. |
 | Backend quality and security | Green/Amber | `67 passed`; 10 dependency deprecation warnings. Existing tests cover auth, access roles, privacy boundaries, pricing/quote guardrails, and readiness endpoints. | Good automated baseline; staging mutation and production-like smoke evidence still required. |
+| Android foundation | Amber | `testDebugUnitTest`, `lintDebug`, and `assembleDebug` completed successfully and produced a debug APK. The unit-test task reported `NO-SOURCE`, so this is build/lint evidence rather than behavioral test coverage. | Add tests, localization/RTL, photo upload, verified App Links, release signing, store privacy/listing assets, internal-track evidence, and crash monitoring. |
 | Deployment and operations | Green/Amber | Railway is the selected live platform. Deployment `fc5915d3-82cb-4a3e-8e47-bf729feaebaa` is online at `https://cleanfixharish.co.il`; `/`, `/about`, `/admin`, and `/health/ready` returned 200. | Record rollback evidence, rationalize legacy Render configuration, and complete observability/restore drills. |
 | Release governance | Amber | `CROSS_PLATFORM_RELEASE_GATES.md` and `COMPANY_SOURCE_OF_TRUTH.md` require staging evidence and a dated good-production tag. | Current HEAD is `chore/official-project-migration`; no fresh release evidence was found in this audit. |
 
@@ -81,6 +82,8 @@ These are the minimum accountable roles for production readiness. One person may
 - Frontend TypeScript check: passed.
 - Frontend production build: passed after a single clean dependency installation; 2,086 modules transformed and production assets were emitted successfully.
 - Backend tests: **67 passed**, with 10 Pydantic deprecation warnings.
+- Public mobile Playwright suite: **118 passed, 50 skipped, 0 failed** across phone widths 320/360/390/412, phone landscape, and Android desktop-site emulation. Local preview `/api` proxy warnings were expected because the backend was not running; fallback states passed, but this is not production-like API integration evidence.
+- Android Gradle gates: `testDebugUnitTest`, `lintDebug`, and `assembleDebug` completed successfully. A debug APK was produced; `testDebugUnitTest` was `NO-SOURCE`, and no signed Play release was created.
 - CI has separate backend, frontend, container, Android, and scheduled SEO jobs in `.github/workflows/`.
 - Railway is the selected live target. Deployment `fc5915d3-82cb-4a3e-8e47-bf729feaebaa` is online and its public/readiness smoke checks passed. Render configuration remains legacy cleanup work, not the active host.
 - No application code was changed by this audit.
