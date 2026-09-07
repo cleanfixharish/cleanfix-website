@@ -121,6 +121,7 @@ type DashboardLead = {
   location: string;
   message: string;
   source: string;
+  attribution: string;
   date: string;
   status: LeadStatus;
   provider: string;
@@ -471,6 +472,9 @@ export default function AdminPage() {
             location: lead.area || "Harish",
             message: lead.description || "",
             source: lead.source || "Website",
+            attribution: [lead.utm_source, lead.utm_medium, lead.utm_campaign]
+              .filter(Boolean)
+              .join(" · "),
             date: lead.created_at
               ? new Date(lead.created_at).toLocaleDateString("en-IL")
               : "—",
@@ -979,6 +983,11 @@ export default function AdminPage() {
                   <Info label={tr("Service")} value={selectedLead.service} />
                   <Info label={tr("Location")} value={selectedLead.location} />
                   <Info label={tr("Provider")} value={selectedLead.provider} />
+                  <Info
+                    label={tr("Campaign")}
+                    value={selectedLead.attribution || tr("Direct / untracked")}
+                    ltr
+                  />
                 </div>
                 <div>
                   <Label>{tr("Customer message")}</Label>
@@ -1300,6 +1309,11 @@ function Overview({
                 <p className="mt-0.5 text-xs text-[#786F65]">
                   {lead.date} · {lead.source}
                 </p>
+                {lead.attribution && (
+                  <p className="mt-0.5 text-xs text-[#8A6840]" dir="ltr">
+                    {lead.attribution}
+                  </p>
+                )}
               </div>
             </div>
           ))}
@@ -1454,6 +1468,11 @@ function Leads({
               {lead.source}
               <br />
               {lead.date}
+              {lead.attribution && (
+                <span className="mt-1 block break-words text-[#8A6840]" dir="ltr">
+                  {lead.attribution}
+                </span>
+              )}
             </p>
             <Badge className={`w-fit ${statusStyle[lead.status]}`}>
               {tr(lead.status)}
