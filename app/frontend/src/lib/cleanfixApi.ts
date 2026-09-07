@@ -211,6 +211,53 @@ export const cleanfixApi = {
     };
   },
 
+  async getGrowthSettings() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/growth/settings`);
+    return response.data;
+  },
+
+  async updateGrowthSettings(data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/admin/growth/settings`, data);
+    return response.data;
+  },
+
+  async getGrowthSummary() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/growth/summary`);
+    return response.data;
+  },
+
+  async listGrowthPosts() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/growth/posts`);
+    return response.data;
+  },
+
+  async runDailyGrowthExperts() {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/run-daily`);
+    return response.data;
+  },
+
+  async approveGrowthPost(id: number) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/posts/${id}/approve`);
+    return response.data;
+  },
+
+  async scheduleGrowthPost(id: number, scheduledFor: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/posts/${id}/schedule`, {
+      scheduled_for: new Date(scheduledFor).toISOString(),
+    });
+    return response.data;
+  },
+
+  async markGrowthPostPublished(id: number) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/posts/${id}/mark-published`);
+    return response.data;
+  },
+
+  async listGrowthRuns() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/growth/runs`);
+    return response.data;
+  },
+
   async getDefaultRestorePoint() {
     const response = await http.get(`${getAPIBaseURL()}/api/v1/website-restore/default`);
     return response.data as { name: string; created_at: string; content_sections: number; services: number };
