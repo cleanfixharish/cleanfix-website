@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from dependencies.auth import get_admin_user
+from dependencies.auth import get_admin_user, get_owner_user
 from schemas.auth import UserResponse
 
 
@@ -49,4 +49,15 @@ async def test_non_admin_token_is_always_rejected(monkeypatch):
     user = UserResponse(id="customer", email="customer@example.com", role="user")
     with pytest.raises(HTTPException) as error:
         await get_admin_user(user, _DB(SimpleNamespace(access_role="admin")))
+    assert error.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_only_primary_admin_is_owner(monkeypatch):
+    monkeypatch.setenv("ADMIN_USER_EMAIL", "owner@example.com")
+    owner = UserResponse(id="owner", email="OWNER@example.com", role="admin")
+    secondary = UserResponse(id="secondary", email="admin2@example.com", role="admin")
+    assert await get_owner_user(owner) == owner
+    with pytest.raises(HTTPException) as error:
+        await get_owner_user(secondary)
     assert error.value.status_code == 403

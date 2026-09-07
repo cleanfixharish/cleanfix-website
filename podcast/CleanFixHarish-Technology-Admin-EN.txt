@@ -1,0 +1,51 @@
+CleanFixHarish technology and owner dashboard
+
+Create a concise six-to-eight-minute episode for a technically curious customer, service provider, adviser, or potential investor. Explain how the platform supports trust without turning technology into empty hype. Do not claim that planned P0 workflows are already fully automated or legally released.
+
+Opening hook
+
+Start with: a beautiful website can collect attention, but what turns a service request into a controlled business process after the customer presses Send?
+
+One platform contract
+
+CleanFixHarish is designed around one authorized backend and one operating truth. The public responsive website, installable web application, owner dashboard, customer account, managed-provider workspace, and independent referral-partner studio must use the same records and role rules. No mobile client may create a weaker parallel business logic.
+
+The public experience
+
+The React and Vite interface provides Hebrew and English pages, responsive layouts, a service request path, account access, private quote handling, service explanations, accessibility controls, and an installable progressive web application. Images use optimized formats and responsive sizes. Motion is lightweight and respects reduced-motion preferences. The site includes language-aware audio, transcripts, legal downloads, and a presentation.
+
+Authentication and permissions
+
+Supabase supports managed email authentication flows, while verified Google identity may also be used where configured. A typed email address never grants administrator rights. Owner-approved access records and server-side checks decide who reaches the admin dashboard. Customer, provider, referral partner, viewer, and owner roles see only the data needed for their work.
+
+The backend
+
+FastAPI exposes controlled application routes. PostgreSQL stores operational records. Backend authorization is authoritative: hiding a button is never the security boundary. Material state changes should record the actor, time, previous state, new state, and reason. Private media and authenticated responses must not be stored by the public service-worker cache.
+
+The owner dashboard
+
+The dashboard brings together Today, customer requests, jobs, quotes, services, providers, follow-ups, website content, platform links, settings, and role-limited administration. Empty states explain which real information will appear later instead of manufacturing demo customers, revenue, reviews, jobs, balances, or activity.
+
+The website studio allows the owner to edit approved Hebrew and English text, public visibility, service presentation, selected pictures, buttons, hero layout, motion level, and brand colors. The live theme studio can generate complementary, analogous, or triadic palettes from a base color, preview CSS variables across the interface, save local presets, and export CSS or Tailwind configuration. Publishing still requires an owner action.
+
+Operational control
+
+The intended operating system connects request, scope, estimate, owner-approved quote, customer decision, booking, assignment, field progress, evidence, money records, quality review, and follow-up. Important financial and customer decisions remain human-controlled. A provider can submit evidence but cannot change the customer price, approve a refund, pay themselves, or financially close a job.
+
+Artificial intelligence
+
+AI may help explain, classify, summarize, draft, identify missing details, and support media creation. It may not autonomously publish a final quote, promise availability, assign a provider, charge or refund a customer, approve a provider payout, close a complaint, or alter protected business records. The dashboard should show when AI is advice rather than authority.
+
+Production, performance, and recovery
+
+Railway hosts the production application. GitHub stores source history. A production change begins with a verified-good dated Git tag, then a focused build, test, deployment, and live audit. The public “return to default” control is deliberately narrow: it can restore approved website presentation choices without rewriting accounts, leads, jobs, payments, evidence, or uploads.
+
+The site is tested for mobile layout, right-to-left Hebrew, keyboard use, reduced motion, contrast, authorization, and protected routes. Performance work includes route splitting, responsive media, immutable asset caching, and service-worker rules that exclude private API data. Chrome performance traces and Lighthouse audits are used as release evidence rather than decoration.
+
+Technology as a business advantage
+
+The technological advantage is not the number of tools. It is the ability to keep scope, responsibility, permissions, money, and quality connected. A provider sees the assignment and payout they need, not the company margin or reusable customer directory. A customer sees safe progress, not internal notes. The owner sees the complete controlled record and the next required action.
+
+Closing hook
+
+End with: the website is the front door, but the durable value is the operating discipline behind it. CleanFixHarish is building software that makes a local promise traceable—from the first request to the final quality decision—while keeping material authority with a responsible human owner.

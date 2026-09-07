@@ -11,7 +11,7 @@ import os
 import re
 import traceback
 from typing import Any, Dict
-from urllib.parse import unquote
+from urllib.parse import unquote, urlencode
 
 from mangum import Mangum
 
@@ -36,6 +36,32 @@ seo_paths = set()
 
 # SEO domain placeholder - will be replaced with actual request domain at runtime
 SEO_DOMAIN_PLACEHOLDER = "https://atoms.template.com"
+
+LEGACY_PUBLIC_PATH_REDIRECTS = {
+    "/how-we-work": "/how-it-works",
+}
+
+
+def legacy_public_path_redirect(path: str, query_string: str | None = None) -> Dict[str, Any] | None:
+    """Return a permanent redirect response for retired public routes."""
+    normalized_path = path.rstrip("/") or "/"
+    destination = LEGACY_PUBLIC_PATH_REDIRECTS.get(normalized_path)
+    if not destination:
+        return None
+
+    redirect_url = destination
+    if query_string:
+        redirect_url = f"{redirect_url}?{query_string}"
+
+    return {
+        "statusCode": 308,
+        "headers": {
+            "Location": redirect_url,
+            "Cache-Control": "public, max-age=86400",
+            "Access-Control-Allow-Origin": "*",
+        },
+        "body": "",
+    }
 
 
 def format_traceback() -> str:
@@ -179,6 +205,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             path = event.get("rawPath", "/")
             headers = event.get("headers", {})
             query_params = event.get("queryStringParameters", {})
+            http_method = event.get("requestContext", {}).get("http", {}).get("method", "GET")
+            query_string = event.get("rawQueryString") or ""
             # API Gateway v2 uses different header format
             if headers:
                 # Convert v2 headers to v1 format for Mangum
@@ -188,11 +216,15 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             path = event.get("path", "/")
             headers = event.get("headers", {})
             query_params = event.get("queryStringParameters", {})
+            http_method = event.get("httpMethod", "GET")
+            query_string = event.get("queryString") or urlencode(query_params or {}, doseq=True)
         else:
             # Fallback for empty or malformed events
             path = "/"
             headers = {}
             query_params = {}
+            http_method = "GET"
+            query_string = ""
 
         # Decode URL-encoded path to handle non-ASCII characters (UTF-8 decode)
         # This ensures non-English characters in URLs are properly decoded
@@ -205,6 +237,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Normalize path - ensure it starts with /
         if not path.startswith("/"):
             path = "/" + path
+
+        if http_method in {"GET", "HEAD"}:
+            legacy_redirect = legacy_public_path_redirect(path, query_string or None)
+            if legacy_redirect:
+                return legacy_redirect
 
         # Extract real request domain for SEO content replacement
         # Priority: mgx-external-domain > x-forwarded-host > host

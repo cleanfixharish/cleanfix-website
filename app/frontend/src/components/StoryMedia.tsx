@@ -11,14 +11,13 @@ type Episode = {
 };
 
 const episodes: Episode[] = [
-  { key: 'concept', titleEn: 'The concept, system, and money', titleHe: 'המודל העסקי והמבחן האמיתי', descriptionEn: 'What problem the business solves, how work moves, what customers pay, and how providers are paid.', descriptionHe: '8:24 דקות · שיחת עומק על תנועת הכסף, דוגמת אלף שקלים, סיכונים ועשרים עבודות האימות הראשונות.' },
-  { key: 'customer', titleEn: 'The customer guide', titleHe: 'מהנזילה הראשונה לסגירת העבודה', descriptionEn: 'A simple journey from the first request through a written quote, the work, and the quality check.', descriptionHe: '8:56 דקות · הסיפור של דנה והנזילה בכיור מסביר כל שלב, שינוי, תשלום ובדיקת איכות.' },
-  { key: 'technology', titleEn: 'Technology and the owner dashboard', titleHe: 'מגדל הפיקוח שמאחורי האתר', descriptionEn: 'How the website, accounts, permissions, admin tools, AI limits, and safe backups work together.', descriptionHe: '8:40 דקות · זהויות, הרשאות, לוחות בקרה, גבולות הבינה המלאכותית, פרטיות וגרסה בטוחה.' },
-  { key: 'elevator', titleEn: 'The elevator pitch', titleHe: 'הפיץ׳ שאפשר לזכור', descriptionEn: 'The shortest explanation of the problem, the answer, and why CleanFixHarish is different.', descriptionHe: '5:48 דקות · סיפור ברז שהתפוצץ, דימוי של מסילת רכבת והחזון שמתחיל בחריש.' },
+  { key: 'concept', titleEn: 'One clear route', titleHe: 'דרך אחת וברורה', descriptionEn: 'How a request becomes a clear scope, agreed price, and written next step.', descriptionHe: 'איך בקשה הופכת להיקף ברור, למחיר מוסכם ולשלב הבא שמתועד בכתב.' },
+  { key: 'customer', titleEn: 'For customers', titleHe: 'עבור לקוחות', descriptionEn: 'Know what is included, approve the plan, and document changes before work continues.', descriptionHe: 'יודעים מה כלול, מאשרים את התוכנית ומתעדים שינויים לפני שממשיכים בעבודה.' },
+  { key: 'technology', titleEn: 'For service providers', titleHe: 'עבור נותני שירות', descriptionEn: 'See the scope, location, timing, and expected payout before accepting a job.', descriptionHe: 'רואים את ההיקף, המיקום, הזמנים והתשלום הצפוי לפני שמקבלים עבודה.' },
+  { key: 'elevator', titleEn: 'Why the middle matters', titleHe: 'למה חשוב שנהיה באמצע', descriptionEn: 'The shortest explanation of how shared understanding prevents avoidable disputes.', descriptionHe: 'ההסבר הקצר ביותר לאופן שבו הבנה משותפת מונעת מחלוקות מיותרות.' },
 ];
 
 const ENGLISH_MEDIA_RELEASE_BASE = 'https://raw.githubusercontent.com/cleanfixharish/cleanfix-website/7629386/app/frontend/public';
-const HEBREW_MEDIA_RELEASE_BASE = 'https://raw.githubusercontent.com/cleanfixharish/cleanfix-website/82df383/app/frontend/public';
 
 export default function StoryMedia({ compact = false }: { compact?: boolean }) {
   const { lang } = useLanguage();
@@ -39,17 +38,14 @@ export default function StoryMedia({ compact = false }: { compact?: boolean }) {
         <div className="public-grid mt-10 grid min-w-0 gap-5 md:grid-cols-2">
           {episodes.map((episode) => {
             const fileBase = `CleanFixHarish-${episode.key}-${languageCode}`;
-            const audioExtension = episode.key === 'elevator' || (episode.key === 'customer' && !he) ? 'm4a' : 'mp3';
-            const audioFile = he ? `${fileBase}-v2.mp3` : `${fileBase}.${audioExtension}`;
-            const audioType = audioFile.endsWith('.m4a') ? 'audio/mp4' : 'audio/mpeg';
-            const mediaBase = he ? HEBREW_MEDIA_RELEASE_BASE : ENGLISH_MEDIA_RELEASE_BASE;
+            const audioFile = he ? `${fileBase}-v2.mp3` : `${fileBase}.mp3`;
             return (
               <article key={`${episode.key}-${languageCode}`} className="min-w-0 rounded-[24px] border border-[#f0c96f]/25 bg-[#123640] p-5 shadow-xl sm:p-6">
                 <div className="flex items-start gap-3">
                   <span className="cf-gold-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"><Headphones className="h-5 w-5 text-[#f0c96f]" /></span>
                   <div className="min-w-0"><h3 className="font-semibold text-[#f7f2ea]">{he ? episode.titleHe : episode.titleEn}</h3><p className="mt-1 text-sm leading-6 text-[#e8d8be]/85">{he ? episode.descriptionHe : episode.descriptionEn}</p></div>
                 </div>
-                <audio key={audioFile} className="mt-5 w-full" controls preload="none" aria-label={he ? `${episode.titleHe} — פודקאסט בעברית` : `${episode.titleEn} — English podcast`}><source src={`${mediaBase}/media/${audioFile}`} type={audioType} />{he ? 'הדפדפן אינו תומך בנגן האודיו.' : 'Your browser does not support the audio player.'}</audio>
+                <audio key={audioFile} className="mt-5 w-full" controls preload="none" aria-label={he ? `${episode.titleHe} — הסבר קולי בעברית` : `${episode.titleEn} — English audio guide`}><source src={`/media/${audioFile}`} type="audio/mpeg" />{he ? 'הדפדפן אינו תומך בנגן האודיו.' : 'Your browser does not support the audio player.'}</audio>
                 <a className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c96f] underline-offset-4 hover:underline" href={`/media/${fileBase}.txt`} target="_blank" rel="noreferrer"><Download className="me-2 h-4 w-4" />{he ? 'קריאת תסריט או הערות הפרק (נפתח בלשונית חדשה)' : 'Read the episode script or source notes (opens a new tab)'}</a>
               </article>
             );

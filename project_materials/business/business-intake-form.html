@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Business Intake Form</title>
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --font-body: 'General Sans', Inter, system-ui, sans-serif;
+      --font-display: 'General Sans', Inter, system-ui, sans-serif;
+      --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+      --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem; --space-5: 1.25rem;
+      --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem; --space-16: 4rem;
+      --color-bg: #f7f6f2; --color-surface: #f9f8f5; --color-surface-2: #fbfbf9; --color-surface-offset: #f3f0ec;
+      --color-border: #d4d1ca; --color-divider: #dcd9d5; --color-text: #28251d; --color-text-muted: #6f6c66;
+      --color-text-faint: #9b988f; --color-text-inverse: #f9f8f4; --color-primary: #01696f; --color-primary-hover: #0c4e54;
+      --color-primary-highlight: #cedcd8; --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05); --shadow-md: 0 8px 24px rgba(0,0,0,.08);
+      --content-default: 960px; --transition-interactive: 180ms cubic-bezier(0.16,1,0.3,1);
+    }
+    [data-theme="dark"] {
+      --color-bg: #171614; --color-surface: #1c1b19; --color-surface-2: #201f1d; --color-surface-offset: #22211f;
+      --color-border: #393836; --color-divider: #262523; --color-text: #cdccca; --color-text-muted: #9a9894;
+      --color-text-faint: #7c7a76; --color-text-inverse: #2b2a28; --color-primary: #4f98a3; --color-primary-hover: #227f8b;
+      --color-primary-highlight: #313b3b; --shadow-sm: 0 1px 2px rgba(0,0,0,.25); --shadow-md: 0 12px 28px rgba(0,0,0,.35);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: none; text-size-adjust: none; scroll-behavior: smooth; }
+    body { min-height: 100dvh; font-family: var(--font-body); font-size: var(--text-base); line-height: 1.6; color: var(--color-text); background: var(--color-bg); }
+    input, textarea, select, button { font: inherit; color: inherit; }
+    button { cursor: pointer; border: none; }
+    a, button, input, textarea, select { transition: background var(--transition-interactive), border-color var(--transition-interactive), box-shadow var(--transition-interactive), color var(--transition-interactive); }
+    :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+    .page { max-width: var(--content-default); margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-16); }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); margin-bottom: var(--space-8); }
+    .brand { display: flex; align-items: center; gap: var(--space-3); }
+    .logo { width: 40px; height: 40px; border-radius: 12px; background: var(--color-primary); color: var(--color-text-inverse); display: grid; place-items: center; box-shadow: var(--shadow-sm); }
+    .logo svg { width: 22px; height: 22px; }
+    .title { font-family: var(--font-display); font-size: var(--text-xl); line-height: 1.1; letter-spacing: -0.03em; }
+    .subtitle { color: var(--color-text-muted); max-width: 62ch; margin-top: var(--space-3); }
+    .toggle { min-height: 44px; min-width: 44px; padding: 0 var(--space-3); border-radius: var(--radius-full,9999px); background: var(--color-surface); border: 1px solid color-mix(in oklab, var(--color-text) 12%, transparent); }
+    .intro, .section, .export { background: var(--color-surface); border: 1px solid color-mix(in oklab, var(--color-text) 10%, transparent); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); }
+    .intro { padding: var(--space-6); margin-bottom: var(--space-6); }
+    .intro-grid { display: grid; gap: var(--space-4); margin-top: var(--space-5); }
+    .pill { display: inline-flex; align-items: center; gap: var(--space-2); padding: 0.45rem 0.8rem; border-radius: 9999px; background: var(--color-primary-highlight); color: var(--color-primary-hover); font-size: var(--text-sm); font-weight: 600; }
+    form { display: grid; gap: var(--space-5); }
+    .section { padding: var(--space-6); }
+    .section h2 { font-size: var(--text-lg); margin-bottom: var(--space-2); }
+    .section p { color: var(--color-text-muted); margin-bottom: var(--space-5); }
+    .grid { display: grid; gap: var(--space-4); }
+    .grid.two { grid-template-columns: 1fr; }
+    .field { display: grid; gap: var(--space-2); }
+    .field label, .group-label { font-size: var(--text-sm); font-weight: 600; }
+    .hint { font-size: var(--text-xs); color: var(--color-text-faint); }
+    input[type="text"], input[type="email"], input[type="tel"], input[type="number"], textarea, select {
+      width: 100%; min-height: 48px; padding: 0.85rem 1rem; border-radius: var(--radius-lg); border: 1px solid color-mix(in oklab, var(--color-text) 13%, transparent);
+      background: var(--color-surface-2); color: var(--color-text);
+    }
+    textarea { min-height: 112px; resize: vertical; }
+    .choice-grid { display: grid; gap: var(--space-3); }
+    .choice, .check { display: flex; gap: var(--space-3); align-items: flex-start; padding: 0.9rem 1rem; border-radius: var(--radius-lg); background: var(--color-surface-2); border: 1px solid color-mix(in oklab, var(--color-text) 10%, transparent); }
+    .choice input, .check input { margin-top: 0.25rem; transform: scale(1.1); }
+    .checklist { display: grid; gap: var(--space-3); }
+    .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-2); }
+    .btn { min-height: 48px; padding: 0.9rem 1.2rem; border-radius: var(--radius-lg); font-weight: 600; }
+    .btn-primary { background: var(--color-primary); color: var(--color-text-inverse); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-secondary { background: var(--color-surface-offset); color: var(--color-text); border: 1px solid color-mix(in oklab, var(--color-text) 12%, transparent); }
+    .export { padding: var(--space-6); margin-top: var(--space-6); }
+    .output { width: 100%; min-height: 220px; margin-top: var(--space-4); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .footer-note { margin-top: var(--space-4); color: var(--color-text-faint); font-size: var(--text-xs); }
+    .progress { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-5); }
+    .step { padding: 0.45rem 0.75rem; border-radius: 9999px; background: var(--color-surface-offset); color: var(--color-text-muted); font-size: var(--text-xs); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+    @media (min-width: 720px) { .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); } .intro-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <a class="sr-only" href="#main">Skip to content</a>
+  <main id="main" class="page">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-label="Project intake logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 7h16"></path><path d="M7 4v6"></path><path d="M17 4v6"></path><rect x="4" y="7" width="16" height="13" rx="2"></rect><path d="M8 12h8"></path><path d="M8 16h5"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="title">Business intake form</div>
+          <p class="subtitle">Fill this once, then send me the exported text. I’ll use it to plan the cheapest launch path, website, lead form, and social ads for your Harish-area service business.</p>
+        </div>
+      </div>
+      <button class="toggle" type="button" data-theme-toggle aria-label="Switch theme">🌙</button>
+    </div>
+
+    <section class="intro">
+      <span class="pill">Fastest path</span>
+      <div class="intro-grid">
+        <div>
+          <strong>1. Fill the form</strong>
+          <p class="subtitle">Answer only what you know. You can leave anything blank.</p>
+        </div>
+        <div>
+          <strong>2. Export answers</strong>
+          <p class="subtitle">Click one button to create a clean summary to paste back to me.</p>
+        </div>
+        <div>
+          <strong>3. Build smart</strong>
+          <p class="subtitle">I’ll turn it into the site structure, offer, lead flow, and ad plan.</p>
+        </div>
+      </div>
+      <div class="progress" aria-label="Project steps">
+        <span class="step">Business basics</span>
+        <span class="step">Services</span>
+        <span class="step">Pricing</span>
+        <span class="step">Trust</span>
+        <span class="step">Website goal</span>
+        <span class="step">Ads</span>
+      </div>
+    </section>
+
+    <form id="intakeForm">
+      <section class="section">
+        <h2>1. Business basics</h2>
+        <p>Start with the core details customers will need and we will later show on the site.</p>
+        <div class="grid two">
+          <div class="field"><label for="business_name">Business name</label><input id="business_name" name="Business name" type="text"></div>
+          <div class="field"><label for="business_name_he">Hebrew business name</label><input id="business_name_he" name="Hebrew business name" type="text"></div>
+          <div class="field"><label for="main_phone">Main phone number</label><input id="main_phone" name="Main phone number" type="tel"></div>
+          <div class="field"><label for="whatsapp">WhatsApp number</label><input id="whatsapp" name="WhatsApp number" type="tel"></div>
+          <div class="field"><label for="email">Customer email</label><input id="email" name="Customer email" type="email"></div>
+          <div class="field"><label for="contact_name">Main contact person</label><input id="contact_name" name="Main contact person" type="text"></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>2. Service area</h2>
+        <p>Tell me where you want to get customers so the site and ads match your real service zone.</p>
+        <div class="grid two">
+          <div class="field"><label for="main_city">Main city</label><input id="main_city" name="Main city" type="text" value="Harish"></div>
+          <div class="field"><label for="other_areas">Other cities or areas</label><input id="other_areas" name="Other cities or areas" type="text"></div>
+          <div class="field"><label for="travel_limit">How far will you travel?</label><input id="travel_limit" name="Travel distance or travel time" type="text" placeholder="Example: up to 30 minutes"></div>
+          <div class="field"><label for="service_radius">Only local or wider area?</label><select id="service_radius" name="Service radius"><option value="">Choose one</option><option>Only Harish</option><option>Harish and nearby areas</option><option>Flexible / willing to travel</option></select></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>3. Services</h2>
+        <p>Select every service you actually want to offer on the site first. We can always add more later.</p>
+        <div class="checklist">
+          <label class="check"><input type="checkbox" name="Services" value="Post-renovation cleaning"><span>Post-renovation cleaning</span></label>
+          <label class="check"><input type="checkbox" name="Services" value="Move-in cleaning"><span>Move-in cleaning</span></label>
+          <label class="check"><input type="checkbox" name="Services" value="Move-out cleaning"><span>Move-out cleaning</span></label>
+          <label class="check"><input type="checkbox" name="Services" value="Painting"><span>Painting</span></label>
+          <label class="check"><input type="checkbox" name="Services" value="Air-conditioner cleaning"><span>Air-conditioner cleaning</span></label>
+          <label class="check"><input type="checkbox" name="Services" value="Handyman repairs"><span>Handyman repairs</span></label>
+          <label class="check"><input type="checkbox" name="Services" value="Window cleaning"><span>Window cleaning</span></label>
+          <label class="check"><input type="checkbox" name="Services" value="Sofa or carpet cleaning"><span>Sofa or carpet cleaning</span></label>
+          <label class="check"><input type="checkbox" name="Services" value="Pressure washing"><span>Pressure washing</span></label>
+          <label class="check"><input type="checkbox" name="Services" value="Small installations"><span>Small installations, shelves, curtains, lamps, etc.</span></label>
+        </div>
+        <div class="field" style="margin-top: var(--space-4);"><label for="other_services">Other services</label><textarea id="other_services" name="Other services"></textarea></div>
+      </section>
+
+      <section class="section">
+        <h2>4. Best money-makers</h2>
+        <p>This helps me focus the website and ad campaign on the services most likely to bring good leads.</p>
+        <div class="grid two">
+          <div class="field"><label for="top_services">Top 3 services you want to sell first</label><textarea id="top_services" name="Top 3 services to sell first" placeholder="1.&#10;2.&#10;3."></textarea></div>
+          <div class="field"><label for="easy_services">Top 3 easiest services for you to deliver</label><textarea id="easy_services" name="Top 3 easiest services to deliver" placeholder="1.&#10;2.&#10;3."></textarea></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>5. Pricing</h2>
+        <p>Choose the pricing style that feels safest. We can always keep the site quote-based if you prefer.</p>
+        <div class="choice-grid">
+          <label class="choice"><input type="radio" name="Pricing style" value="Show full prices"><span>Show full prices on the site.</span></label>
+          <label class="choice"><input type="radio" name="Pricing style" value="Show starting from prices"><span>Show only “starting from” prices.</span></label>
+          <label class="choice"><input type="radio" name="Pricing style" value="No prices, quote only"><span>No prices, only “get a quote”.</span></label>
+        </div>
+        <div class="grid two" style="margin-top: var(--space-4);">
+          <div class="field"><label for="pricing_notes">Prices you already know</label><textarea id="pricing_notes" name="Known prices"></textarea></div>
+          <div class="field"><label for="minimum_job">Minimum job price</label><input id="minimum_job" name="Minimum job price" type="text" placeholder="Example: 250 NIS"></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>6. Trust factors</h2>
+        <p>Why should someone choose you instead of another cleaner or handyman?</p>
+        <div class="field"><label for="trust_factors">Your strongest selling points</label><textarea id="trust_factors" name="Trust factors" placeholder="Examples: fast response, reliable, fair price, one team for cleaning and repairs, careful work"></textarea></div>
+      </section>
+
+      <section class="section">
+        <h2>7. Proof and assets</h2>
+        <p>Real proof helps local businesses convert better than polished claims alone.</p>
+        <div class="checklist">
+          <label class="check"><input type="checkbox" name="Assets" value="Before and after photos"><span>Before and after photos</span></label>
+          <label class="check"><input type="checkbox" name="Assets" value="Customer testimonials"><span>Customer testimonials</span></label>
+          <label class="check"><input type="checkbox" name="Assets" value="WhatsApp reviews"><span>WhatsApp reviews</span></label>
+          <label class="check"><input type="checkbox" name="Assets" value="Google reviews"><span>Google reviews</span></label>
+          <label class="check"><input type="checkbox" name="Assets" value="Facebook page"><span>Facebook page</span></label>
+          <label class="check"><input type="checkbox" name="Assets" value="Instagram page"><span>Instagram page</span></label>
+          <label class="check"><input type="checkbox" name="Assets" value="Logo"><span>Logo</span></label>
+          <label class="check"><input type="checkbox" name="Assets" value="Business cards or branding"><span>Business cards or existing branding</span></label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>8. Language and tone</h2>
+        <p>Choose the language and general style you want customers to feel.</p>
+        <div class="grid two">
+          <div class="field"><label for="site_language">Site language</label><select id="site_language" name="Site language"><option value="">Choose one</option><option>Hebrew only</option><option>English only</option><option>Hebrew + English</option></select></div>
+          <div class="field"><label for="brand_style">Brand style</label><select id="brand_style" name="Brand style"><option value="">Choose one</option><option>Very practical and simple</option><option>Clean and professional</option><option>Premium and polished</option><option>Friendly family-business feel</option></select></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>9. Website goal</h2>
+        <p>Pick the one main action you most want visitors to take.</p>
+        <div class="choice-grid">
+          <label class="choice"><input type="radio" name="Main website goal" value="Call now"><span>Call now</span></label>
+          <label class="choice"><input type="radio" name="Main website goal" value="WhatsApp now"><span>WhatsApp now</span></label>
+          <label class="choice"><input type="radio" name="Main website goal" value="Fill in a quote form"><span>Fill in a quote form</span></label>
+          <label class="choice"><input type="radio" name="Main website goal" value="Book a visit"><span>Book a visit</span></label>
+          <label class="choice"><input type="radio" name="Main website goal" value="Send photos for estimate"><span>Send photos for estimate</span></label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>10. Lead form fields</h2>
+        <p>Choose the fields you are comfortable asking for. Shorter forms usually get more leads.</p>
+        <div class="checklist">
+          <label class="check"><input type="checkbox" name="Lead form fields" value="Name"><span>Name</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="Phone"><span>Phone</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="WhatsApp"><span>WhatsApp</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="Email"><span>Email</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="City"><span>City</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="Address"><span>Address</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="Type of service needed"><span>Type of service needed</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="Apartment size"><span>Apartment size</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="Photo upload later"><span>Photo upload later</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="Preferred date"><span>Preferred date</span></label>
+          <label class="check"><input type="checkbox" name="Lead form fields" value="Notes"><span>Notes</span></label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>11. Lead handling and ads</h2>
+        <p>Tell me how you want to receive leads and how fast you want to start promoting the business.</p>
+        <div class="checklist">
+          <label class="check"><input type="checkbox" name="Lead handling" value="Receive every lead by WhatsApp"><span>Receive every lead by WhatsApp</span></label>
+          <label class="check"><input type="checkbox" name="Lead handling" value="Receive leads by email too"><span>Receive leads by email too</span></label>
+          <label class="check"><input type="checkbox" name="Lead handling" value="Simple dashboard later"><span>Simple dashboard later</span></label>
+          <label class="check"><input type="checkbox" name="Lead handling" value="Call people manually first"><span>Call people manually first</span></label>
+          <label class="check"><input type="checkbox" name="Lead handling" value="Start Facebook and Instagram ads as soon as site is ready"><span>Start Facebook and Instagram ads as soon as the site is ready</span></label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>12. Competitors or inspiration</h2>
+        <p>Paste any websites, Facebook pages, or Instagram profiles you like.</p>
+        <div class="field"><label for="competitors">Competitors or inspiration links</label><textarea id="competitors" name="Competitors or inspiration"></textarea></div>
+      </section>
+
+      <section class="section">
+        <h2>13. Anything else</h2>
+        <p>Add anything important that I should know before planning the website and ads.</p>
+        <div class="field"><label for="extra_notes">Extra notes</label><textarea id="extra_notes" name="Extra notes"></textarea></div>
+        <div class="actions">
+          <button class="btn btn-primary" type="button" id="generateBtn">Generate summary</button>
+          <button class="btn btn-secondary" type="reset" id="resetBtn">Clear form</button>
+        </div>
+      </section>
+    </form>
+
+    <section class="export" aria-live="polite">
+      <h2>Exported answers</h2>
+      <p class="subtitle">Click “Generate summary”, then copy the text below and send it back to me.</p>
+      <textarea class="output" id="output" placeholder="Your clean summary will appear here."></textarea>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="copyBtn">Copy summary</button>
+      </div>
+      <p class="footer-note">This form works entirely in the browser and does not submit anywhere. It is just a fast way to organize your answers.</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const toggle = document.querySelector('[data-theme-toggle]');
+      const root = document.documentElement;
+      let theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.setAttribute('data-theme', theme);
+      toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+      toggle.addEventListener('click', () => {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', theme);
+        toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+        toggle.setAttribute('aria-label', 'Switch to ' + (theme === 'dark' ? 'light' : 'dark') + ' mode');
+      });
+
+      const form = document.getElementById('intakeForm');
+      const output = document.getElementById('output');
+      const generateBtn = document.getElementById('generateBtn');
+      const copyBtn = document.getElementById('copyBtn');
+
+      function collectValuesByName(name) {
+        const items = Array.from(form.querySelectorAll(`[name="${CSS.escape(name)}"]`));
+        if (!items.length) return '';
+        const first = items[0];
+        if (first.type === 'checkbox') return items.filter(i => i.checked).map(i => i.value).join(', ');
+        if (first.type === 'radio') {
+          const picked = items.find(i => i.checked);
+          return picked ? picked.value : '';
+        }
+        return first.value.trim();
+      }
+
+      function generateSummary() {
+        const sections = [
+          ['Business basics', ['Business name','Hebrew business name','Main phone number','WhatsApp number','Customer email','Main contact person']],
+          ['Service area', ['Main city','Other cities or areas','Travel distance or travel time','Service radius']],
+          ['Services', ['Services','Other services']],
+          ['Best money-makers', ['Top 3 services to sell first','Top 3 easiest services to deliver']],
+          ['Pricing', ['Pricing style','Known prices','Minimum job price']],
+          ['Trust and proof', ['Trust factors','Assets']],
+          ['Language and tone', ['Site language','Brand style']],
+          ['Website goal', ['Main website goal']],
+          ['Lead form', ['Lead form fields']],
+          ['Lead handling and ads', ['Lead handling']],
+          ['Competitors or inspiration', ['Competitors or inspiration']],
+          ['Extra notes', ['Extra notes']]
+        ];
+
+        const lines = [];
+        sections.forEach(([title, fields]) => {
+          lines.push(`## ${title}`);
+          fields.forEach(field => {
+            const value = collectValuesByName(field);
+            lines.push(`- ${field}: ${value || '—'}`);
+          });
+          lines.push('');
+        });
+        output.value = lines.join('\n');
+      }
+
+      generateBtn.addEventListener('click', generateSummary);
+      copyBtn.addEventListener('click', async () => {
+        if (!output.value.trim()) generateSummary();
+        try {
+          await navigator.clipboard.writeText(output.value);
+          copyBtn.textContent = 'Copied';
+          setTimeout(() => { copyBtn.textContent = 'Copy summary'; }, 1500);
+        } catch (e) {
+          output.focus();
+          output.select();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

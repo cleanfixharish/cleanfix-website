@@ -117,6 +117,13 @@ test.describe('public mobile coverage', () => {
     await assertNoHorizontalOverflow(page);
   });
 
+  test('/how-we-work redirects to /how-it-works in the SPA', async ({ page }) => {
+    await page.goto('/how-we-work', { waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/\/how-it-works\/?$/);
+    await expect(page.locator('main h1')).toContainText(/clear way to get it sorted|דרך ברורה לסגור את המשימה/);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/how-it-works$/);
+  });
+
   for (const route of ['/provider', '/partner']) {
     test(`${route} is gated and does not expose fabricated dashboard data`, async ({ page }) => {
       await page.goto(route, { waitUntil: 'domcontentloaded' });

@@ -1,0 +1,33 @@
+CLEANFIXHARISH PRICING EVIDENCE — COMPLETION REPORT
+Observation date: 2026-08-20
+Baseline preserved: 19 observations (unchanged), first=NAT_PRO_HANDY_VISIT, last=NAT_MID_AC_VISIT
+
+VALIDATION RESULTS
+- No duplicate observation IDs: PASS
+- Every observation has a valid http/https source URL: PASS
+- Minimum never higher than maximum: PASS
+- Typical value never outside min-max range: PASS
+- National evidence never labelled local: PASS
+- Directory pages never treated as price evidence: PASS
+- Calculated midpoints correctly labelled (not "observed average"): PASS
+- Every recommendation links to evidence IDs: PASS
+- Every recommendation requires human approval: PASS
+
+EVIDENCE SEPARATION
+1. Verified national prices: 19 observations from The Professionals (11 rows, high confidence, directly captured display prices and VAT-inclusive statement) and Midrag (8 rows, provisional, require manual revalidation against the live page).
+2. Verified local prices (Harish / Pardes Hanna-Karkur / Hadera): No verified local price evidence found. Zero local price rows are included in this dataset.
+3. Local availability without prices: The Professionals Harish handyman and cleaning category pages, B144 Harish handyman directory, Easy Pardes Hanna-Karkur handyman directory, Cleanew Harish marketing page, and D.co.il Harish cleaning directory are recorded in the source registry as directory/availability evidence only — none is treated as a price row.
+4. Regional inferences: Prohibited from being presented as local prices; national benchmarks may only inform a human reviewer, never an automated local price.
+5. Unverified hypotheses: All customer estimate ranges, provider budget ranges, gross margins, travel/urgency/complexity adjustments in the recommendations file are explicitly labelled "Unverified hypothesis—do not use for automated pricing" pending local quotations and completed-job data.
+6. Legal/regulatory requirements: Government cancellation guidance and electrician licensing service page are accessible and recorded; the previously supplied electrician licence-holder standards URL was truncated and could not be independently re-verified in this session, so it is marked inaccessible/unverified rather than guessed.
+
+COUNTS
+Verified (non-provisional) observations: 11
+Provisional observations (Midrag, pending manual revalidation): 8
+Harish-labelled price observations: 0
+Pardes Hanna-Karkur-labelled price observations: 0
+Hadera-labelled price observations: 0
+Total evidence gaps requiring telephone quotations or completed-job data: 72 (see cleanfixharish_evidence_gaps.csv)
+
+POLICY REMINDER
+No automatic final pricing is authorized. Every CleanFixHarish customer-facing estimate remains a non-binding range pending scope confirmation, required photographs, and explicit human approval (Aviel) during the validation phase.

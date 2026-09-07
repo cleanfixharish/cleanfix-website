@@ -6,6 +6,13 @@
 *.key
 *.p12
 *.pfx
+**/client_secret_*.json
+**/credentials*.json
+**/service-account*.json
+**/access_tokens.db
+**/credentials.db
+**/.boto
+**/adc.json
 
 # Dependencies and generated output
 node_modules/
@@ -18,6 +25,13 @@ dist/
 build/
 .cache/
 coverage/
+app/frontend/test-results/
+app/frontend/.live-results/
+app/frontend/.live-review/
+app/frontend/.local-review/
+app/frontend/.review-current/
+tmp/
+agent
 
 # Runtime data and logs
 app/backend/logs/

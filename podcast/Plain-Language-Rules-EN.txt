@@ -1,0 +1,18 @@
+Plain-language rules for every CleanFixHarish episode
+
+Explain the subject so that an attentive eight-year-old can follow it, while adults still feel respected.
+
+- Use short sentences and familiar words.
+- Explain one idea at a time.
+- Explain every technical or financial word immediately.
+- Use a simple house or school example when an idea is abstract.
+- Say “the computer system checks who is allowed to see each page” before using the word authorization.
+- Say “money left after paying the worker and direct job costs” before using the word contribution.
+- Say “a safe saved version we can return to” before using the words recovery point or Git tag.
+- Do not list software names without explaining what each one does.
+- Repeat the main idea in a new, shorter way after a difficult section.
+- Use clear signposts: first, next, if something changes, and finally.
+- Keep numbers simple. Explain that percentages are planning examples, not a promise.
+- Avoid hype, business jargon, unexplained abbreviations, and long sentences.
+- Ask a small hook question every minute to bring attention back.
+- Finish with three things the listener should remember.

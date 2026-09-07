@@ -113,6 +113,27 @@ async def add_security_headers(request: Request, call_next):
     """Apply baseline security headers in production without affecting local development."""
     response = await call_next(request)
     if is_production_environment():
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "; ".join(
+                (
+                    "default-src 'self'",
+                    "base-uri 'self'",
+                    "object-src 'none'",
+                    "frame-ancestors 'none'",
+                    "form-action 'self'",
+                    "script-src 'self' 'unsafe-inline'",
+                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                    "font-src 'self' data: https://fonts.gstatic.com",
+                    "img-src 'self' data: blob: https:",
+                    "media-src 'self' blob: https:",
+                    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+                    "worker-src 'self' blob:",
+                    "manifest-src 'self'",
+                    "upgrade-insecure-requests",
+                )
+            ),
+        )
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -175,6 +196,28 @@ async def redirect_render_pages_to_official_domain(request: Request, call_next):
         return RedirectResponse(destination, status_code=308)
 
     return await call_next(request)
+
+
+LEGACY_PUBLIC_PATH_REDIRECTS = {
+    "/how-we-work": "/how-it-works",
+}
+
+
+@app.middleware("http")
+async def redirect_legacy_public_paths(request: Request, call_next):
+    """Permanently redirect retired public routes to their canonical replacements."""
+    if request.method not in {"GET", "HEAD"}:
+        return await call_next(request)
+
+    normalized_path = request.url.path.rstrip("/") or "/"
+    destination = LEGACY_PUBLIC_PATH_REDIRECTS.get(normalized_path)
+    if not destination:
+        return await call_next(request)
+
+    redirect_url = destination
+    if request.url.query:
+        redirect_url = f"{redirect_url}?{request.url.query}"
+    return RedirectResponse(redirect_url, status_code=308)
 
 
 # Auto-discover and include all routers from the local `routers` package

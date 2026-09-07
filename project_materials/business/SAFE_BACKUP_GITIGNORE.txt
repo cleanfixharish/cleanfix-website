@@ -1,0 +1,40 @@
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*Token*
+*Tokken*
+*token*
+*secret*
+*credentials*
+*.pem
+*.key
+*.pfx
+
+# Git and local tooling
+.git/
+.agents/
+.codex/
+.cleanfix-staging/
+
+# Reproducible dependencies, caches, builds, and logs
+node_modules/
+.pnpm-store/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.cache/
+dist/
+build/
+logs/
+*.pyc
+*.log
+
+# Duplicate export archives remain in the local master copy
+*.zip
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+desktop.ini
