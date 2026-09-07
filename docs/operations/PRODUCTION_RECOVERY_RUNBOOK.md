@@ -35,9 +35,24 @@ The supervised web-production intake gate passed on 2026-09-08 (Asia/Jerusalem):
 - The server assigned `source=website` and `status=new`; the public form did not override protected CRM state.
 - A short-lived owner-scoped audit token retrieved lead `34` through the protected admin API with HTTP 200.
 - Verification output omitted contact values, notes, and other customer data.
-- No record was changed, contacted, assigned, or deleted during verification.
+- No record was changed, contacted, or assigned during verification.
 
-This proves the production path from public quote submission through database persistence to authenticated admin visibility. Lead `34` remains a clearly identified acceptance-test record for audit history.
+This proves the production path from public quote submission through database persistence to authenticated admin visibility. After verification, the owner explicitly requested cleanup of acceptance-test lead `34`. The protected admin API deleted that exact revalidated record and a follow-up GET returned HTTP 404. The evidence above retains no contact values or customer content.
+
+## Isolated staging acceptance evidence
+
+The isolated staging environment was refreshed to accepted repository commit `480c0e8ccb0804c0b8d36f6e17fb08ed6d458067` on 2026-09-08 (Asia/Jerusalem):
+
+- Railway deployment `8b67c0d6-9a97-4309-8bf2-02784999729e` completed with status `SUCCESS`.
+- The first deployment attempt safely stopped before release because staging referenced abandoned revision `a1f3c8d74e20` from an older private-backup branch.
+- Read-only inspection proved the three tables owned by that abandoned migration contained zero rows.
+- The exact historical downgrade removed only those empty staging-only tables and returned the database to shared revision `d4e7a1b93c20`.
+- The canonical pre-deploy migration gate then advanced staging to head `b9e7d3c1a502`.
+- Schema verification found all three canonical growth tables and all three lead attribution columns, with zero abandoned financial tables remaining.
+- `/health`, `/health/ready`, and the home page returned HTTP 200.
+- The reusable application audit passed all 14 checks with zero failures.
+
+This repair affected only `staging-isolated`; production application and database services were not changed.
 
 ## First five minutes
 
