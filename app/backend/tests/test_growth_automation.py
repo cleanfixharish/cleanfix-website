@@ -2,14 +2,16 @@ from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
 import pytest
+from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from core.database import Base
+from dependencies.auth import get_owner_user
 from growth_daily import is_due
 from models.growth import GrowthAutomationSettings, GrowthPost, GrowthRun
-from routers.growth import approve_post, mark_manual_post_published, reject_post, schedule_post
+from routers.growth import approve_post, mark_manual_post_published, reject_post, router, run_now, schedule_post
 from schemas.auth import UserResponse
 from schemas.growth import (
     GrowthPublishRequest,
@@ -33,6 +35,20 @@ def test_growth_defaults_keep_owner_approval_and_auto_publish_off():
     assert data.require_owner_approval is True
     assert data.auto_publish is False
     assert data.timezone == "Asia/Jerusalem"
+
+
+def test_growth_generation_http_routes_require_owner():
+    generation_routes = {
+        route.path: route
+        for route in router.routes
+        if route.path in {"/api/v1/admin/growth/run-daily", "/api/v1/admin/growth/run-now"}
+    }
+    assert set(generation_routes) == {
+        "/api/v1/admin/growth/run-daily",
+        "/api/v1/admin/growth/run-now",
+    }
+    for route in generation_routes.values():
+        assert any(dependency.call is get_owner_user for dependency in route.dependant.dependencies)
 
 
 def test_growth_settings_reject_unapproved_publication():
@@ -158,3 +174,52 @@ async def test_daily_growth_run_persists_once_per_channel_language_and_day():
     assert rejected.approved_version is None
     assert rejected.scheduled_for is None
     assert rejected.last_error == "Needs a more specific local claim"
+
+
+@pytest.mark.asyncio
+async def test_owner_can_run_now_while_scheduler_is_disabled():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as connection:
+        await connection.run_sync(
+            lambda sync_connection: Base.metadata.create_all(
+                sync_connection,
+                tables=[
+                    GrowthAutomationSettings.__table__,
+                    GrowthPost.__table__,
+                    GrowthRun.__table__,
+                ],
+            )
+        )
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    owner = UserResponse(id="owner", email="owner@example.com", role="admin")
+
+    async with sessions() as db:
+        growth_settings = GrowthAutomationSettings(
+            id=1,
+            enabled=False,
+            auto_generate=True,
+            daily_post_limit=1,
+            timezone="UTC",
+        )
+        db.add(growth_settings)
+        await db.commit()
+
+        first = await run_now(_owner=owner, db=db)
+        second = await run_now(_owner=owner, db=db)
+        post_count = await db.scalar(select(func.count(GrowthPost.id)))
+        run_count = await db.scalar(select(func.count(GrowthRun.id)))
+        posts = (await db.execute(select(GrowthPost))).scalars().all()
+
+        growth_settings.auto_generate = False
+        await db.commit()
+        with pytest.raises(HTTPException, match="Automatic draft generation is disabled") as exc_info:
+            await run_now(_owner=owner, db=db)
+
+    await engine.dispose()
+
+    assert first.drafts_created == 4
+    assert second.drafts_created == 0
+    assert post_count == 4
+    assert run_count == 2
+    assert all(post.status == "draft" for post in posts)
+    assert exc_info.value.status_code == 409
