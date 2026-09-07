@@ -36,7 +36,9 @@ The one-shot worker command is:
 python growth_daily.py
 ```
 
-Run it once daily from a dedicated Railway cron service using the same image, database, and environment as the web service. The worker exits safely without creating content when automation is disabled. Repeated runs on the same day are idempotent.
+Use `railway.growth.toml` as the dedicated Railway service config and give that service the same database and application environment as the web service. Railway triggers it hourly because Railway evaluates cron in UTC; the worker checks the admin-configured IANA timezone and daily time, then exits immediately when it is not due. This avoids hard-coded daylight-saving offsets. The worker also exits safely when automation is disabled or the day's run already completed. Draft creation remains idempotent.
+
+Railway should own infrastructure-level failed-deployment notifications. The Growth Center notification email is reserved for a future verified transactional-email adapter; it must not silently claim email delivery before such an adapter exists.
 
 ## Next channel phase
 

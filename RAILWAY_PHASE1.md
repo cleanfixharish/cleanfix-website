@@ -8,6 +8,7 @@ Render, Google OAuth, or production data.
 - Application service built from the repository root Dockerfile.
 - PostgreSQL service in the same project and EU West region.
 - One application replica during migration validation.
+- One private `growth-daily` cron service using `railway.growth.toml`; it has no public domain and shares the application database variables.
 - Railway-generated domain only until the production cutover is approved.
 
 ## Required variables
@@ -45,6 +46,7 @@ schema through the configured pre-deploy command.
    authorized, without removing the production callback.
 5. Compare critical table counts with the source backup.
 6. Exercise account, admin, lead, quote, asset, sitemap, and PWA flows.
+7. Point the `growth-daily` service at `railway.growth.toml`, enable Railway failed-deployment notifications, and verify one disabled run before enabling it in the admin panel.
 
 Do not attach `cleanfixharish.co.il` or `www.cleanfixharish.co.il` and do not
 change DNS until the owner approves the cutover phase.

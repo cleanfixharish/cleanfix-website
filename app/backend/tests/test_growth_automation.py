@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from core.database import Base
+from growth_daily import is_due
 from models.growth import GrowthAutomationSettings, GrowthPost, GrowthRun
 from routers.growth import reject_post
 from schemas.growth import GrowthRejectRequest, GrowthSettingsData
@@ -59,6 +60,14 @@ def test_utm_and_idempotency_are_stable():
     assert idempotency_key(date(2026, 9, 7), "instagram", "he", "local_trust") == idempotency_key(
         date(2026, 9, 7), "instagram", "he", "local_trust"
     )
+
+
+def test_daily_worker_respects_admin_time_and_one_run_per_day():
+    before = datetime(2026, 9, 7, 8, 59, tzinfo=timezone.utc)
+    due = datetime(2026, 9, 7, 9, 0, tzinfo=timezone.utc)
+    assert is_due(before, "09:00", completed_today=False) is False
+    assert is_due(due, "09:00", completed_today=False) is True
+    assert is_due(due, "09:00", completed_today=True) is False
 
 
 @pytest.mark.asyncio
