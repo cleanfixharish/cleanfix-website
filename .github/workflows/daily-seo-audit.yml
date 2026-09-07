@@ -1,4 +1,4 @@
-name: Daily production SEO audit
+name: Daily production health and SEO audit
 
 on:
   schedule:
@@ -12,6 +12,9 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: daily-production-audit
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
