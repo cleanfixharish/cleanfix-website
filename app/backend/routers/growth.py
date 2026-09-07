@@ -6,11 +6,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from dependencies.auth import get_admin_user
+from dependencies.auth import get_admin_user, get_owner_user
 from models.growth import GrowthAutomationSettings, GrowthPost, GrowthRun
 from schemas.auth import UserResponse
 from schemas.growth import (
     GrowthPostCreate,
+    GrowthPublishRequest,
     GrowthPostResponse,
     GrowthPostUpdate,
     GrowthRejectRequest,
@@ -116,19 +117,19 @@ async def edit_post(post_id: int, data: GrowthPostUpdate, db: AsyncSession = Dep
 @router.post("/posts/{post_id}/approve", response_model=GrowthPostResponse)
 async def approve_post(
     post_id: int,
-    admin: UserResponse = Depends(get_admin_user),
+    admin: UserResponse = Depends(get_owner_user),
     db: AsyncSession = Depends(get_db),
 ):
     row = await db.get(GrowthPost, post_id)
     if row is None:
         raise HTTPException(404, "Growth post not found")
-    if row.status not in {"draft", "rejected", "approved"}:
+    if row.status not in {"draft", "rejected", "approved", "scheduled"}:
         raise HTTPException(409, "Only reviewable drafts can be approved")
     row.approved_version = row.content_version
     row.approved_at = datetime.now(timezone.utc)
     row.approved_by = admin.email
     row.content_hash = content_hash(row.body, row.destination_url, row.scheduled_for)
-    row.status = "approved"
+    row.status = "scheduled" if row.scheduled_for else "approved"
     await db.commit()
     await db.refresh(row)
     return row
@@ -139,11 +140,17 @@ async def schedule_post(post_id: int, data: GrowthScheduleRequest, db: AsyncSess
     row = await db.get(GrowthPost, post_id)
     if row is None:
         raise HTTPException(404, "Growth post not found")
-    if row.approved_version != row.content_version or row.status not in {"approved", "scheduled"}:
-        raise HTTPException(409, "Approve this exact post version before scheduling")
+    if row.status in {"published", "publishing", "cancelled"}:
+        raise HTTPException(409, "Published or cancelled posts are immutable")
+    if row.scheduled_for == data.scheduled_for:
+        return row
     row.scheduled_for = data.scheduled_for
+    row.content_version += 1
+    row.approved_version = None
+    row.approved_at = None
+    row.approved_by = None
     row.content_hash = content_hash(row.body, row.destination_url, row.scheduled_for)
-    row.status = "scheduled"
+    row.status = "draft"
     await db.commit()
     await db.refresh(row)
     return row
@@ -169,14 +176,25 @@ async def reject_post(post_id: int, data: GrowthRejectRequest, db: AsyncSession 
 
 
 @router.post("/posts/{post_id}/mark-published", response_model=GrowthPostResponse)
-async def mark_manual_post_published(post_id: int, db: AsyncSession = Depends(get_db)):
+async def mark_manual_post_published(
+    post_id: int,
+    data: GrowthPublishRequest,
+    owner: UserResponse = Depends(get_owner_user),
+    db: AsyncSession = Depends(get_db),
+):
     row = await db.get(GrowthPost, post_id)
     if row is None:
         raise HTTPException(404, "Growth post not found")
+    if row.status == "published" and data.confirmation_version == row.content_version:
+        return row
+    if data.confirmation_version != row.content_version:
+        raise HTTPException(409, "Publication confirmation does not match the current post version")
     if row.approved_version != row.content_version or row.status not in {"approved", "scheduled"}:
         raise HTTPException(409, "Only an approved exact version can be marked published")
     row.status = "published"
     row.published_at = datetime.now(timezone.utc)
+    row.published_by = owner.email
+    row.publication_url = data.publication_url
     row.remote_id = row.remote_id or f"manual:{row.id}:{row.content_hash[:12]}"
     await db.commit()
     await db.refresh(row)

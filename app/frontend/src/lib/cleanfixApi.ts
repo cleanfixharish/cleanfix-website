@@ -258,8 +258,11 @@ export const cleanfixApi = {
     return response.data;
   },
 
-  async markGrowthPostPublished(id: number) {
-    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/posts/${id}/mark-published`);
+  async markGrowthPostPublished(id: number, confirmationVersion: number, publicationUrl?: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/posts/${id}/mark-published`, {
+      confirmation_version: confirmationVersion,
+      publication_url: publicationUrl || null,
+    });
     return response.data;
   },
 

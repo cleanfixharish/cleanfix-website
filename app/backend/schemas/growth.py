@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Literal, Optional
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -7,6 +8,16 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 Channel = Literal["facebook", "instagram", "x", "manual_share"]
 Language = Literal["he", "en"]
+
+
+def validate_first_party_url(value: str) -> str:
+    parts = urlsplit(value.strip())
+    if parts.scheme != "https" or (parts.hostname or "").lower() not in {
+        "cleanfixharish.co.il",
+        "www.cleanfixharish.co.il",
+    }:
+        raise ValueError("destination URL must use HTTPS on cleanfixharish.co.il")
+    return value.strip()
 
 
 class GrowthSettingsData(BaseModel):
@@ -51,6 +62,11 @@ class GrowthSettingsData(BaseModel):
             raise ValueError("timezone must be a valid IANA timezone") from exc
         return value
 
+    @field_validator("destination_url")
+    @classmethod
+    def validate_destination_url(cls, value: str) -> str:
+        return validate_first_party_url(value)
+
     @model_validator(mode="after")
     def enforce_safe_automation(self):
         if not self.require_owner_approval:
@@ -81,6 +97,11 @@ class GrowthPostCreate(BaseModel):
     destination_url: str = Field(max_length=1000)
     scheduled_for: Optional[datetime] = None
 
+    @field_validator("destination_url")
+    @classmethod
+    def validate_destination_url(cls, value: str) -> str:
+        return validate_first_party_url(value)
+
 
 class GrowthPostUpdate(BaseModel):
     body: Optional[str] = Field(default=None, min_length=20, max_length=5000)
@@ -89,6 +110,11 @@ class GrowthPostUpdate(BaseModel):
     destination_url: Optional[str] = Field(default=None, max_length=1000)
     scheduled_for: Optional[datetime] = None
 
+    @field_validator("destination_url")
+    @classmethod
+    def validate_destination_url(cls, value: Optional[str]) -> Optional[str]:
+        return validate_first_party_url(value) if value is not None else None
+
 
 class GrowthScheduleRequest(BaseModel):
     scheduled_for: datetime
@@ -96,6 +122,21 @@ class GrowthScheduleRequest(BaseModel):
 
 class GrowthRejectRequest(BaseModel):
     reason: str = Field(min_length=3, max_length=1000)
+
+
+class GrowthPublishRequest(BaseModel):
+    confirmation_version: int = Field(ge=1)
+    publication_url: Optional[str] = Field(default=None, max_length=1000)
+
+    @field_validator("publication_url")
+    @classmethod
+    def validate_publication_url(cls, value: Optional[str]) -> Optional[str]:
+        if value is None or not value.strip():
+            return None
+        parts = urlsplit(value.strip())
+        if parts.scheme != "https" or not parts.hostname:
+            raise ValueError("publication URL must be a valid HTTPS URL")
+        return value.strip()
 
 
 class GrowthPostResponse(BaseModel):
@@ -118,6 +159,8 @@ class GrowthPostResponse(BaseModel):
     approved_at: Optional[datetime]
     approved_by: Optional[str]
     published_at: Optional[datetime]
+    published_by: Optional[str]
+    publication_url: Optional[str]
     remote_id: Optional[str]
     last_error: Optional[str]
     created_at: Optional[datetime]

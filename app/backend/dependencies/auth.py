@@ -142,6 +142,15 @@ async def get_admin_user(
     return current_user
 
 
+async def get_owner_user(current_user: UserResponse = Depends(get_admin_user)) -> UserResponse:
+    """Restrict high-impact approvals and publication records to the primary owner."""
+    normalized_email = current_user.email.strip().lower()
+    primary_admin = getattr(settings, "admin_user_email", "").strip().lower()
+    if not primary_admin or normalized_email != primary_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Owner access required")
+    return current_user
+
+
 async def get_dashboard_viewer(
     current_user: UserResponse = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ) -> UserResponse:

@@ -1,10 +1,11 @@
 import hashlib
+import re
 from datetime import date, datetime, timezone
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 
 from sqlalchemy import select
 
-from models.growth import GrowthPost, GrowthRun
+from models.growth import GrowthAutomationSettings, GrowthPost, GrowthRun
 
 
 TEMPLATES = {
@@ -43,11 +44,21 @@ def utm_url(destination_url: str, channel: str, campaign: str) -> str:
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
+def enforce_banned_phrases(settings, body: str) -> None:
+    configured = getattr(settings, "banned_phrases", None) or ""
+    phrases = [part.strip().casefold() for part in re.split(r"[,\n]", configured) if part.strip()]
+    normalized_body = body.casefold()
+    blocked = next((phrase for phrase in phrases if phrase in normalized_body), None)
+    if blocked:
+        raise ValueError(f"Generated draft contains a banned phrase: {blocked}")
+
+
 def build_daily_draft(settings, day: date, channel: str, language: str, topic: str) -> dict:
     campaign = f"daily-organic-{day.isoformat()}"
     template = TEMPLATES.get(topic, TEMPLATES["helpful_tip"])[language]
     cta = settings.default_cta.strip()
     copy = f"{template}\n\n{cta}"
+    enforce_banned_phrases(settings, copy)
     destination = settings.destination_url.strip()
     return {
         "campaign_name": campaign,
@@ -69,6 +80,11 @@ def build_daily_draft(settings, day: date, channel: str, language: str, topic: s
 
 async def generate_daily_drafts(db, settings, day: date, trigger: str = "admin") -> GrowthRun:
     """Create one idempotent, owner-reviewable batch from the saved admin settings."""
+    await db.execute(
+        select(GrowthAutomationSettings.id)
+        .where(GrowthAutomationSettings.id == settings.id)
+        .with_for_update()
+    )
     run = GrowthRun(
         trigger=trigger,
         status="running",

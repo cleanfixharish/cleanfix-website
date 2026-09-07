@@ -56,6 +56,8 @@ class GrowthPost(Base):
     approved_at = Column(DateTime(timezone=True), nullable=True)
     approved_by = Column(String(255), nullable=True)
     published_at = Column(DateTime(timezone=True), nullable=True)
+    published_by = Column(String(255), nullable=True)
+    publication_url = Column(String(1000), nullable=True)
     remote_id = Column(String(255), nullable=True)
     last_error = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.now)

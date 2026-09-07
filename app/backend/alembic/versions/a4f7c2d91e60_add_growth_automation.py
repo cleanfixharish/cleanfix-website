@@ -62,6 +62,8 @@ def upgrade() -> None:
         sa.Column("approved_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("approved_by", sa.String(length=255), nullable=True),
         sa.Column("published_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("published_by", sa.String(length=255), nullable=True),
+        sa.Column("publication_url", sa.String(length=1000), nullable=True),
         sa.Column("remote_id", sa.String(length=255), nullable=True),
         sa.Column("last_error", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
