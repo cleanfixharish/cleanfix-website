@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: '17 3 * * *'
   workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: Exercise the production alert path without changing production
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,8 +22,41 @@ jobs:
       group: daily-production-audit
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - run: node scripts/daily-seo-audit.mjs
+      - name: Simulate an audit failure
+        if: ${{ inputs.simulate_failure }}
+        run: exit 1
+
+  notify:
+    needs: audit
+    if: ${{ always() && needs.audit.result == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Open or update the production alert
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Production health audit failed"
+          issue_number="$(gh issue list \
+            --repo "$REPOSITORY" \
+            --state open \
+            --limit 100 \
+            --json number,title \
+            --jq '.[] | select(.title == "Production health audit failed") | .number' \
+            | head -n 1)"
+          body="The scheduled production health audit failed. Review the run: $RUN_URL"
+          if [ -n "$issue_number" ]; then
+            gh issue comment "$issue_number" --repo "$REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$REPOSITORY" --title "$title" --body "$body"
+          fi
