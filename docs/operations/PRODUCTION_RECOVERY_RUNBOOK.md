@@ -19,6 +19,9 @@ Never print environment variables, database URLs, access tokens, or customer rec
 - Repository monitoring baseline: `3d7ffa08d253f6a6bb8a0178f37d7f149299edc9`
 - Required deployment gate: `python -m alembic upgrade head`
 - Required readiness path: `/health/ready`
+- Active database route: PostgreSQL HA through the `Postgres HA` endpoint
+- HA backup policy: daily, weekly, and monthly schedules on all three PostgreSQL members
+- Latest verified daily snapshots: 2026-09-07 on all three members
 
 The monitoring commit only changes repository automation and does not require a web redeployment.
 
@@ -98,18 +101,24 @@ If a future release contains a destructive or backward-incompatible migration, d
 
 ## Database recovery
 
-Current evidence confirms healthy HA database services and ready persistent volumes. It does **not** yet prove that scheduled snapshots or point-in-time recovery are enabled.
+Current evidence confirms healthy HA database services, ready persistent volumes, and successful scheduled snapshots. Run the reusable read-only audit from an authenticated Railway CLI session:
+
+```powershell
+./scripts/audit_railway_backups.ps1
+```
+
+The audit requires daily, weekly, and monthly schedules on every PostgreSQL HA member and a latest snapshot no more than 30 hours old. It prints schedule and timestamp evidence only; it does not print credentials or customer data.
 
 Required production policy:
 
 - Confirm which PostgreSQL service the web application's database reference targets without printing its connection string; apply backup settings only to that database topology.
-- Enable at least daily and weekly volume-backup schedules on the database volume.
-- Record retention, incremental storage cost, backup owner, and the first successful snapshot.
+- Preserve the verified daily, weekly, and monthly volume-backup schedules on all HA members.
+- Record retention, incremental storage cost, backup owner, and any schedule change.
 - Prefer restoring into a new service or staged volume so the source remains untouched.
 - Validate schema, row counts, quote intake, admin access, and the application health checks before cutover.
 - Never run a restore directly against production merely to test it.
 
-Railway CLI `5.30.1` can list services and volumes but does not expose the documented `railway postgres pitr` command. Until the CLI is upgraded and the command is verified, inspect and configure backups through the Railway database **Backups** panel. Enabling schedules may incur incremental storage charges and therefore requires owner approval.
+Railway CLI `5.30.1` exposes backup schedule and snapshot data through `railway api`, even though it does not expose the documented `railway postgres pitr` command. Use the audit script for verification. Schedule changes, new backup storage, PITR activation, and restores may incur charges or mutate production and therefore require owner approval.
 
 ## Recovery drill evidence
 
