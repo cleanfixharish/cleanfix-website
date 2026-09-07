@@ -113,6 +113,27 @@ async def add_security_headers(request: Request, call_next):
     """Apply baseline security headers in production without affecting local development."""
     response = await call_next(request)
     if is_production_environment():
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "; ".join(
+                (
+                    "default-src 'self'",
+                    "base-uri 'self'",
+                    "object-src 'none'",
+                    "frame-ancestors 'none'",
+                    "form-action 'self'",
+                    "script-src 'self' 'unsafe-inline'",
+                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                    "font-src 'self' data: https://fonts.gstatic.com",
+                    "img-src 'self' data: blob: https:",
+                    "media-src 'self' blob: https:",
+                    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+                    "worker-src 'self' blob:",
+                    "manifest-src 'self'",
+                    "upgrade-insecure-requests",
+                )
+            ),
+        )
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")

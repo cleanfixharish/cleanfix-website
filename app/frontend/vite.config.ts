@@ -52,7 +52,9 @@ export default defineConfig(({ command }) => {
       ensureBuildOutDir(),
       Sitemap({
         hostname: 'https://www.cleanfixharish.co.il',
-        dynamicRoutes: ['/', '/services', '/how-it-works', '/why-trust-us', '/partners', '/about', '/quote', '/accessibility', '/gardening', '/local-partners'],
+        // The plugin discovers the prerendered homepage automatically. Repeating
+        // it here emits two identical <loc> entries in the production sitemap.
+        dynamicRoutes: ['/services', '/how-it-works', '/why-trust-us', '/partners', '/about', '/quote', '/accessibility', '/gardening', '/local-partners'],
         lastmod: getSitemapLastmod(),
         readable: true,
         generateRobotsTxt: true,

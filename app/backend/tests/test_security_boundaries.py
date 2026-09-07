@@ -432,6 +432,11 @@ def test_fastapi_docs_remain_available_in_development(monkeypatch):
 def test_security_headers_are_applied_in_production(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "prod")
     response = client.get("/health", headers={"x-forwarded-proto": "https"})
+    content_security_policy = response.headers["Content-Security-Policy"]
+    assert "default-src 'self'" in content_security_policy
+    assert "object-src 'none'" in content_security_policy
+    assert "frame-ancestors 'none'" in content_security_policy
+    assert "connect-src 'self' https://*.supabase.co wss://*.supabase.co" in content_security_policy
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
@@ -441,6 +446,7 @@ def test_security_headers_are_applied_in_production(monkeypatch):
 def test_security_headers_are_not_applied_in_development(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "dev")
     response = client.get("/health")
+    assert "Content-Security-Policy" not in response.headers
     assert "X-Frame-Options" not in response.headers
 
 

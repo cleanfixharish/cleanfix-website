@@ -17,6 +17,28 @@ for (const route of routes) {
 }
 const robots = await fetch(`${base}/robots.txt`);
 const sitemap = await fetch(`${base}/sitemap.xml`);
-if (!robots.ok || !sitemap.ok) failures += 1;
-console.log(JSON.stringify({ robots: robots.status, sitemap: sitemap.status, failures }));
+const sitemapXml = await sitemap.text();
+const sitemapLocations = [...sitemapXml.matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/gi)]
+  .map((match) => match[1].trim());
+const duplicateLocations = [...new Set(
+  sitemapLocations.filter((location, index) => sitemapLocations.indexOf(location) !== index),
+)];
+const sitemapChecks = {
+  status: sitemap.ok,
+  hasCanonicalHowItWorks: sitemapLocations.some((location) => new URL(location).pathname === '/how-it-works'),
+  excludesLegacyHowWeWork: !sitemapLocations.some((location) => new URL(location).pathname === '/how-we-work'),
+  uniqueLocations: duplicateLocations.length === 0,
+};
+const failedSitemapChecks = Object.entries(sitemapChecks)
+  .filter(([, value]) => !value)
+  .map(([name]) => name);
+if (!robots.ok || failedSitemapChecks.length) failures += 1;
+console.log(JSON.stringify({
+  robots: robots.status,
+  sitemap: sitemap.status,
+  sitemapUrls: sitemapLocations.length,
+  duplicateLocations,
+  failedSitemapChecks,
+  failures,
+}));
 if (failures) process.exitCode = 1;
