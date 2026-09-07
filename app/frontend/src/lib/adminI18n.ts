@@ -83,6 +83,8 @@ export const adminHebrew: Record<string, string> = {
   Customer: 'לקוח',
   Service: 'שירות',
   Source: 'מקור',
+  Campaign: 'קמפיין',
+  'Direct / untracked': 'ישיר / ללא מעקב',
   Status: 'סטטוס',
   Provider: 'בעל מקצוע',
   'No real leads are stored yet.': 'עדיין לא נשמרו לידים.',

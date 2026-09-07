@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, MessageCircle } from 'lucide-react';
 import { cleanfixApi } from '@/lib/cleanfixApi';
+import { readUtmAttribution } from '@/lib/utmAttribution';
 import { getWhatsAppLink, getWhatsAppQuoteMessage } from '@/lib/whatsapp';
 
 const serviceOptions = [
@@ -32,6 +33,7 @@ const areaOptions = [
 
 export default function QuotePage() {
   const { t, lang } = useLanguage();
+  const campaignAttribution = useMemo(() => readUtmAttribution(window.location.search), []);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,6 +59,7 @@ export default function QuotePage() {
         ...(form.area ? { area: form.area } : {}),
         service_requested: form.service_requested,
         ...(form.description ? { description: form.description } : {}),
+        ...campaignAttribution,
         company_website: companyWebsite,
       });
       setSubmitted(true);

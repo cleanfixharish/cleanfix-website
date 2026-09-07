@@ -319,6 +319,17 @@ def test_public_lead_intake_rejects_privileged_fields():
         )
 
 
+def test_public_lead_intake_cannot_override_server_owned_source():
+    with pytest.raises(ValidationError):
+        PublicLeadIntakeRequest.model_validate(
+            {
+                "customer_name": "Test User",
+                "phone": "0501234567",
+                "source": "facebook",
+            }
+        )
+
+
 def test_public_lead_intake_enforces_field_length_limits():
     intake = PublicLeadIntakeRequest.model_validate(
         {
@@ -353,6 +364,43 @@ def test_public_lead_intake_applies_server_defaults_for_allowed_fields():
     assert lead_data["status"] == "new"
     assert lead_data["priority"] == "normal"
     assert lead_data["whatsapp"] == "0501234567"
+
+
+def test_public_lead_intake_preserves_normalized_campaign_attribution():
+    intake = PublicLeadIntakeRequest.model_validate(
+        {
+            "customer_name": "Test User",
+            "phone": "0501234567",
+            "utm_source": " Facebook ",
+            "utm_medium": "Organic_Social",
+            "utm_campaign": "daily-organic-2026-09-08",
+        }
+    )
+    lead_data = build_lead_from_public_intake(intake)
+
+    assert lead_data["source"] == "website"
+    assert lead_data["utm_source"] == "facebook"
+    assert lead_data["utm_medium"] == "organic_social"
+    assert lead_data["utm_campaign"] == "daily-organic-2026-09-08"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("utm_source", "facebook<script>"),
+        ("utm_medium", "organic social"),
+        ("utm_campaign", "x" * 201),
+    ],
+)
+def test_public_lead_intake_rejects_unsafe_campaign_attribution(field, value):
+    with pytest.raises(ValidationError):
+        PublicLeadIntakeRequest.model_validate(
+            {
+                "customer_name": "Test User",
+                "phone": "0501234567",
+                field: value,
+            }
+        )
 
 
 def test_lead_intake_honeypot_blocks_submission():

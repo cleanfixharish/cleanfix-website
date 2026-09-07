@@ -76,6 +76,9 @@ class LeadsResponse(BaseModel):
     service_requested: Optional[str] = None
     description: Optional[str] = None
     source: Optional[str] = None
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
     status: Optional[str] = None
     assignment: Optional[str] = None
     assigned_partner_id: Optional[int] = None
