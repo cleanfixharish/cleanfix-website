@@ -202,10 +202,26 @@ async def mark_manual_post_published(
 
 
 @router.post("/run-daily", response_model=GrowthRunResponse)
-async def run_daily(db: AsyncSession = Depends(get_db)):
+async def run_daily(
+    _owner: UserResponse = Depends(get_owner_user),
+    db: AsyncSession = Depends(get_db),
+):
     settings = await get_or_create_settings(db)
     if not settings.enabled:
         raise HTTPException(409, "Enable daily growth automation in Settings first")
+    if not settings.auto_generate:
+        raise HTTPException(409, "Automatic draft generation is disabled in Settings")
+    local_day = datetime.now(ZoneInfo(settings.timezone)).date()
+    return await generate_daily_drafts(db, settings, local_day, trigger="admin")
+
+
+@router.post("/run-now", response_model=GrowthRunResponse)
+async def run_now(
+    _owner: UserResponse = Depends(get_owner_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Let the primary owner deliberately create drafts without enabling the scheduler."""
+    settings = await get_or_create_settings(db)
     if not settings.auto_generate:
         raise HTTPException(409, "Automatic draft generation is disabled in Settings")
     local_day = datetime.now(ZoneInfo(settings.timezone)).date()

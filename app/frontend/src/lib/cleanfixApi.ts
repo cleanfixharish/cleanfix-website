@@ -231,8 +231,8 @@ export const cleanfixApi = {
     return response.data;
   },
 
-  async runDailyGrowthExperts() {
-    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/run-daily`);
+  async runGrowthExpertsNow() {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/run-now`);
     return response.data;
   },
 
