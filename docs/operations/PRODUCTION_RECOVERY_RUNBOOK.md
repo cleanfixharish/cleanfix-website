@@ -25,6 +25,20 @@ Never print environment variables, database URLs, access tokens, or customer rec
 
 The monitoring commit only changes repository automation and does not require a web redeployment.
 
+## Production acceptance evidence
+
+The supervised web-production intake gate passed on 2026-09-08 (Asia/Jerusalem):
+
+- The owner submitted a clearly identified acceptance lead through the live `/quote` flow.
+- The HA production database stored exactly one matching record as lead `34`.
+- Required phone, area, requested service, and description fields were present.
+- The server assigned `source=website` and `status=new`; the public form did not override protected CRM state.
+- A short-lived owner-scoped audit token retrieved lead `34` through the protected admin API with HTTP 200.
+- Verification output omitted contact values, notes, and other customer data.
+- No record was changed, contacted, assigned, or deleted during verification.
+
+This proves the production path from public quote submission through database persistence to authenticated admin visibility. Lead `34` remains a clearly identified acceptance-test record for audit history.
+
 ## First five minutes
 
 Run these read-only checks from a clean repository checkout:
