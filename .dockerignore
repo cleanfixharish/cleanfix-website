@@ -1,6 +1,16 @@
 .git
+.github
 .atoms
 .mgx
+assets
+project_materials
+android
+docs
+scripts
+app/backend/tests
+app/frontend/public/media/*.m4a
+app/frontend/public/media/auditions
+app/frontend/public/downloads/*.pptx
 **/.env
 **/.env.*
 **/node_modules
