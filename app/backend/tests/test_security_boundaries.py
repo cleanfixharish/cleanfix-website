@@ -46,6 +46,34 @@ def test_render_health_check_is_not_redirected():
     assert response.status_code == 200
 
 
+def test_how_we_work_redirects_to_how_it_works():
+    response = client.get("/how-we-work", follow_redirects=False)
+    assert response.status_code == 308
+    assert response.headers["location"] == "/how-it-works"
+
+
+def test_how_we_work_with_trailing_slash_redirects_to_how_it_works():
+    response = client.get("/how-we-work/", follow_redirects=False)
+    assert response.status_code == 308
+    assert response.headers["location"] == "/how-it-works"
+
+
+def test_how_we_work_redirect_preserves_query_string():
+    response = client.get("/how-we-work?utm_source=test", follow_redirects=False)
+    assert response.status_code == 308
+    assert response.headers["location"] == "/how-it-works?utm_source=test"
+
+
+def test_lambda_legacy_public_path_redirect():
+    from lambda_handler import legacy_public_path_redirect
+
+    response = legacy_public_path_redirect("/how-we-work", "utm_source=test")
+    assert response is not None
+    assert response["statusCode"] == 308
+    assert response["headers"]["Location"] == "/how-it-works?utm_source=test"
+    assert legacy_public_path_redirect("/how-it-works") is None
+
+
 def test_render_service_worker_is_available_for_cache_retirement(monkeypatch):
     monkeypatch.setattr(main, "FRONTEND_DIST", main.FRONTEND_DIST.parent / "public")
     response = client.get(

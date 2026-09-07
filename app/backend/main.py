@@ -177,6 +177,28 @@ async def redirect_render_pages_to_official_domain(request: Request, call_next):
     return await call_next(request)
 
 
+LEGACY_PUBLIC_PATH_REDIRECTS = {
+    "/how-we-work": "/how-it-works",
+}
+
+
+@app.middleware("http")
+async def redirect_legacy_public_paths(request: Request, call_next):
+    """Permanently redirect retired public routes to their canonical replacements."""
+    if request.method not in {"GET", "HEAD"}:
+        return await call_next(request)
+
+    normalized_path = request.url.path.rstrip("/") or "/"
+    destination = LEGACY_PUBLIC_PATH_REDIRECTS.get(normalized_path)
+    if not destination:
+        return await call_next(request)
+
+    redirect_url = destination
+    if request.url.query:
+        redirect_url = f"{redirect_url}?{request.url.query}"
+    return RedirectResponse(redirect_url, status_code=308)
+
+
 # Auto-discover and include all routers from the local `routers` package
 def include_routers_from_package(app: FastAPI, package_name: str = "routers") -> None:
     """Discover and include all APIRouter objects from a package.

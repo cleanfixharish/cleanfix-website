@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import Index from './pages/Index';
@@ -24,7 +24,6 @@ const AuthError = lazy(() => import('./pages/AuthError'));
 const AccountPage = lazy(() => import('./pages/AccountPage'));
 const AccessibilityPage = lazy(() => import('./pages/AccessibilityPage'));
 const GardeningPage = lazy(() => import('./pages/GardeningPage'));
-const HowWeWorkPage = lazy(() => import('./pages/HowWeWorkPage'));
 const LocalPartnersPage = lazy(() => import('./pages/LocalPartnersPage'));
 const ProviderWorkspacePage = lazy(() => import('./pages/ProviderWorkspacePage'));
 const PartnerStudioPage = lazy(() => import('./pages/PartnerStudioPage'));
@@ -49,7 +48,7 @@ const AppRoutes = () => (
       <Route path="/account" element={<AccountPage />} />
       <Route path="/accessibility" element={<AccessibilityPage />} />
       <Route path="/gardening" element={<GardeningPage />} />
-      <Route path="/how-we-work" element={<HowWeWorkPage />} />
+      <Route path="/how-we-work" element={<Navigate to="/how-it-works" replace />} />
       <Route path="/local-partners" element={<LocalPartnersPage />} />
       <Route path="/provider/*" element={<ProviderWorkspacePage />} />
       <Route path="/partner/*" element={<PartnerStudioPage />} />

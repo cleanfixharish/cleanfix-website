@@ -1,5 +1,5 @@
 const base = process.env.SEO_BASE_URL || 'https://cleanfixharish.co.il';
-const routes = ['/', '/services', '/gardening', '/how-we-work', '/local-partners', '/quote', '/partners', '/about'];
+const routes = ['/', '/services', '/gardening', '/how-it-works', '/local-partners', '/quote', '/partners', '/about'];
 let failures = 0;
 for (const route of routes) {
   const response = await fetch(`${base}${route}`, { redirect: 'follow' });

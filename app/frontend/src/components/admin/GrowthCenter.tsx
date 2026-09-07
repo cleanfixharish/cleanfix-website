@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
-const routes = ['/', '/services', '/gardening', '/how-we-work', '/quote', '/partners', '/about'];
+const routes = ['/', '/services', '/gardening', '/how-it-works', '/quote', '/partners', '/about'];
 
 export default function GrowthCenter() {
   const { lang } = useLanguage();

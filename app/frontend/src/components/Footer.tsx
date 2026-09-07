@@ -38,7 +38,7 @@ export default function Footer() {
               <Link to="/gardening" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
                 {lang === 'en' ? 'Gardening & landscape design' : 'גינון ועיצוב נוף'}
               </Link>
-              <Link to="/how-we-work" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
+              <Link to="/how-it-works" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
                 {lang === 'en' ? 'How CleanFix works' : 'איך CleanFix עובדת'}
               </Link>
               <Link to="/partners" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
