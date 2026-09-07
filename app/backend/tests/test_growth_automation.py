@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from core.database import Base
 from models.growth import GrowthAutomationSettings, GrowthPost, GrowthRun
-from schemas.growth import GrowthSettingsData
+from routers.growth import reject_post
+from schemas.growth import GrowthRejectRequest, GrowthSettingsData
 from services.growth import build_daily_draft, content_hash, generate_daily_drafts, idempotency_key, utm_url
 
 
@@ -75,9 +76,19 @@ async def test_daily_growth_run_persists_once_per_channel_language_and_day():
         second = await generate_daily_drafts(db, growth_settings, date(2026, 9, 7), trigger="scheduler")
         post_count = await db.scalar(select(func.count(GrowthPost.id)))
         run_count = await db.scalar(select(func.count(GrowthRun.id)))
+        post = await db.scalar(select(GrowthPost).limit(1))
+        post.status = "scheduled"
+        post.approved_version = post.content_version
+        post.scheduled_for = datetime(2026, 9, 8, 9, tzinfo=timezone.utc)
+        await db.commit()
+        rejected = await reject_post(post.id, GrowthRejectRequest(reason="Needs a more specific local claim"), db)
     await engine.dispose()
 
     assert first.drafts_created == 4
     assert second.drafts_created == 0
     assert post_count == 4
     assert run_count == 2
+    assert rejected.status == "rejected"
+    assert rejected.approved_version is None
+    assert rejected.scheduled_for is None
+    assert rejected.last_error == "Needs a more specific local claim"

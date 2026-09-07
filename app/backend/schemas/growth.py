@@ -94,6 +94,10 @@ class GrowthScheduleRequest(BaseModel):
     scheduled_for: datetime
 
 
+class GrowthRejectRequest(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)
+
+
 class GrowthPostResponse(BaseModel):
     id: int
     campaign_name: str

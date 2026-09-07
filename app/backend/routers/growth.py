@@ -13,6 +13,7 @@ from schemas.growth import (
     GrowthPostCreate,
     GrowthPostResponse,
     GrowthPostUpdate,
+    GrowthRejectRequest,
     GrowthRunResponse,
     GrowthScheduleRequest,
     GrowthSettingsData,
@@ -143,6 +144,25 @@ async def schedule_post(post_id: int, data: GrowthScheduleRequest, db: AsyncSess
     row.scheduled_for = data.scheduled_for
     row.content_hash = content_hash(row.body, row.destination_url, row.scheduled_for)
     row.status = "scheduled"
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+
+@router.post("/posts/{post_id}/reject", response_model=GrowthPostResponse)
+async def reject_post(post_id: int, data: GrowthRejectRequest, db: AsyncSession = Depends(get_db)):
+    row = await db.get(GrowthPost, post_id)
+    if row is None:
+        raise HTTPException(404, "Growth post not found")
+    if row.status in {"published", "publishing", "cancelled"}:
+        raise HTTPException(409, "Published or cancelled posts are immutable")
+    row.status = "rejected"
+    row.approved_version = None
+    row.approved_at = None
+    row.approved_by = None
+    row.scheduled_for = None
+    row.last_error = data.reason.strip()
+    row.content_hash = content_hash(row.body, row.destination_url, None)
     await db.commit()
     await db.refresh(row)
     return row

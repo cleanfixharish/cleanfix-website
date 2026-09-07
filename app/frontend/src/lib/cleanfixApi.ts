@@ -241,6 +241,16 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async updateGrowthPost(id: number, data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/admin/growth/posts/${id}`, data);
+    return response.data;
+  },
+
+  async rejectGrowthPost(id: number, reason: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/posts/${id}/reject`, { reason });
+    return response.data;
+  },
+
   async scheduleGrowthPost(id: number, scheduledFor: string) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/growth/posts/${id}/schedule`, {
       scheduled_for: new Date(scheduledFor).toISOString(),
