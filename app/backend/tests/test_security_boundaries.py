@@ -257,6 +257,68 @@ def test_admin_endpoints_reject_anonymous_requests():
         assert response.status_code == 401, (method, path, response.text)
 
 
+def test_generic_storage_routes_are_primary_owner_only():
+    """Evidence storage cannot be exposed through a generic signed-in-user API."""
+    from dependencies.auth import get_owner_user
+
+    storage_routes = [
+        route
+        for route in app.routes
+        if getattr(route, "path", "").startswith("/api/v1/storage/")
+    ]
+
+    assert storage_routes
+    for route in storage_routes:
+        dependency_calls = {dependency.call for dependency in route.dependant.dependencies}
+        assert get_owner_user in dependency_calls, route.path
+
+
+def test_access_management_routes_are_primary_owner_only():
+    from dependencies.auth import get_owner_user
+
+    access_routes = [
+        route
+        for route in app.routes
+        if getattr(route, "path", "").startswith("/api/v1/admin/viewers")
+    ]
+
+    assert access_routes
+    for route in access_routes:
+        dependency_calls = {dependency.call for dependency in route.dependant.dependencies}
+        assert get_owner_user in dependency_calls, route.path
+
+
+def test_high_impact_commands_are_primary_owner_only():
+    from dependencies.auth import get_owner_user
+
+    owner_only_commands = {
+        ("POST", "/api/v1/pricing/estimates/{estimate_id}/approve"),
+        ("POST", "/api/v1/pricing/estimates/{estimate_id}/reject"),
+        ("POST", "/api/v1/pricing/local-evidence/{evidence_id}/approve"),
+        ("POST", "/api/v1/quotes"),
+        ("POST", "/api/v1/quotes/{quote_id}/publish"),
+        ("PUT", "/api/v1/entities/jobs/{job_id}"),
+        ("POST", "/api/v1/website-restore/default"),
+        ("PUT", "/api/v1/admin/settings/backend/{key}"),
+        ("POST", "/api/v1/aihub/gentxt"),
+    }
+
+    for method, path in owner_only_commands:
+        matching = [
+            route
+            for route in app.routes
+            if getattr(route, "path", None) == path
+            and method in getattr(route, "methods", set())
+        ]
+        assert matching, (method, path)
+        dependency_calls = {
+            dependency.call
+            for route in matching
+            for dependency in route.dependant.dependencies
+        }
+        assert get_owner_user in dependency_calls, (method, path)
+
+
 def test_public_partner_directory_route_is_anonymous_and_contact_safe():
     from routers.partners import PublicPartnerResponse
 

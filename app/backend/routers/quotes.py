@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from dependencies.auth import get_admin_user
+from dependencies.auth import get_admin_user, get_owner_user
 from models.leads import Leads
 from models.pricing import PriceEstimate, ServiceQuote
 from schemas.auth import UserResponse
@@ -89,7 +89,7 @@ def public_quote_payload(quote: ServiceQuote) -> dict:
 @admin_router.post("", status_code=201)
 async def create_quote(
     data: QuoteCreate,
-    admin: UserResponse = Depends(get_admin_user),
+    admin: UserResponse = Depends(get_owner_user),
     db: AsyncSession = Depends(get_db),
 ):
     estimate = await db.get(PriceEstimate, data.estimate_id)
@@ -124,7 +124,11 @@ async def list_quotes(db: AsyncSession = Depends(get_db)):
 
 
 @admin_router.post("/{quote_id}/publish")
-async def publish_quote(quote_id: int, db: AsyncSession = Depends(get_db)):
+async def publish_quote(
+    quote_id: int,
+    _owner: UserResponse = Depends(get_owner_user),
+    db: AsyncSession = Depends(get_db),
+):
     quote = await db.get(ServiceQuote, quote_id)
     if quote is None:
         raise HTTPException(404, "Quote not found")

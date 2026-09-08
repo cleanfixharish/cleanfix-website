@@ -121,7 +121,12 @@ async def create_job(
 
 
 @router.put("/{job_id}", response_model=JobResponse)
-async def update_job(job_id: int, data: JobUpdate, db: AsyncSession = Depends(get_db)):
+async def update_job(
+    job_id: int,
+    data: JobUpdate,
+    db: AsyncSession = Depends(get_db),
+    _owner: UserResponse = Depends(get_owner_user),
+):
     updates = {key: value for key, value in data.model_dump().items() if value is not None}
     job = await JobsService(db).update(job_id, updates)
     if not job:
