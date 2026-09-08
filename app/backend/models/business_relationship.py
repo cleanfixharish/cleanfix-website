@@ -1,5 +1,5 @@
 from core.database import Base
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Identity, Integer, String, Text, UniqueConstraint, func
 
 
 class BusinessRelationship(Base):
@@ -33,3 +33,22 @@ class BusinessRelationship(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+
+class BusinessRelationshipEvent(Base):
+    """Append-only record of owner access decisions; contains no profile PII."""
+
+    __tablename__ = "business_relationship_events"
+
+    id = Column(BigInteger, Identity(), primary_key=True)
+    relationship_id = Column(
+        Integer,
+        ForeignKey("business_relationships.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    actor_id = Column(String(255), nullable=False)
+    previous_status = Column(String(20), nullable=True)
+    new_status = Column(String(20), nullable=False)
+    reason = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

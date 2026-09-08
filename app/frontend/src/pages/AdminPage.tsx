@@ -86,6 +86,7 @@ import ShareOnboarding from "@/components/admin/ShareOnboarding";
 import BusinessRulesCenter from "@/components/admin/BusinessRulesCenter";
 import GrowthCenter from "@/components/admin/GrowthCenter";
 import ThemeStudio from "@/components/admin/ThemeStudio";
+import DashboardTour from "@/components/DashboardTour";
 
 type Section =
   | "overview"
@@ -103,6 +104,7 @@ type Section =
   | "video"
   | "followups"
   | "platforms"
+  | "learning"
   | "internal";
 type LeadStatus =
   | "new"
@@ -258,8 +260,9 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
   {
     label: "System",
     items: [
+      { id: "learning", label: "Learning Center", icon: BookOpen },
       { id: "platforms", label: "Platforms and Costs", icon: Cloud },
-      { id: "internal", label: "Settings", icon: BookOpen },
+      { id: "internal", label: "Settings", icon: Settings2 },
     ],
   },
 ];
@@ -911,7 +914,14 @@ export default function AdminPage() {
         {!isViewer && section === "whatsapp" && (
           <WhatsAppOps leads={leads} openWhatsApp={openWhatsApp} />
         )}
-        {section === "jobs" && <Jobs jobs={jobs} setJobs={setJobs} />}
+        {section === "jobs" && <Jobs jobs={jobs} setJobs={setJobs} readOnly={isViewer} />}
+        {section === "learning" && (
+          <LearningCenter
+            he={lang === "he"}
+            isViewer={isViewer}
+            setSection={setSection}
+          />
+        )}
         {section === "providers" && (
           <Providers providers={providers} setProviders={setProviders} />
         )}
@@ -1586,34 +1596,157 @@ function WhatsAppOps({
   );
 }
 
+function LearningCenter({
+  he,
+  isViewer,
+  setSection,
+}: {
+  he: boolean;
+  isViewer: boolean;
+  setSection: (section: Section) => void;
+}) {
+  const modules = [
+    {
+      title: he ? "פתיחת יום" : "Start the day",
+      body: he ? "בדקו חיבור חי, בקשות חדשות, עבודות היום, מעקבים והתראות." : "Check live connection, new requests, today's jobs, follow-ups, and alerts.",
+      section: "overview" as Section,
+    },
+    {
+      title: he ? "מבקשה לעבודה" : "Request to job",
+      body: he ? "אמתו פרטים, תעדו היקף ברור וצרו עבודה רק מבקשת לקוח אמיתית." : "Verify details, record a clear scope, and create a job only from a genuine customer request.",
+      section: "leads" as Section,
+    },
+    {
+      title: he ? "הפעלת עבודה בטוחה" : "Operate a job safely",
+      body: he ? "השתמשו רק במעברי המצב הזמינים. אין דילוג ישיר לסיום ואין מחיקת היסטוריה." : "Use only the available state transitions. There is no direct jump to completion and no history deletion.",
+      section: "jobs" as Section,
+    },
+    {
+      title: he ? "בקרת איכות וכסף" : "Quality and money close",
+      body: he ? "סיום דורש הגשת תיעוד, אישור איכות ורישום אמת של גבייה, עלויות ותשלום לנותן השירות." : "Closing requires submitted evidence, quality approval, and truthful records of collections, costs, and provider payout.",
+      section: "jobs" as Section,
+    },
+    {
+      title: he ? "גישה, פרטיות והתאוששות" : "Access, privacy, and recovery",
+      body: he ? "תנו צפייה בלבד כשאפשר, אל תעתיקו מידע אישי ל-AI ובדקו גיבויים והתראות." : "Prefer read-only access, never copy personal data into AI, and verify backups and alerts.",
+      section: "internal" as Section,
+    },
+  ];
+  return (
+    <>
+      <SectionTitle
+        eyebrow="Role-based learning"
+        title="Learning Center"
+        description="Replay guided tours and use short operating checklists at the moment you perform a real task. Tours explain controls; they never perform actions or grant access."
+      />
+      <DashboardTour kind="admin" he={he} />
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {modules.map((module, index) => (
+          <Card key={module.title} className="border-[#D8D0C6] bg-[#FBF8F3]">
+            <CardContent className="flex h-full flex-col p-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#DDE9E7] text-sm font-bold text-[#174E57]">{index + 1}</span>
+                <h2 className="font-sans text-lg font-semibold text-[#173F46]">{module.title}</h2>
+              </div>
+              <p className="mt-4 flex-1 text-sm leading-6 text-[#5F5A54]">{module.body}</p>
+              <Button variant="outline" className="mt-5 min-h-11" onClick={() => setSection(module.section)}>
+                {he ? "פתיחת האזור" : "Open this area"}
+                <ChevronRight className="ms-2 h-4 w-4 rtl-flip" />
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card className="mt-6 border-[#C8B07C] bg-[#FFF8E8]">
+        <CardContent className="p-5 text-sm leading-6 text-[#684F2B]">
+          <strong>{he ? "גבול בטיחות חשוב" : "Important safety boundary"}</strong>
+          <p className="mt-1">
+            {isViewer
+              ? (he ? "זהו חשבון צפייה בלבד. ההדרכה אינה מאפשרת שמירה, פרסום, הודעה, אישור או שינוי נתונים." : "This is a read-only account. Training does not enable saving, publishing, messaging, approvals, or data changes.")
+              : (he ? "הסיור אינו לוחץ, שולח, מפרסם, משלם או מאשר דבר. כל פעולה אמיתית עדיין דורשת את הבקרה והאישור הרגילים." : "The tour never clicks, sends, publishes, pays, or approves anything. Every real action still requires its normal control and confirmation.")}
+          </p>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
 function Jobs({
   jobs,
   setJobs,
+  readOnly,
 }: {
   jobs: DashboardJob[];
   setJobs: React.Dispatch<React.SetStateAction<DashboardJob[]>>;
+  readOnly: boolean;
 }) {
   const tr = useAdminTranslation();
+  const [expandedJobId, setExpandedJobId] = useState<number | null>(null);
+  const [eventsByJob, setEventsByJob] = useState<Record<number, Awaited<ReturnType<typeof cleanfixApi.listJobEvents>>>>({});
+  const [loadingEvents, setLoadingEvents] = useState<number | null>(null);
+  const allowedTransitions: Record<string, string[]> = {
+    scheduled: ["in_progress", "cancelled"],
+    "in progress": ["completion_submitted", "cancelled"],
+    in_progress: ["completion_submitted", "cancelled"],
+    completion_submitted: ["quality_approved", "in_progress", "cancelled"],
+    quality_approved: ["in_progress"],
+    completed: ["reopened"],
+    reopened: ["in_progress", "cancelled"],
+    cancelled: ["reopened"],
+  };
   const changeJobStatus = async (job: DashboardJob, status: string) => {
+    const reasonRequired = ["completion_submitted", "quality_approved", "cancelled", "reopened"].includes(status);
+    const reason = reasonRequired
+      ? window.prompt(tr("Enter the operational reason for this permanent record:"))?.trim()
+      : undefined;
+    if (reasonRequired && !reason) return;
     try {
-      await cleanfixApi.updateJob(job.id, { status });
+      await cleanfixApi.transitionJob(job.id, status, reason);
       setJobs((current) =>
         current.map((item) =>
           item.id === job.id ? { ...item, status } : item,
         ),
       );
+      setEventsByJob((current) => {
+        const next = { ...current };
+        delete next[job.id];
+        return next;
+      });
       toast.success(`${job.title} ${tr("moved to")} ${tr(status)}`);
     } catch {
       toast.error(tr("The job status was not saved."));
+    }
+  };
+  const toggleTimeline = async (jobId: number) => {
+    if (expandedJobId === jobId) {
+      setExpandedJobId(null);
+      return;
+    }
+    setExpandedJobId(jobId);
+    if (eventsByJob[jobId] || readOnly) return;
+    setLoadingEvents(jobId);
+    try {
+      const events = await cleanfixApi.listJobEvents(jobId);
+      setEventsByJob((current) => ({ ...current, [jobId]: events }));
+    } catch {
+      toast.error(tr("The permanent audit history could not be loaded."));
+    } finally {
+      setLoadingEvents(null);
     }
   };
   return (
     <>
       <SectionTitle
         eyebrow="Delivery"
-        title="Jobs"
-        description="Every item here is a real job saved in the CleanFixHarish database."
+        title="Job Command Center"
+        description="Every item is real. Use only the next permitted command; accepted changes are written to the permanent audit ledger."
       />
+      <Card className="mb-5 border-[#C8B07C] bg-[#FFF8E8]">
+        <CardContent className="p-4 text-sm leading-6 text-[#684F2B]">
+          <strong>{tr("Controlled workflow")}</strong>
+          <p>{tr("A provider submits completion evidence and the owner records a quality review. Final completion remains locked until the immutable evidence and financial close command is released. Jobs cannot be hard-deleted.")}</p>
+        </CardContent>
+      </Card>
       <div className="grid gap-4">
         {jobs.map((job) => (
           <Card key={job.id} className="border-[#D8D0C6] bg-[#FBF8F3]">
@@ -1644,20 +1777,45 @@ function Jobs({
               <Select
                 value={job.status}
                 onValueChange={(status) => changeJobStatus(job, status)}
+                disabled={readOnly}
               >
                 <SelectTrigger className="bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {["scheduled", "in progress", "completed", "cancelled"].map(
+                  {[job.status, ...(allowedTransitions[job.status] || [])].map(
                     (status) => (
                       <SelectItem key={status} value={status}>
-                        {tr(status)}
+                        {tr(status.replace(/_/g, " "))}
                       </SelectItem>
                     ),
                   )}
                 </SelectContent>
               </Select>
+              <div className="md:col-span-3">
+                <Button variant="ghost" className="min-h-11 px-0 text-[#174E57]" onClick={() => toggleTimeline(job.id)} disabled={readOnly}>
+                  <Database className="me-2 h-4 w-4" />
+                  {expandedJobId === job.id ? tr("Hide permanent audit history") : tr("View permanent audit history")}
+                </Button>
+                {expandedJobId === job.id && !readOnly && (
+                  <div className="mt-2 rounded-2xl border border-[#D2DDD9] bg-white p-4">
+                    {loadingEvents === job.id && <p className="text-sm text-[#786F65]">{tr("Loading audit history...")}</p>}
+                    {(eventsByJob[job.id] || []).map((event) => (
+                      <div key={event.sequence_number} className="border-b border-[#E5DDD3] py-3 last:border-0">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-medium text-[#173F46]">#{event.sequence_number} · {tr(event.event_type.replace(/_/g, " "))}</p>
+                          <time className="text-xs text-[#786F65]">{new Date(event.occurred_at).toLocaleString("en-IL")}</time>
+                        </div>
+                        <p className="mt-1 text-xs text-[#5F5A54]">
+                          {event.previous_status ? `${tr(event.previous_status.replace(/_/g, " "))} → ` : ""}{event.new_status ? tr(event.new_status.replace(/_/g, " ")) : ""}
+                        </p>
+                        {event.reason && <p className="mt-1 text-xs text-[#786F65]">{event.reason}</p>}
+                      </div>
+                    ))}
+                    {!loadingEvents && !(eventsByJob[job.id] || []).length && <p className="text-sm text-[#786F65]">{tr("No ledger events are recorded for this legacy job yet.")}</p>}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}

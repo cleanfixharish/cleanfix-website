@@ -77,13 +77,36 @@ export const cleanfixApi = {
   },
 
   async createJob(data: Record<string, unknown>) {
-    const response = await http.post(`${getAPIBaseURL()}/api/v1/entities/jobs`, data);
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/entities/jobs`, data, {
+      headers: { 'Idempotency-Key': crypto.randomUUID() },
+    });
     return response.data;
   },
 
   async updateJob(id: number | string, data: Record<string, unknown>) {
     const response = await http.put(`${getAPIBaseURL()}/api/v1/entities/jobs/${id}`, data);
     return response.data;
+  },
+
+  async transitionJob(id: number | string, newStatus: string, reason?: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/entities/jobs/${id}/transitions`, {
+      new_status: newStatus,
+      idempotency_key: crypto.randomUUID(),
+      reason: reason || undefined,
+    });
+    return response.data;
+  },
+
+  async listJobEvents(id: number | string) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/entities/jobs/${id}/events`);
+    return response.data as Array<{
+      sequence_number: number;
+      event_type: string;
+      occurred_at: string;
+      previous_status?: string;
+      new_status?: string;
+      reason?: string;
+    }>;
   },
 
   async listServices(limit = 200) {
