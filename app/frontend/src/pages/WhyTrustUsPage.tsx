@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import PublicSite from '@/components/PublicSite';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { MessageCircle, ArrowRight, BadgeCheck, ShieldCheck, Star, Eye, Clock, Award } from 'lucide-react';
+import { MessageCircle, ArrowRight, BadgeCheck, ShieldCheck, FileCheck2, Eye, Clock, MapPin } from 'lucide-react';
 import { getWhatsAppLink, getWhatsAppQuoteMessage } from '@/lib/whatsapp';
 
 export default function WhyTrustUsPage() {
@@ -13,20 +13,20 @@ export default function WhyTrustUsPage() {
 
   const trustPoints = lang === 'en'
     ? [
-        { icon: <Eye className="h-6 w-6" />, title: 'No Fake Reviews', desc: 'We never post fake reviews or buy testimonials. Our reputation is built on real work.' },
+        { icon: <Eye className="h-6 w-6" />, title: 'No invented proof', desc: 'We do not use fabricated reviews, providers or completed-job history.' },
         { icon: <ShieldCheck className="h-6 w-6" />, title: 'No Exaggerated Promises', desc: 'We tell you what we can do honestly. No bait-and-switch tactics.' },
-        { icon: <Star className="h-6 w-6" />, title: 'Quality Workmanship', desc: 'Every job is done with care and attention to detail. We use quality materials.' },
-        { icon: <BadgeCheck className="h-6 w-6" />, title: 'Local Professionals', desc: 'Our team and partners live in Harish. We are your neighbors.' },
-        { icon: <Clock className="h-6 w-6" />, title: 'Fast Response', desc: 'We respond quickly because we understand your time matters.' },
-        { icon: <Award className="h-6 w-6" />, title: 'We Stand Behind Our Work', desc: 'If something is not right, we come back and fix it. Period.' },
+        { icon: <FileCheck2 className="h-6 w-6" />, title: 'Written next step', desc: 'Availability, scope, price and booking are confirmed separately.' },
+        { icon: <BadgeCheck className="h-6 w-6" />, title: 'Four current categories', desc: 'Handyman, cleaning, painting and AC cleaning stay within the focused launch.' },
+        { icon: <Clock className="h-6 w-6" />, title: 'Careful review', desc: 'We review the request before making a timing or assignment commitment.' },
+        { icon: <MapPin className="h-6 w-6" />, title: 'Gardening is separate', desc: 'One local gardener is available subject to written scope and availability.' },
       ]
     : [
-        { icon: <Eye className="h-6 w-6" />, title: 'בלי ביקורות מזויפות', desc: 'אנחנו אף פעם לא מפרסמים ביקורות מזויפות או קונים המלצות. המוניטין שלנו בנוי על עבודה אמיתית.' },
+        { icon: <Eye className="h-6 w-6" />, title: 'בלי הוכחות מומצאות', desc: 'איננו משתמשים בביקורות, בעלי מקצוע או היסטוריית עבודות שהומצאו.' },
         { icon: <ShieldCheck className="h-6 w-6" />, title: 'בלי הבטחות מוגזמות', desc: 'אנחנו אומרים לכם מה אנחנו יכולים לעשות בכנות. בלי טקטיקות של פיתוי והחלפה.' },
-        { icon: <Star className="h-6 w-6" />, title: 'עבודה איכותית', desc: 'כל עבודה נעשית בקפידה ותשומת לב לפרטים. אנחנו משתמשים בחומרים איכותיים.' },
-        { icon: <BadgeCheck className="h-6 w-6" />, title: 'מקצוענים מקומיים', desc: 'הצוות והשותפים שלנו גרים בחריש. אנחנו השכנים שלכם.' },
-        { icon: <Clock className="h-6 w-6" />, title: 'תגובה מהירה', desc: 'אנחנו מגיבים מהר כי אנחנו מבינים שהזמן שלכם חשוב.' },
-        { icon: <Award className="h-6 w-6" />, title: 'אנחנו עומדים מאחורי העבודה', desc: 'אם משהו לא בסדר, אנחנו חוזרים ומתקנים. נקודה.' },
+        { icon: <FileCheck2 className="h-6 w-6" />, title: 'השלב הבא בכתב', desc: 'זמינות, היקף, מחיר והזמנה מאושרים בנפרד.' },
+        { icon: <BadgeCheck className="h-6 w-6" />, title: 'ארבע קטגוריות כעת', desc: 'הנדימן, ניקיון, צביעה וניקוי מזגנים נשארים בגבולות ההשקה הממוקדת.' },
+        { icon: <Clock className="h-6 w-6" />, title: 'בדיקה זהירה', desc: 'אנחנו בודקים את הבקשה לפני התחייבות לזמן או לשיבוץ.' },
+        { icon: <MapPin className="h-6 w-6" />, title: 'גינון בנפרד', desc: 'גנן מקומי אחד, בכפוף להיקף כתוב ולזמינות.' },
       ];
 
   return (
@@ -40,8 +40,11 @@ export default function WhyTrustUsPage() {
                 <h1 className="mb-3 text-3xl font-bold md:text-4xl">{t.whyTrust.title}</h1>
                 <p className="mx-auto max-w-lg text-muted-foreground lg:mx-0">{t.whyTrust.subtitle}</p>
               </div>
-              <div className="cf-photo cf-media-reveal min-w-0 overflow-hidden rounded-[24px]" style={{ aspectRatio: '3 / 2' }}>
-                <DocumentaryImage id="quality-handover" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
+              <div className="min-w-0">
+                <div className="cf-photo cf-media-reveal overflow-hidden rounded-[24px]" style={{ aspectRatio: '3 / 2' }}>
+                  <DocumentaryImage id="quality-handover" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">{lang === 'he' ? 'תמונה להמחשה — לא עבודת לקוח שהושלמה על ידי CleanFixHarish.' : 'Illustrative image — not a completed CleanFixHarish customer job.'}</p>
               </div>
             </div>
           </div>
@@ -65,7 +68,7 @@ export default function WhyTrustUsPage() {
 
             <div className="mt-16 rounded-2xl bg-card py-12 text-center">
               <h2 className="mb-4 text-2xl font-bold">
-                {lang === 'en' ? 'Experience Honest Service' : 'חוו שירות כנה'}
+                {lang === 'en' ? 'Send a request for review' : 'שלחו בקשה לבדיקה'}
               </h2>
               <div className="public-hero-actions flex flex-col justify-center gap-3 min-[430px]:flex-row min-[430px]:flex-wrap">
                 <Link to="/quote" className="min-w-0">
@@ -81,6 +84,7 @@ export default function WhyTrustUsPage() {
                   </Button>
                 </a>
               </div>
+              <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground">{lang === 'en' ? 'A request does not confirm availability, price, assignment or booking.' : 'בקשה אינה מאשרת זמינות, מחיר, שיבוץ או הזמנה.'}</p>
             </div>
           </div>
         </section>

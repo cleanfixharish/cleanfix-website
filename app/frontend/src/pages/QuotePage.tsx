@@ -13,14 +13,13 @@ import { CheckCircle, MessageCircle } from 'lucide-react';
 import { cleanfixApi } from '@/lib/cleanfixApi';
 import { readUtmAttribution } from '@/lib/utmAttribution';
 import { getWhatsAppLink, getWhatsAppQuoteMessage } from '@/lib/whatsapp';
+import { useSearchParams } from 'react-router-dom';
 
 const serviceOptions = [
   { en: 'Handyman', he: 'הנדימן' },
-  { en: 'Post-renovation cleaning', he: 'ניקיון אחרי שיפוץ' },
-  { en: 'Move-in / move-out cleaning', he: 'ניקיון כניסה / יציאה' },
+  { en: 'Cleaning', he: 'ניקיון' },
+  { en: 'Painting', he: 'צביעה' },
   { en: 'AC cleaning', he: 'ניקוי מזגנים' },
-  { en: 'Window cleaning', he: 'ניקוי חלונות' },
-  { en: 'Other', he: 'אחר' },
 ];
 
 const areaOptions = [
@@ -33,6 +32,7 @@ const areaOptions = [
 
 export default function QuotePage() {
   const { t, lang } = useLanguage();
+  const [searchParams] = useSearchParams();
   const campaignAttribution = useMemo(() => readUtmAttribution(window.location.search), []);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,7 +43,7 @@ export default function QuotePage() {
     phone: '',
     whatsapp: '',
     area: '',
-    service_requested: '',
+    service_requested: searchParams.get('service') === 'gardening' ? 'Gardening' : '',
     description: '',
   });
 
@@ -179,8 +179,16 @@ export default function QuotePage() {
                             {lang === 'en' ? s.en : s.he}
                           </SelectItem>
                         ))}
+                        <SelectItem value="Gardening">
+                          {lang === 'en' ? 'Gardening — separate local gardener' : 'גינון — גנן מקומי נפרד'}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      {lang === 'en'
+                        ? 'Gardening requests are reviewed separately with one local gardener, subject to written scope and availability.'
+                        : 'בקשות גינון נבדקות בנפרד מול גנן מקומי אחד, בכפוף להיקף כתוב ולזמינות.'}
+                    </p>
                   </div>
 
                   <div>

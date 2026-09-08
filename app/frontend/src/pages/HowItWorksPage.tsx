@@ -61,8 +61,11 @@ export default function HowItWorksPage() {
                 <h1 className="mb-3 text-3xl font-bold md:text-4xl">{t.howItWorks.title}</h1>
                 <p className="mx-auto max-w-lg text-muted-foreground lg:mx-0">{t.howItWorks.subtitle}</p>
               </div>
-              <div className="cf-photo cf-media-reveal min-w-0 overflow-hidden rounded-[24px]" style={{ aspectRatio: '3 / 2' }}>
-                <DocumentaryImage id="service-journey" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
+              <div className="min-w-0">
+                <div className="cf-photo cf-media-reveal overflow-hidden rounded-[24px]" style={{ aspectRatio: '3 / 2' }}>
+                  <DocumentaryImage id="service-journey" lang={lang} sizes="(max-width: 640px) 100vw, (max-width: 1100px) 90vw, 560px" />
+                </div>
+                <p className="mt-2 text-xs text-[#625b53]">{he ? 'תמונה להמחשת התהליך — לא עבודת לקוח שהושלמה על ידי CleanFixHarish.' : 'Process illustration — not a completed CleanFixHarish customer job.'}</p>
               </div>
             </div>
           </div>
@@ -93,7 +96,7 @@ export default function HowItWorksPage() {
 
             <div className="mt-16 text-center">
               <h2 className="mb-4 text-2xl font-bold">
-                {he ? 'התחילו עכשיו — זה לוקח 30 שניות' : 'Start Now — It Takes 30 Seconds'}
+                {he ? 'שלחו בקשה לבדיקה' : 'Send a request for review'}
               </h2>
               <div className="public-hero-actions flex flex-col justify-center gap-3 min-[430px]:flex-row min-[430px]:flex-wrap">
                 <a href={getWhatsAppLink(getWhatsAppQuoteMessage(undefined, lang))} target="_blank" rel="noopener noreferrer" className="min-w-0">
