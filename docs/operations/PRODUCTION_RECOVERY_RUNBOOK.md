@@ -13,17 +13,29 @@ Never print environment variables, database URLs, access tokens, or customer rec
 - Canonical URL: `https://cleanfixharish.co.il`
 - Railway environment: `production`
 - Web service ID: `b0b6b3d7-3486-48a7-9f9d-e8168efc755e`
-- Active verified deployment: `952520e3-4d0a-49e1-87c1-7bd41779be3e`
-- Application commit: `abecfc04c75c57606ba524d44efdb0f4b958e7c1`
-- Known-good application tag: `production-good-20260908-0033`
-- Repository monitoring baseline: `3d7ffa08d253f6a6bb8a0178f37d7f149299edc9`
+- Active verified deployment: `504f306e-a1b4-4761-a5b1-5cf578f2331f`
+- Application commit: `89c8717e26fbbc5c617664ce86788522d163002a`
+- Known-good application tag: `production-good-20260908-1052`
+- Production migration head: `c7d9e2f41a60`
 - Required deployment gate: `python -m alembic upgrade head`
 - Required readiness path: `/health/ready`
 - Active database route: PostgreSQL HA through the `Postgres HA` endpoint
 - HA backup policy: daily, weekly, and monthly schedules on all three PostgreSQL members
 - Latest verified daily snapshots: 2026-09-07 on all three members
 
-The monitoring commit only changes repository automation and does not require a web redeployment.
+## Permanent Job Registry evidence
+
+The additive Job Registry foundation was released on 2026-09-08 (Asia/Jerusalem):
+
+- Pull request `24` passed backend, frontend, and container CI.
+- Isolated staging deployment `1f28bdef-e29f-4d47-b1a6-507363b6f6c4` completed successfully before production promotion.
+- Staging migration verification found all four `job_ledger` tables at Alembic head `c7d9e2f41a60`.
+- Rollback-only staging probes proved PostgreSQL rejects both direct `UPDATE` and direct `DELETE` against ledger events; the transaction left zero test rows.
+- Production deployment `504f306e-a1b4-4761-a5b1-5cf578f2331f` completed successfully.
+- Production passed all 20 live route, readiness, security-header, anonymous-access, and public-config checks.
+- Read-only production verification found all four ledger tables, active immutable-mutation trigger events, and zero initial ledger rows.
+
+Phase 1 is an additive persistence foundation. Canonical state transitions, finalization commands, private evidence/PII boundaries, and the Completed Job Records admin interface remain gated follow-up work. Existing mutable job CRUD must not be treated as the permanent ledger.
 
 ## Production acceptance evidence
 
@@ -91,7 +103,7 @@ Use this when the application is unhealthy but the database is healthy. The know
 
    ```powershell
    git fetch origin --tags
-   git worktree add "C:\Temp\CleanFixHarish-Rollback" production-good-20260908-0033
+   git worktree add "C:\Temp\CleanFixHarish-Rollback" production-good-20260908-1052
    ```
 
 2. Verify the exact revision and build before deploying.
@@ -101,7 +113,7 @@ Use this when the application is unhealthy but the database is healthy. The know
    docker build --tag cleanfixharish:rollback-check "C:\Temp\CleanFixHarish-Rollback"
    ```
 
-   The revision must be `abecfc04c75c57606ba524d44efdb0f4b958e7c1`. Stop if it differs or the build fails.
+   The revision must be `89c8717e26fbbc5c617664ce86788522d163002a`. Stop if it differs or the build fails.
 
 3. Deploy that exact worktree. This is a production mutation and requires the incident owner to confirm the target and reason.
 
@@ -112,7 +124,7 @@ Use this when the application is unhealthy but the database is healthy. The know
      --service b0b6b3d7-3486-48a7-9f9d-e8168efc755e `
      --detach `
      --json `
-     --message "Incident rollback to production-good-20260908-0033"
+     --message "Incident rollback to production-good-20260908-1052"
    ```
 
 4. Poll deployment state and inspect deployment logs. Do not treat upload completion as release success.
