@@ -13,10 +13,10 @@ Never print environment variables, database URLs, access tokens, or customer rec
 - Canonical URL: `https://cleanfixharish.co.il`
 - Railway environment: `production`
 - Web service ID: `b0b6b3d7-3486-48a7-9f9d-e8168efc755e`
-- Active verified deployment: `f6589e19-dc32-4315-af95-1ae97caad14c`
-- Application commit: `f02f3172e1d10c746021553efe88babc241a412d`
-- Known-good application tag: `production-good-20260908-1508`
-- Production migration head: `e8a6b42c1d70`
+- Active verified deployment: `7776719a-8007-40ec-bed9-ea1349e2753c`
+- Application commit: `4e9f0d09a44144eb6f0bebbb1d044149039541be`
+- Known-good application tag: `production-good-20260908-1650`
+- Production migration head: `a9d4e1f72b60`
 - Required deployment gate: `python -m alembic upgrade head`
 - Required readiness path: `/health/ready`
 - Active database route: PostgreSQL HA through the `Postgres HA` endpoint
@@ -50,6 +50,20 @@ Release `f02f317` was promoted on 2026-09-08 after:
 - the known-good rollback tag `production-good-20260908-1508` was pushed after verification.
 
 The same release made business-relationship decisions primary-owner-only, requires a reason, stores an immutable decision audit event, and removes internal approver identity from the business self-service response. It also introduced bilingual role tours and the Manager OS Learning Center. Advertising and automatic publication remain disabled.
+
+## Security containment and quote-to-booking release evidence
+
+Two narrowly separated releases were promoted on 2026-09-08:
+
+- Pull request `28` restricted generic storage, access grants, commercial approvals, job edits, website restore, environment mutations, and AI generation to the primary owner. Presigned storage links now expire after five minutes, and upstream storage response bodies are not exposed through application errors.
+- Security containment deployment `62cf39c1-58d8-4d2f-8f15-7ba5428f4103` passed production readiness and live authorization probes: a normal signed-in user received HTTP 403 for storage and access management, while the primary owner received HTTP 200 for access management.
+- Pull request `29` passed backend, frontend, container, and Android CI. Local verification included 114 backend tests, frontend type-check/lint/build, Android compilation, and a complete isolated Alembic upgrade/downgrade/upgrade cycle.
+- Exact-commit staging deployment `8dc1a85a-93c5-4e63-871a-b25e46d0d2bd` completed successfully after PostgreSQL had applied migration `a9d4e1f72b60`.
+- A staging-only synthetic flow proved request → estimate → owner estimate approval → draft quote → owner quote approval → publication → customer acceptance → exactly one `awaiting_deposit` booking. Replaying the same decision key returned the stable accepted result without a duplicate booking or decision event.
+- Private quote API responses were verified as `private, no-store` with `Referrer-Policy: no-referrer`; CORS explicitly permits the required `Idempotency-Key` header.
+- Production deployment `7776719a-8007-40ec-bed9-ea1349e2753c` completed with status `SUCCESS`, mounted both the public quote and booking routers, applied migration `a9d4e1f72b60`, returned HTTP 200 from `/health/ready`, and passed a read-only owner booking-list probe.
+
+This release makes accepted quotes create an authoritative booking record with immutable scope, exclusions, terms, price, deposit, and currency snapshots. Acceptance still does not collect payment, confirm a schedule, assign a provider, or complete a job. Those capabilities remain gated until their own authoritative records, role tests, and staging evidence exist.
 
 ## Production acceptance evidence
 
