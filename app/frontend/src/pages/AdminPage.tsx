@@ -2686,6 +2686,11 @@ type ServiceQuote = {
   expires_at: string;
   created_at: string;
 };
+type AcceptedBooking = {
+  id: number;
+  quote_id: number;
+  status: string;
+};
 type LocalPricingEvidence = {
   id: number;
   evidence_kind: string;
@@ -2714,6 +2719,7 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
   const [references, setReferences] = useState<PricingReference[]>([]);
   const [estimates, setEstimates] = useState<PricingEstimate[]>([]);
   const [quotes, setQuotes] = useState<ServiceQuote[]>([]);
+  const [bookings, setBookings] = useState<AcceptedBooking[]>([]);
   const [localEvidence, setLocalEvidence] = useState<LocalPricingEvidence[]>(
     [],
   );
@@ -2749,16 +2755,18 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
   );
   const load = async () => {
     try {
-      const [r, e, q, l, b] = await Promise.all([
+      const [r, e, q, acceptedBookings, l, b] = await Promise.all([
         cleanfixApi.listPricingReferences(),
         cleanfixApi.listPriceEstimates(),
         cleanfixApi.listServiceQuotes(),
+        cleanfixApi.listBookings(),
         cleanfixApi.listLocalPriceEvidence(),
         cleanfixApi.getLocalPriceBenchmarks(),
       ]);
       setReferences(r.items || []);
       setEstimates(e.items || []);
       setQuotes(q.items || []);
+      setBookings(acceptedBookings || []);
       setLocalEvidence(l.items || []);
       setBenchmarks(b.items || []);
     } catch {
@@ -2868,6 +2876,15 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
       toast.error(
         error?.response?.data?.detail || tr("Quote could not be published."),
       );
+    }
+  };
+  const approveQuote = async (id: number) => {
+    try {
+      await cleanfixApi.approveServiceQuote(id);
+      toast.success(tr("Exact quote approved by the owner. It has not been sent."));
+      await load();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || tr("Quote approval failed."));
     }
   };
   const addEvidence = async () => {
@@ -3139,6 +3156,15 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                   <Button
                     size="sm"
                     className="mt-3 bg-[#174E57]"
+                    onClick={() => approveQuote(q.id)}
+                  >
+                    {tr("Approve exact quote")}
+                  </Button>
+                )}
+                {q.status === "owner_approved" && (
+                  <Button
+                    size="sm"
+                    className="mt-3 bg-[#174E57]"
                     onClick={() => publishQuote(q.id)}
                   >
                     {tr("Create private customer link")}
@@ -3161,6 +3187,11 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
                       {tr("For security, this link is available only in this browser session.")}
                     </p>
                   </div>
+                )}
+                {bookings.find((booking) => booking.quote_id === q.id) && (
+                  <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-xs font-medium text-emerald-800">
+                    {tr("Booking")} #{bookings.find((booking) => booking.quote_id === q.id)?.id} · {tr(bookings.find((booking) => booking.quote_id === q.id)?.status || "")}
+                  </p>
                 )}
               </div>
             ))}

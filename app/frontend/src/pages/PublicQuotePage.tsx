@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, Clock3, ShieldCheck, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,10 @@ export default function PublicQuotePage() {
   const [loading, setLoading] = useState(true);
   const [deciding, setDeciding] = useState(false);
   const [error, setError] = useState('');
+  const decisionKeys = useRef<Record<'accept' | 'decline', string>>({
+    accept: crypto.randomUUID(),
+    decline: crypto.randomUUID(),
+  });
 
   useEffect(() => {
     setLoading(true);
@@ -44,7 +48,7 @@ export default function PublicQuotePage() {
     setDeciding(true);
     setError('');
     try {
-      setQuote(await cleanfixApi.decidePublicServiceQuote(token, decision));
+      setQuote(await cleanfixApi.decidePublicServiceQuote(token, decision, decisionKeys.current[decision]));
     } catch (requestError: any) {
       setError(requestError?.response?.data?.detail || q.saveFailed);
     } finally {

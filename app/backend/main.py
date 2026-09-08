@@ -103,7 +103,7 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-CSRF-Token"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-CSRF-Token", "Idempotency-Key"],
 )
 # MODULE_MIDDLEWARE_END
 
@@ -225,7 +225,8 @@ def include_routers_from_package(app: FastAPI, package_name: str = "routers") ->
     """Discover and include all APIRouter objects from a package.
 
     This scans the given package (and subpackages) for module-level variables that
-    are instances of FastAPI's APIRouter. It supports "router", "admin_router" names.
+    are instances of FastAPI's APIRouter. It supports the conventional public,
+    default, and admin router names.
     """
 
     logger = logging.getLogger(__name__)
@@ -247,8 +248,8 @@ def include_routers_from_package(app: FastAPI, package_name: str = "routers") ->
             logger.warning("Failed to import module '%s': %s", module_name, exc)
             continue
 
-        # Check for router variable names: router and admin_router
-        for attr_name in ("router", "admin_router"):
+        # Keep distinct public/admin routers in one module discoverable.
+        for attr_name in ("router", "public_router", "admin_router"):
             if not hasattr(module, attr_name):
                 continue
 

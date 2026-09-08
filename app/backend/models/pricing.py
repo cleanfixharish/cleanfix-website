@@ -84,6 +84,8 @@ class ServiceQuote(Base):
     public_token_hash = Column(String(64), nullable=True, unique=True, index=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     published_at = Column(DateTime(timezone=True), nullable=True)
+    approved_by = Column(String(255), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
     accepted_at = Column(DateTime(timezone=True), nullable=True)
     declined_at = Column(DateTime(timezone=True), nullable=True)
     created_by = Column(String(255), nullable=False)

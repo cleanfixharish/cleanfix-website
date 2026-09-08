@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import il.co.cleanfixharish.app.data.ApiProvider
 import il.co.cleanfixharish.app.data.LeadRequest
 import il.co.cleanfixharish.app.data.QuoteDecision
+import java.util.UUID
 import il.co.cleanfixharish.app.data.ServiceQuote
 import kotlinx.coroutines.launch
 
@@ -190,7 +191,11 @@ private fun QuoteScreen(initialToken: String, modifier: Modifier = Modifier) {
                                     loading = true
                                     message = null
                                     runCatching {
-                                        ApiProvider.api.decideQuote(token.trim(), QuoteDecision("accept"))
+                                        ApiProvider.api.decideQuote(
+                                            token.trim(),
+                                            UUID.randomUUID().toString(),
+                                            QuoteDecision("accept"),
+                                        )
                                     }.onSuccess {
                                         quote = it
                                         message = "Quote accepted. CleanFixHarish will contact you to confirm scheduling."
@@ -205,7 +210,11 @@ private fun QuoteScreen(initialToken: String, modifier: Modifier = Modifier) {
                                     loading = true
                                     message = null
                                     runCatching {
-                                        ApiProvider.api.decideQuote(token.trim(), QuoteDecision("decline"))
+                                        ApiProvider.api.decideQuote(
+                                            token.trim(),
+                                            UUID.randomUUID().toString(),
+                                            QuoteDecision("decline"),
+                                        )
                                     }.onSuccess {
                                         quote = it
                                         message = "Quote declined. No booking or payment was created."

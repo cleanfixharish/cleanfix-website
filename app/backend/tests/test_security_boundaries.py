@@ -296,6 +296,7 @@ def test_high_impact_commands_are_primary_owner_only():
         ("POST", "/api/v1/pricing/estimates/{estimate_id}/reject"),
         ("POST", "/api/v1/pricing/local-evidence/{evidence_id}/approve"),
         ("POST", "/api/v1/quotes"),
+        ("POST", "/api/v1/quotes/{quote_id}/approve"),
         ("POST", "/api/v1/quotes/{quote_id}/publish"),
         ("PUT", "/api/v1/entities/jobs/{job_id}"),
         ("POST", "/api/v1/website-restore/default"),

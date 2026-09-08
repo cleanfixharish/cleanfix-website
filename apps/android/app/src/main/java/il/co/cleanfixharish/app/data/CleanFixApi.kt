@@ -3,6 +3,7 @@ package il.co.cleanfixharish.app.data
 import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 
@@ -46,6 +47,7 @@ interface CleanFixApi {
     @POST("api/v1/public/quotes/{token}/decision")
     suspend fun decideQuote(
         @Path("token") token: String,
+        @Header("Idempotency-Key") idempotencyKey: String,
         @Body decision: QuoteDecision,
     ): ServiceQuote
 }

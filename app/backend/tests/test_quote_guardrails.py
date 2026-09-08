@@ -8,10 +8,36 @@ from pydantic import ValidationError
 from routers.quotes import (
     QuoteCreate,
     apply_customer_decision,
+    booking_status_for_deposit,
     hash_quote_token,
     public_quote_payload,
     quote_is_expired,
 )
+
+
+def test_public_quote_routes_are_mounted():
+    from main import app
+
+    route_paths = {getattr(route, "path", None) for route in app.routes}
+    assert "/api/v1/public/quotes/{token}" in route_paths
+    assert "/api/v1/public/quotes/{token}/decision" in route_paths
+
+
+def test_quote_decision_idempotency_header_is_allowed_by_cors():
+    from fastapi.testclient import TestClient
+    from main import app
+
+    response = TestClient(app).options(
+        "/api/v1/public/quotes/" + "a" * 48 + "/decision",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "idempotency-key,content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "idempotency-key" in response.headers["access-control-allow-headers"].lower()
 
 
 def test_quote_token_is_stored_as_a_digest_not_plaintext():
@@ -54,6 +80,12 @@ def test_expiry_is_timezone_safe():
     now = datetime(2026, 8, 20, tzinfo=timezone.utc)
     assert quote_is_expired(now - timedelta(seconds=1), now) is True
     assert quote_is_expired(now + timedelta(seconds=1), now) is False
+
+
+def test_accepted_quote_starts_in_the_correct_booking_queue():
+    assert booking_status_for_deposit(None) == "awaiting_schedule"
+    assert booking_status_for_deposit(Decimal("0")) == "awaiting_schedule"
+    assert booking_status_for_deposit(Decimal("100")) == "awaiting_deposit"
 
 
 def test_public_quote_never_exposes_internal_budget_or_owner_identity():
