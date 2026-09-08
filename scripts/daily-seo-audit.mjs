@@ -2,6 +2,14 @@ const base = (process.env.PRODUCTION_BASE_URL || process.env.SEO_BASE_URL || 'ht
   .replace(/\/$/, '');
 const seoRoutes = ['/', '/services', '/gardening', '/how-it-works', '/local-partners', '/quote', '/partners', '/about'];
 const applicationRoutes = ['/admin', '/account'];
+const protectedEndpoints = [
+  '/api/v1/entities/leads',
+  '/api/v1/entities/jobs',
+  '/api/v1/admin/viewers',
+  '/api/v1/admin/growth/settings',
+  '/api/v1/pricing/references',
+];
+const publicConfigKeys = ['API_BASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_URL'];
 const requiredSecurityHeaders = {
   'content-security-policy': (value) => value.includes("default-src 'self'") && value.includes("frame-ancestors 'none'"),
   'strict-transport-security': (value) => value.includes('max-age='),
@@ -98,6 +106,39 @@ for (const endpoint of ['/health', '/health/ready']) {
   });
 }
 
+for (const endpoint of protectedEndpoints) {
+  await runCheck(`auth-boundary:${endpoint}`, async () => {
+    const { response, durationMs } = await request(endpoint, { redirect: 'error' });
+    const body = await response.text();
+    return {
+      checks: {
+        rejectsAnonymous: response.status === 401 || response.status === 403,
+        json: (response.headers.get('content-type') || '').includes('application/json'),
+        noSensitiveError: !/(traceback|postgres(?:ql)?:\/\/|database_url|access[_-]?token|service[_-]?role)/i.test(body),
+        ...securityChecks(response),
+      },
+      details: { endpoint, status: response.status, durationMs },
+    };
+  });
+}
+
+await runCheck('public-config', async () => {
+  const { response, durationMs } = await request('/api/config', { redirect: 'error' });
+  const body = await response.json();
+  const keys = Object.keys(body).sort();
+  const unexpectedKeys = keys.filter((key) => !publicConfigKeys.includes(key));
+  return {
+    checks: {
+      status: response.ok,
+      json: (response.headers.get('content-type') || '').includes('application/json'),
+      allowlistedKeysOnly: unexpectedKeys.length === 0,
+      expectedKeysPresent: publicConfigKeys.every((key) => keys.includes(key)),
+      ...securityChecks(response),
+    },
+    details: { status: response.status, keys, unexpectedKeys, durationMs },
+  };
+});
+
 await runCheck('redirect:/how-we-work', async () => {
   const { response, durationMs } = await request('/how-we-work', { redirect: 'manual' });
   return {
@@ -138,5 +179,9 @@ await runCheck('discovery', async () => {
   };
 });
 
-console.log(JSON.stringify({ base, checks: seoRoutes.length + applicationRoutes.length + 4, failures }));
+console.log(JSON.stringify({
+  base,
+  checks: seoRoutes.length + applicationRoutes.length + protectedEndpoints.length + 5,
+  failures,
+}));
 if (failures) process.exitCode = 1;
