@@ -7,13 +7,14 @@ from dependencies.auth import (
     get_admin_user,
     get_current_user,
     get_managed_provider,
+    get_owner_user,
     get_referral_partner,
 )
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from models.account_profile import AccountProfile
 from models.auth import User
-from models.business_relationship import BusinessRelationship
-from pydantic import BaseModel
+from models.business_relationship import BusinessRelationship, BusinessRelationshipEvent
+from pydantic import BaseModel, Field
 from schemas.auth import UserResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,13 +42,25 @@ class RelationshipResponse(BaseModel):
 
 class MyBusinessAccessResponse(BaseModel):
     account_type: Literal["business"]
-    relationships: list[RelationshipResponse]
+    relationships: list["MyRelationshipResponse"]
+
+
+class MyRelationshipResponse(BaseModel):
+    relationship_type: RelationshipType
+    status: RelationshipStatus
+    approved_at: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
 
 
 class RelationshipDecision(BaseModel):
     user_id: str
     relationship_type: RelationshipType
     status: RelationshipStatus
+    reason: str = Field(min_length=3, max_length=2000)
 
 
 class PortalContextResponse(BaseModel):
@@ -79,7 +92,7 @@ async def get_my_business_access(
     response.headers["Cache-Control"] = "private, no-store"
     return MyBusinessAccessResponse(
         account_type="business",
-        relationships=list(result.scalars().all()),
+        relationships=[MyRelationshipResponse.model_validate(item) for item in result.scalars().all()],
     )
 
 
@@ -162,10 +175,10 @@ async def list_relationships(response: Response, db: AsyncSession = Depends(get_
 )
 async def decide_relationship(
     decision: RelationshipDecision,
-    admin: UserResponse = Depends(get_admin_user),
+    admin: UserResponse = Depends(get_owner_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create or update a relationship; only the owner/admin can activate it."""
+    """Create or update a relationship; only the primary owner can decide access."""
     user_result = await db.execute(select(User).where(User.id == decision.user_id))
     if user_result.scalar_one_or_none() is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -178,6 +191,7 @@ async def decide_relationship(
         )
     )
     relationship = result.scalar_one_or_none()
+    previous_status = relationship.status if relationship is not None else None
     if relationship is None:
         relationship = BusinessRelationship(
             user_id=decision.user_id,
@@ -185,6 +199,7 @@ async def decide_relationship(
             status=decision.status,
         )
         db.add(relationship)
+        await db.flush()
     else:
         relationship.status = decision.status
 
@@ -194,6 +209,16 @@ async def decide_relationship(
     else:
         relationship.approved_by = None
         relationship.approved_at = None
+
+    db.add(
+        BusinessRelationshipEvent(
+            relationship_id=relationship.id,
+            actor_id=admin.id,
+            previous_status=previous_status,
+            new_status=decision.status,
+            reason=decision.reason.strip(),
+        )
+    )
 
     await db.commit()
     await db.refresh(relationship)

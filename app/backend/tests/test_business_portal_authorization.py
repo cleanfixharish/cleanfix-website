@@ -9,7 +9,7 @@ from dependencies.auth import (
     get_managed_provider,
     get_referral_partner,
 )
-from routers.business_access import get_partner_context, get_provider_context, request_relationship
+from routers.business_access import MyRelationshipResponse, get_partner_context, get_provider_context, request_relationship
 from schemas.auth import UserResponse
 
 
@@ -139,6 +139,20 @@ async def test_business_can_only_create_a_pending_relationship_request():
     assert relationship.approved_at is None
     assert db.commits == 1
     assert db.added == [relationship]
+
+
+def test_self_facing_relationship_response_hides_internal_approver():
+    response = MyRelationshipResponse.model_validate(
+        SimpleNamespace(
+            relationship_type="managed_provider",
+            status="active",
+            approved_at=None,
+            created_at=None,
+            updated_at=None,
+            approved_by="internal-owner-id",
+        )
+    )
+    assert "approved_by" not in response.model_dump()
 
 
 def test_production_startup_has_no_mock_data_initializer():

@@ -1,14 +1,15 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from dependencies.auth import get_admin_user
-from services.jobs import JobsService
+from dependencies.auth import get_admin_user, get_owner_user
+from schemas.auth import UserResponse
+from services.jobs import DuplicateJobCommand, InvalidJobTransition, JobsService
 
 router = APIRouter(
     prefix="/api/v1/entities/jobs",
@@ -31,13 +32,14 @@ class JobData(BaseModel):
 
 
 class JobUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     lead_id: Optional[int] = None
     provider_id: Optional[int] = None
     customer_name: Optional[str] = None
     title: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
-    status: Optional[str] = None
     scheduled_for: Optional[datetime] = None
     price: Optional[Decimal] = None
     notes: Optional[str] = None
@@ -59,6 +61,36 @@ class JobListResponse(BaseModel):
     limit: int
 
 
+class JobEventResponse(BaseModel):
+    sequence_number: int
+    event_type: str
+    occurred_at: datetime
+    previous_status: Optional[str] = None
+    new_status: Optional[str] = None
+    reason: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JobTransitionCommand(BaseModel):
+    new_status: Literal[
+        "in_progress",
+        "completion_submitted",
+        "quality_approved",
+        "completed",
+        "cancelled",
+        "reopened",
+    ]
+    idempotency_key: str = Field(min_length=8, max_length=100)
+    reason: Optional[str] = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def require_reason_for_exception_transitions(self):
+        if self.new_status in {"cancelled", "reopened"} and not (self.reason or "").strip():
+            raise ValueError("A reason is required to cancel or reopen a job")
+        return self
+
+
 @router.get("", response_model=JobListResponse)
 async def list_jobs(
     skip: int = Query(0, ge=0),
@@ -70,8 +102,23 @@ async def list_jobs(
 
 
 @router.post("", response_model=JobResponse, status_code=201)
-async def create_job(data: JobData, db: AsyncSession = Depends(get_db)):
-    return await JobsService(db).create(data.model_dump())
+async def create_job(
+    data: JobData,
+    db: AsyncSession = Depends(get_db),
+    owner: UserResponse = Depends(get_owner_user),
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=100),
+):
+    if data.status != "scheduled":
+        raise HTTPException(status_code=422, detail="New jobs must begin as scheduled")
+    try:
+        return await JobsService(db).create_with_event(
+            data.model_dump(),
+            actor_id=owner.id,
+            actor_role="owner",
+            idempotency_key=idempotency_key,
+        )
+    except DuplicateJobCommand as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.put("/{job_id}", response_model=JobResponse)
@@ -83,8 +130,45 @@ async def update_job(job_id: int, data: JobUpdate, db: AsyncSession = Depends(ge
     return job
 
 
-@router.delete("/{job_id}")
-async def delete_job(job_id: int, db: AsyncSession = Depends(get_db)):
-    if not await JobsService(db).delete(job_id):
+@router.post("/{job_id}/transitions", response_model=JobResponse)
+async def transition_job(
+    job_id: int,
+    command: JobTransitionCommand,
+    db: AsyncSession = Depends(get_db),
+    owner: UserResponse = Depends(get_owner_user),
+):
+    try:
+        job = await JobsService(db).transition(
+            job_id,
+            command.new_status,
+            actor_id=owner.id,
+            actor_role="owner",
+            idempotency_key=command.idempotency_key,
+            reason=command.reason,
+        )
+    except InvalidJobTransition as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except DuplicateJobCommand as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    return {"message": "Job deleted", "id": job_id}
+    return job
+
+
+@router.get("/{job_id}/events", response_model=List[JobEventResponse])
+async def list_job_events(
+    job_id: int,
+    db: AsyncSession = Depends(get_db),
+    _owner: UserResponse = Depends(get_owner_user),
+):
+    if not await JobsService(db).get_by_id(job_id):
+        raise HTTPException(status_code=404, detail="Job not found")
+    return await JobsService(db).get_events(job_id)
+
+
+@router.delete("/{job_id}", status_code=405)
+async def delete_job(job_id: int):
+    raise HTTPException(
+        status_code=405,
+        detail="Jobs are permanent records. Record a cancellation transition instead.",
+    )
