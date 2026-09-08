@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     app_name: str = "FastAPI Modular Template"
     debug: bool = False
     version: str = "1.0.0"
+    # Fulfillment dispatch stays disabled until owner-approved operational,
+    # provider, insurance, and payment prerequisites are verified.
+    fulfillment_enabled: bool = False
+    fulfillment_setup_enabled: bool = False
 
     # Server
     host: str = "0.0.0.0"

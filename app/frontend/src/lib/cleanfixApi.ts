@@ -319,6 +319,78 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async listBusinessRelationships() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/business-access/admin/relationships`);
+    return response.data;
+  },
+
+  async confirmBookingSchedule(id: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/bookings/${id}/confirm-schedule`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async createManagedProvider(data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers`, data);
+    return response.data;
+  },
+
+  async addProviderCapability(profileId: number, data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/capabilities`, data);
+    return response.data;
+  },
+
+  async addProviderVetting(profileId: number, data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/vetting`, data);
+    return response.data;
+  },
+
+  async activateManagedProvider(profileId: number, expectedVersion: number) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/activate`, {
+      expected_version: expectedVersion,
+    });
+    return response.data;
+  },
+
+  async createAssignmentOffer(jobId: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/jobs/${jobId}/assignment-offers`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async confirmAssignment(offerId: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/assignment-offers/${offerId}/confirm`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async listProviderOffers() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/provider/offers`);
+    return response.data;
+  },
+
+  async decideProviderOffer(offerId: number, decision: 'accept' | 'decline', data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/provider/offers/${offerId}/${decision}`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async listProviderJobs() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/provider/jobs`);
+    return response.data;
+  },
+
+  async advanceProviderJob(jobId: number, command: 'on-the-way'|'arrive'|'start', expectedVersion: number, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/provider/jobs/${jobId}/${command}`, {
+      expected_version: expectedVersion,
+    }, { headers: { 'Idempotency-Key': idempotencyKey } });
+    return response.data;
+  },
+
   async approveServiceQuote(id: number | string) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/quotes/${id}/approve`);
     return response.data;

@@ -1,35 +1,128 @@
-import { AlertTriangle, Banknote, BriefcaseBusiness, CalendarClock, Camera, CheckCircle2, CircleDollarSign, ClipboardCheck, FileCheck2, HelpCircle, MessageCircle, Navigation, ShieldCheck, TimerReset } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { AlertTriangle, BriefcaseBusiness, CalendarClock, CheckCircle2, Clock3, HelpCircle, MapPin, Navigation, RefreshCw, ShieldCheck, TimerReset } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
 import BusinessPortalShell, { PortalNavItem } from '@/components/BusinessPortalShell';
 import DashboardTour from '@/components/DashboardTour';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBusinessPortalAccess } from '@/hooks/useBusinessPortalAccess';
+import { cleanfixApi } from '@/lib/cleanfixApi';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
+type Offer = { id: number; job_id: number; status: string; provider_payout: number; currency: string; service_key: string; service_area: string; window_start: string; window_end: string; response_deadline: string; instructions?: string; version: number };
+type ProviderJob = { id: number; title: string; general_area?: string; scheduled_for?: string; confirmed_window_end?: string; status: 'confirmed' | 'on_the_way' | 'arrived' | 'in_progress'; version: number };
 
 const nav: PortalNavItem[] = [
   { href: '/provider', labelEn: 'Today', labelHe: 'היום', icon: CalendarClock },
-  { href: '/provider/offers', labelEn: 'Offers preview', labelHe: 'תצוגת הצעות', icon: TimerReset },
-  { href: '/provider/jobs', labelEn: 'Jobs preview', labelHe: 'תצוגת עבודות', icon: BriefcaseBusiness },
-  { href: '/provider/earnings', labelEn: 'Earnings preview', labelHe: 'תצוגת תשלומים', icon: CircleDollarSign },
-  { href: '/provider/compliance', labelEn: 'Compliance preview', labelHe: 'תצוגת מסמכים', icon: ShieldCheck },
-  { href: '/provider/help', labelEn: 'Help preview', labelHe: 'תצוגת עזרה', icon: HelpCircle },
+  { href: '/provider/offers', labelEn: 'Offers', labelHe: 'הצעות', icon: TimerReset },
+  { href: '/provider/jobs', labelEn: 'Active jobs', labelHe: 'עבודות פעילות', icon: BriefcaseBusiness },
 ];
 
+function stableKey(scope: string) {
+  const storageKey = `cleanfix.provider.command.${scope}`;
+  const current = sessionStorage.getItem(storageKey);
+  if (current) return current;
+  const created = crypto.randomUUID();
+  sessionStorage.setItem(storageKey, created);
+  return created;
+}
+
+function message(error: unknown, he: boolean) {
+  if (axios.isAxiosError(error)) {
+    if (error.response?.status === 503) return he ? 'עבודות השטח עדיין כבויות בשרת.' : 'Field fulfillment is still disabled on the server.';
+    if (typeof error.response?.data?.detail === 'string') return error.response.data.detail;
+  }
+  return he ? 'לא ניתן להשלים את הפעולה.' : 'The action could not be completed.';
+}
+
+function formatDate(value: string | undefined, he: boolean) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString(he ? 'he-IL' : 'en-IL', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jerusalem' });
+}
+
 export default function ProviderWorkspacePage() {
-  const { lang } = useLanguage(); const { user, checking, business, authorized, relationshipStatus } = useBusinessPortalAccess('provider'); const he = lang === 'he';
-  return <BusinessPortalShell nav={nav} eyebrowEn="Managed service partner preview" eyebrowHe="תצוגה לשותף ביצוע מנוהל" titleEn="One clear job workspace. Customer information stays protected." titleHe="סביבת עבודה אחת וברורה. פרטי הלקוח נשארים מוגנים." descriptionEn="Once approved and activated, service partners will receive exact scope, schedule, evidence requirements and agreed gross payout before tax and business expenses. CleanFix will coordinate customer communication, pricing and quality resolution." descriptionHe="לאחר אישור והפעלה, שותפי ביצוע יקבלו היקף מדויק, לוח זמנים, דרישות תיעוד ותשלום ברוטו מוסכם לפני מס והוצאות עסק. CleanFix תתאם את תקשורת הלקוח, התמחור ופתרון האיכות.">{checking ? <Loading he={he} /> : !user ? <SignIn he={he} /> : !business ? <WrongAccount he={he} /> : !authorized ? <ApprovalRequired he={he} status={relationshipStatus} /> : <ProviderPreview he={he} />}</BusinessPortalShell>;
+  const { lang } = useLanguage();
+  const { pathname } = useLocation();
+  const { user, checking, business, authorized, relationshipStatus } = useBusinessPortalAccess('provider');
+  const he = lang === 'he';
+  return <BusinessPortalShell nav={nav} badgeEn="Secure provider workspace" badgeHe="סביבת ספק מאובטחת" eyebrowEn="Managed service partner" eyebrowHe="שותף ביצוע מנוהל" titleEn="Your real offers and active jobs" titleHe="ההצעות והעבודות הפעילות שלך" descriptionEn="Only records assigned to your approved provider relationship appear here. Customer price and CleanFix margin are never shown." descriptionHe="כאן מופיעות רק רשומות ששויכו לקשר הספק המאושר שלך. מחיר הלקוח והמרווח של CleanFix לעולם אינם מוצגים.">
+    {checking ? <Loading he={he} /> : !user ? <SignIn he={he} /> : !business ? <WrongAccount he={he} /> : !authorized ? <ApprovalRequired he={he} status={relationshipStatus} /> : <ProviderWork he={he} view={pathname} />}
+  </BusinessPortalShell>;
 }
 
-function ProviderPreview({ he }: { he: boolean }) {
-  const steps = he ? ['היקף מאושר', 'בדרך והגעה', 'תיעוד לפני ואחרי', 'בדיקת איכות'] : ['Approved scope', 'Travel and arrival', 'Before/after evidence', 'Quality review'];
-  const icons = [ClipboardCheck, Navigation, Camera, CheckCircle2];
-  return <div className="space-y-5"><DashboardTour kind="provider" he={he} /><Card className="border-[#d5c59f] bg-[#fffaf0]"><CardContent className="p-5"><Badge className="bg-[#f0dfb9] text-[#76551d] hover:bg-[#f0dfb9]">{he ? 'תצוגה בלבד — לא פעיל' : 'Preview only — not active'}</Badge><h2 className="mt-3 font-sans text-xl font-semibold text-[#173f46]">{he ? 'אין רשומות עבודה חיות במערכת זו' : 'No live job records are connected to this preview'}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[#6f6a62]">{he ? 'לא מוצגים נתוני דוגמה. לאחר השלמת הרשאה בצד השרת, שדות יופיעו רק כשהצעה או עבודה אמיתית משויכת לחשבון המאושר.' : 'No sample data is shown. After server-side relationship authorization is activated, fields will appear only when a real offer or job is assigned to the approved account.'}</p></CardContent></Card><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"><FutureCard icon={CalendarClock} title={he ? 'מה יוצג בהצעה' : 'What an offer will show'} fields={he ? ['מזהה עבודה','אזור כללי','חלון זמנים','היקף כתוב','אחריות חומרים','תשלום ברוטו מוסכם','מועד תשובה'] : ['Job ID','General area','Schedule window','Written scope','Materials responsibility','Agreed gross payout','Response deadline']} note={he ? 'זהות לקוח, כתובת מדויקת ומחיר לקוח לא יוצגו לפני שיבוץ מאושר.' : 'Customer identity, exact address and customer price will not appear before a confirmed assignment.'} /><FutureCard icon={BriefcaseBusiness} title={he ? 'מה יוצג בעבודה פעילה' : 'What an active job will show'} fields={he ? ['לוח זמנים מאושר','זיהוי הגעה מינימלי','כתובת והוראות גישה','תקשורת דרך CleanFix','רשימת בדיקה','תיעוד ושינויים מאושרים'] : ['Confirmed schedule','Minimum arrival identity','Address and access notes','CleanFix communication','Checklist','Evidence and approved changes']} note={he ? 'השדות יופיעו רק בזמן שעבודה משויכת ופעילה.' : 'These fields will appear only while an assigned job is active.'} /><FutureCard icon={Banknote} title={he ? 'מה יוצג בתשלומים' : 'What earnings will show'} fields={he ? ['מזהה עבודה','תשלום ברוטו מוסכם','תוספות מאושרות','דרישת מסמך','זכאות או עיכוב','תאריך ואסמכתא'] : ['Job ID','Agreed gross payout','Approved extras','Document requirement','Eligibility or hold','Payment date and reference']} note={he ? 'מחיר הלקוח ומרווח CleanFix לעולם לא יופיעו.' : 'Customer price and CleanFix margin will never appear.'} /></div><div className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]"><Card className="border-[#d9d7cf] bg-white"><CardContent className="p-5 sm:p-6"><h2 className="font-sans text-xl font-semibold text-[#173f46]">{he ? 'מסע השטח שיופעל בעתיד' : 'The future field journey'}</h2><div className="mt-5 grid gap-3 sm:grid-cols-2">{steps.map((label, index) => { const Icon = icons[index]; return <div key={label} className="flex min-h-16 items-center gap-3 rounded-xl bg-[#f3f5f1] p-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dbe9e5] text-[#174e57]"><Icon className="h-4 w-4" /></span><span className="text-sm font-medium text-[#334b4f]">{index + 1}. {label}</span></div>; })}</div></CardContent></Card><Card className="border-[#d9d7cf] bg-[#102f38] text-white"><CardContent className="p-5 sm:p-6"><h2 className="font-sans text-lg font-semibold text-[#efc86d]">{he ? 'כללים קבועים לכל הפלטפורמות' : 'Rules shared by every platform'}</h2><ul className="mt-4 space-y-3 text-sm leading-6 text-white/75">{(he ? ['אין ספר לקוחות לשימוש חוזר','אין גבייה פרטית או החלפת עובד','שינוי היקף ימתין לאישור','גישה רגישה תהיה מתועדת ומוגבלת'] : ['No reusable customer directory','No private collection or worker substitution','Scope changes will wait for approval','Sensitive access will be logged and limited']).map(item => <li key={item} className="flex gap-2"><FileCheck2 className="mt-1 h-4 w-4 shrink-0 text-[#efc86d]" />{item}</li>)}</ul><Button disabled variant="outline" className="mt-5 min-h-11 w-full border-white/20 bg-white/5 text-white"><MessageCircle className="me-2 h-4 w-4" />{he ? 'יופעל לאחר אישור הקשר' : 'Activates after relationship approval'}</Button></CardContent></Card></div></div>;
+function ProviderWork({ he, view }: { he: boolean; view: string }) {
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [jobs, setJobs] = useState<ProviderJob[]>([]);
+  const [declineReasons, setDeclineReasons] = useState<Record<number, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState('');
+  const [disabled, setDisabled] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [offerRows, jobRows] = await Promise.all([cleanfixApi.listProviderOffers(), cleanfixApi.listProviderJobs()]);
+      setOffers(offerRows as Offer[]); setJobs(jobRows as ProviderJob[]); setDisabled(false);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 503) { setDisabled(true); setOffers([]); setJobs([]); }
+      else toast.error(message(error, he));
+    } finally { setLoading(false); }
+  };
+  useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const decide = async (offer: Offer, decision: 'accept' | 'decline') => {
+    const reason = declineReasons[offer.id]?.trim();
+    if (decision === 'decline' && !reason) { toast.error(he ? 'נא לציין סיבה לדחייה.' : 'Please provide a decline reason.'); return; }
+    setBusy(`${decision}-${offer.id}`);
+    try {
+      await cleanfixApi.decideProviderOffer(offer.id, decision, { expected_version: offer.version, decline_reason: decision === 'decline' ? reason : null }, stableKey(`${decision}-offer-${offer.id}-v${offer.version}-${reason || 'no-reason'}`));
+      toast.success(decision === 'accept' ? (he ? 'ההצעה התקבלה וממתינה לאישור הבעלים.' : 'Offer accepted and waiting for owner confirmation.') : (he ? 'ההצעה נדחתה.' : 'Offer declined.'));
+      await load();
+    } catch (error) { toast.error(message(error, he)); }
+    finally { setBusy(''); }
+  };
+
+  const advance = async (job: ProviderJob) => {
+    const command = job.status === 'confirmed' ? 'on-the-way' : job.status === 'on_the_way' ? 'arrive' : job.status === 'arrived' ? 'start' : null;
+    if (!command) return;
+    setBusy(`${command}-${job.id}`);
+    try {
+      await cleanfixApi.advanceProviderJob(job.id, command, job.version, stableKey(`${command}-job-${job.id}-v${job.version}`));
+      toast.success(he ? 'מצב העבודה עודכן.' : 'Job status updated.'); await load();
+    } catch (error) { toast.error(message(error, he)); }
+    finally { setBusy(''); }
+  };
+
+  if (disabled) return <Disabled he={he} retry={() => void load()} />;
+  if (loading) return <Loading he={he} />;
+
+  const showOffers = view === '/provider' || view === '/provider/offers';
+  const showJobs = view === '/provider' || view === '/provider/jobs';
+  const openOffers = offers.filter((item) => item.status === 'offered');
+  return <div className="space-y-5">
+    {view === '/provider' && <DashboardTour kind="provider" he={he} />}
+    {showOffers && <section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-semibold text-[#173f46]">{he ? 'הצעות שממתינות לתשובה' : 'Offers awaiting your decision'}</h2><Badge variant="outline">{openOffers.length}</Badge></div><div className="grid gap-4 xl:grid-cols-2">{openOffers.map((offer) => <OfferCard key={offer.id} offer={offer} he={he} busy={!!busy} reason={declineReasons[offer.id] || ''} setReason={(value) => setDeclineReasons((current) => ({ ...current, [offer.id]: value }))} decide={decide} />)}{!openOffers.length && <Empty text={he ? 'אין הצעות פתוחות אמיתיות כרגע.' : 'There are no real open offers right now.'} />}</div></section>}
+    {showJobs && <section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-semibold text-[#173f46]">{he ? 'עבודות פעילות' : 'Active jobs'}</h2><Badge variant="outline">{jobs.length}</Badge></div><div className="grid gap-4 xl:grid-cols-2">{jobs.map((job) => <JobCard key={job.id} job={job} he={he} busy={!!busy} advance={advance} />)}{!jobs.length && <Empty text={he ? 'אין עבודות פעילות שמשויכות לחשבון.' : 'No active jobs are assigned to this account.'} />}</div></section>}
+  </div>;
 }
 
-function FutureCard({ icon: Icon, title, fields, note }: { icon: React.ElementType; title: string; fields: string[]; note: string }) { return <Card className="border-[#d9d7cf] bg-[#fbfaf7]"><CardContent className="p-5"><Icon className="h-5 w-5 text-[#a67d39]" /><h2 className="mt-3 font-sans text-lg font-semibold text-[#173f46]">{title}</h2><div className="mt-3 flex flex-wrap gap-1.5">{fields.map(field => <Badge key={field} variant="outline" className="bg-white font-normal text-[#526064]">{field}</Badge>)}</div><p className="mt-4 text-xs leading-5 text-[#736f68]">{note}</p></CardContent></Card>; }
-function Loading({ he }: { he: boolean }) { return <Card aria-live="polite"><CardContent className="p-8 text-center text-sm text-[#6f6a62]">{he ? 'בודקים את סוג החשבון…' : 'Checking account type…'}</CardContent></Card>; }
-function SignIn({ he }: { he: boolean }) { return <Card className="border-[#d5c59f] bg-[#fffaf0]"><CardContent className="p-7 text-center"><AlertTriangle className="mx-auto h-7 w-7 text-[#a97928]" /><h2 className="mt-3 font-sans text-xl font-semibold text-[#173f46]">{he ? 'נדרשת כניסה מאובטחת' : 'Secure sign-in required'}</h2><p className="mx-auto mt-2 max-w-xl text-sm text-[#6f6a62]">{he ? 'התחברו לחשבון עסקי כדי לראות את סיור שותף הביצוע.' : 'Sign in with a business account to view the managed-provider tour.'}</p><Button asChild className="mt-5 bg-[#174e57]"><Link to="/account?type=business">{he ? 'כניסה לחשבון' : 'Open business account'}</Link></Button></CardContent></Card>; }
-function WrongAccount({ he }: { he: boolean }) { return <Card className="border-[#d7a6a0] bg-[#fff7f5]"><CardContent className="p-7 text-center"><ShieldCheck className="mx-auto h-7 w-7 text-[#9b4b43]" /><h2 className="mt-3 font-sans text-xl font-semibold text-[#173f46]">{he ? 'סביבה זו מיועדת לחשבון עסקי' : 'This workspace requires a business account'}</h2><p className="mt-2 text-sm text-[#6f6a62]">{he ? 'חשבון לקוח אינו מקבל גישה לסביבות של בעלי מקצוע או עסקים.' : 'Customer accounts do not receive access to provider or business workspaces.'}</p><Button asChild variant="outline" className="mt-5"><Link to="/account">{he ? 'חזרה לחשבון הלקוח' : 'Return to customer account'}</Link></Button></CardContent></Card>; }
-function ApprovalRequired({ he, status }: { he: boolean; status: string }) { const pending = status === 'pending'; const unavailable = status === 'unavailable'; return <Card className="border-[#d5c59f] bg-[#fffaf0]" aria-live="polite"><CardContent className="p-7 text-center"><ShieldCheck className="mx-auto h-7 w-7 text-[#a97928]" /><h2 className="mt-3 font-sans text-xl font-semibold text-[#173f46]">{unavailable ? (he ? 'לא ניתן לבדוק הרשאה כרגע' : 'Access could not be verified') : pending ? (he ? 'בקשת שותף הביצוע ממתינה לאישור' : 'Managed-provider request is pending') : (he ? 'נדרש אישור כשותף ביצוע' : 'Managed-provider approval is required')}</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#6f6a62]">{unavailable ? (he ? 'הסיור והמידע נשארים נעולים עד שניתן יהיה לאמת את ההרשאה.' : 'The tour and workspace remain locked until authorization can be verified.') : (he ? 'חשבון עסקי לבדו אינו פותח סביבת עבודה. רק קשר פעיל שאושר על ידי CleanFix מאפשר כניסה.' : 'A business account alone does not open this workspace. Entry requires an active relationship approved by CleanFix.')}</p><Button asChild variant="outline" className="mt-5 min-h-11"><Link to="/account">{he ? 'חזרה לחשבון' : 'Back to account'}</Link></Button></CardContent></Card>; }
+function OfferCard({ offer, he, busy, reason, setReason, decide }: { offer: Offer; he: boolean; busy: boolean; reason: string; setReason: (value: string) => void; decide: (offer: Offer, decision: 'accept' | 'decline') => Promise<void> }) {
+  return <Card className="border-[#d9d7cf] bg-[#fbfaf7]"><CardHeader><CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg"><span>{he ? 'הצעה' : 'Offer'} #{offer.id}</span><Badge>{offer.service_key}</Badge></CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 text-sm sm:grid-cols-2"><Info icon={MapPin} label={he ? 'אזור כללי' : 'General area'} value={offer.service_area} /><Info icon={Clock3} label={he ? 'חלון עבודה' : 'Work window'} value={`${formatDate(offer.window_start, he)} – ${formatDate(offer.window_end, he)}`} /><Info icon={CheckCircle2} label={he ? 'תשלום ברוטו מוסכם' : 'Agreed gross payout'} value={`${offer.currency} ${Number(offer.provider_payout).toLocaleString()}`} /><Info icon={TimerReset} label={he ? 'מועד תשובה' : 'Response deadline'} value={formatDate(offer.response_deadline, he)} /></div>{offer.instructions && <p className="rounded-xl bg-white p-3 text-sm leading-6 text-[#526064]">{offer.instructions}</p>}<p className="text-xs text-[#736f68]">{he ? 'זהות הלקוח וכתובת מדויקת אינן מוצגות לפני אישור השיבוץ.' : 'Customer identity and exact address are not shown before assignment confirmation.'}</p><div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]"><Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={he ? 'סיבה נדרשת רק לדחייה' : 'Reason required only to decline'} /><Button variant="outline" disabled={busy} onClick={() => void decide(offer, 'decline')}>{he ? 'דחייה' : 'Decline'}</Button><Button className="bg-[#174e57]" disabled={busy} onClick={() => void decide(offer, 'accept')}>{he ? 'קבלה' : 'Accept'}</Button></div></CardContent></Card>;
+}
+
+function JobCard({ job, he, busy, advance }: { job: ProviderJob; he: boolean; busy: boolean; advance: (job: ProviderJob) => Promise<void> }) {
+  const action = job.status === 'confirmed' ? (he ? 'יצאתי לדרך' : 'I am on the way') : job.status === 'on_the_way' ? (he ? 'הגעתי' : 'I arrived') : job.status === 'arrived' ? (he ? 'התחלת עבודה' : 'Start work') : null;
+  return <Card className="border-[#d9d7cf] bg-white"><CardHeader><CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg"><span>#{job.id} · {job.title}</span><Badge variant="outline">{job.status.replace(/_/g, ' ')}</Badge></CardTitle></CardHeader><CardContent className="space-y-4"><Info icon={MapPin} label={he ? 'אזור כללי' : 'General area'} value={job.general_area || '—'} /><Info icon={CalendarClock} label={he ? 'חלון מאושר' : 'Confirmed window'} value={`${formatDate(job.scheduled_for, he)} – ${formatDate(job.confirmed_window_end, he)}`} /><p className="text-xs leading-5 text-[#736f68]">{he ? 'כתובת מדויקת עדיין לא קיימת ברשומה זו. אין לנחש כתובת או להתחיל לפני תיאום.' : 'No exact address exists in this record yet. Do not infer an address or begin before coordination.'}</p>{action ? <Button className="min-h-12 w-full bg-[#174e57]" disabled={busy} onClick={() => void advance(job)}><Navigation className="me-2 h-4 w-4" />{action}</Button> : <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{he ? 'העבודה החלה. בקרות סיום, תיעוד ותשלום עדיין אינן זמינות.' : 'Work is in progress. Completion, evidence, and payment controls are not available yet.'}</div>}</CardContent></Card>;
+}
+
+function Info({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) { return <div className="flex min-w-0 gap-2 rounded-xl bg-[#f3f5f1] p-3"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#a67d39]" /><div className="min-w-0"><p className="text-[11px] uppercase tracking-wide text-[#7a746c]">{label}</p><p className="break-words font-medium text-[#334b4f]">{value}</p></div></div>; }
+function Empty({ text }: { text: string }) { return <Card className="border-dashed"><CardContent className="p-7 text-center text-sm text-[#6f6a62]">{text}</CardContent></Card>; }
+function Loading({ he }: { he: boolean }) { return <Card aria-live="polite"><CardContent className="p-8 text-center text-sm text-[#6f6a62]">{he ? 'טוענים רשומות מאובטחות…' : 'Loading secured records…'}</CardContent></Card>; }
+function Disabled({ he, retry }: { he: boolean; retry: () => void }) { return <Card className="border-amber-300 bg-amber-50" aria-live="polite"><CardContent className="p-6"><ShieldCheck className="h-7 w-7 text-amber-700" /><h2 className="mt-3 text-xl font-semibold">{he ? 'עבודות השטח עדיין כבויות' : 'Field fulfillment is not enabled yet'}</h2><p className="mt-2 text-sm text-[#6f6a62]">{he ? 'השרת חוסם הצעות ושיבוץ עד להשלמת האישורים. אין כאן נתוני דוגמה.' : 'The server is blocking offers and dispatch until approvals are complete. No sample data is shown.'}</p><Button variant="outline" className="mt-4" onClick={retry}><RefreshCw className="me-2 h-4 w-4" />{he ? 'בדיקה מחדש' : 'Check again'}</Button></CardContent></Card>; }
+function SignIn({ he }: { he: boolean }) { return <Card className="border-[#d5c59f] bg-[#fffaf0]"><CardContent className="p-7 text-center"><AlertTriangle className="mx-auto h-7 w-7 text-[#a97928]" /><h2 className="mt-3 text-xl font-semibold">{he ? 'נדרשת כניסה מאובטחת' : 'Secure sign-in required'}</h2><Button asChild className="mt-5 bg-[#174e57]"><Link to="/account?type=business">{he ? 'כניסה לחשבון' : 'Open business account'}</Link></Button></CardContent></Card>; }
+function WrongAccount({ he }: { he: boolean }) { return <Card><CardContent className="p-7 text-center"><ShieldCheck className="mx-auto h-7 w-7" /><h2 className="mt-3 text-xl font-semibold">{he ? 'נדרש חשבון עסקי' : 'A business account is required'}</h2></CardContent></Card>; }
+function ApprovalRequired({ he, status }: { he: boolean; status: string }) { return <Card className="border-[#d5c59f] bg-[#fffaf0]" aria-live="polite"><CardContent className="p-7 text-center"><HelpCircle className="mx-auto h-7 w-7 text-[#a97928]" /><h2 className="mt-3 text-xl font-semibold">{he ? 'אישור שותף ביצוע נדרש' : 'Managed-provider approval is required'}</h2><p className="mt-2 text-sm text-[#6f6a62]">{he ? `מצב הקשר: ${status}` : `Relationship status: ${status}`}</p><Button asChild variant="outline" className="mt-5"><Link to="/account">{he ? 'חזרה לחשבון' : 'Back to account'}</Link></Button></CardContent></Card>; }

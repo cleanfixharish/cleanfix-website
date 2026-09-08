@@ -56,6 +56,7 @@ class JobEvent(Base):
     visibility = Column(String(30), nullable=False, default="owner", server_default="owner")
     payload = Column(JSONB, nullable=False, default=dict, server_default="{}")
     idempotency_key = Column(String(100), nullable=False)
+    command_hash = Column(String(64), nullable=True)
     previous_hash = Column(String(64), nullable=True)
     event_hash = Column(String(64), nullable=False)
 

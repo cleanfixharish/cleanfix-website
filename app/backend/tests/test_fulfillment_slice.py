@@ -1,0 +1,236 @@
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+
+import pytest
+from fastapi import HTTPException, Response
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+from core.database import Base
+from core.config import Settings
+from models.auth import User  # registers the relationship FK target
+from models.bookings import Booking, BookingEvent
+from models.business_relationship import BusinessRelationship
+from models.fulfillment import AssignmentOffer, AssignmentOfferEvent, ManagedProviderProfile, ProviderCapability, ProviderVettingItem
+from models.jobs import Jobs
+from models.leads import Leads
+from models.pricing import ServiceQuote  # registers the booking/job FK target
+from routers.fulfillment import _private, require_fulfillment_enabled, require_fulfillment_setup_enabled
+from routers.jobs import JobData, create_job
+from schemas.auth import UserResponse
+from services.fulfillment import REQUIRED_PILOT_VETTING, FulfillmentConflict, FulfillmentNotFound, FulfillmentService, provider_is_eligible
+
+
+def test_fulfillment_constraints_enforce_one_job_and_one_open_offer():
+    job_constraints = {item.name for item in Jobs.__table__.constraints}
+    offer_constraints = {item.name for item in AssignmentOffer.__table__.constraints}
+    offer_indexes = {item.name for item in AssignmentOffer.__table__.indexes}
+    assert any(item.unique and {column.name for column in item.columns} == {"booking_id"} for item in Jobs.__table__.indexes)
+    assert "uq_assignment_offers_job_sequence" in offer_constraints
+    assert {"uq_assignment_offers_one_open", "uq_assignment_offers_one_confirmed"} <= offer_indexes
+
+
+def test_private_fulfillment_responses_are_not_cacheable():
+    response = Response()
+    _private(response)
+    assert response.headers["Cache-Control"] == "private, no-store"
+    assert response.headers["Pragma"] == "no-cache"
+
+
+def test_fulfillment_dispatch_defaults_disabled(monkeypatch):
+    monkeypatch.setattr("routers.fulfillment.settings.fulfillment_enabled", False)
+    with pytest.raises(HTTPException) as exc:
+        require_fulfillment_enabled()
+    assert exc.value.status_code == 503
+    monkeypatch.setattr("routers.fulfillment.settings.fulfillment_setup_enabled", False)
+    with pytest.raises(HTTPException) as setup_exc:
+        require_fulfillment_setup_enabled()
+    assert setup_exc.value.status_code == 503
+
+
+@pytest.mark.parametrize(("raw", "enabled"), [(None, False), ("false", False), ("0", False), ("true", True)])
+def test_fulfillment_environment_flags_are_strictly_parsed(monkeypatch, raw, enabled):
+    if raw is None:
+        monkeypatch.delenv("FULFILLMENT_ENABLED", raising=False)
+    else:
+        monkeypatch.setenv("FULFILLMENT_ENABLED", raw)
+    if raw is None:
+        monkeypatch.delenv("FULFILLMENT_SETUP_ENABLED", raising=False)
+    else:
+        monkeypatch.setenv("FULFILLMENT_SETUP_ENABLED", raw)
+    parsed = Settings()
+    assert parsed.fulfillment_enabled is enabled
+    assert parsed.fulfillment_setup_enabled is enabled
+
+
+@pytest.mark.asyncio
+async def test_manual_job_creation_is_retired_only_when_fulfillment_is_enabled(monkeypatch):
+    monkeypatch.setattr("routers.jobs.settings.fulfillment_enabled", True)
+    with pytest.raises(HTTPException) as exc:
+        await create_job(
+            JobData(customer_name="Synthetic", title="Synthetic"),
+            db=None,
+            owner=UserResponse(id="owner", email="owner@example.invalid", role="admin"),
+            idempotency_key="manual-job-test",
+        )
+    assert exc.value.status_code == 405
+
+
+@pytest.mark.asyncio
+async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeypatch):
+    async def no_ledger_event(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr("services.fulfillment._append_job_event", no_ledger_event)
+    monkeypatch.setattr("services.fulfillment.settings.fulfillment_enabled", True)
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    tables = [
+        Leads.__table__, Booking.__table__, BookingEvent.__table__,
+        BusinessRelationship.__table__, ManagedProviderProfile.__table__,
+        ProviderCapability.__table__, ProviderVettingItem.__table__, Jobs.__table__,
+        AssignmentOffer.__table__, AssignmentOfferEvent.__table__,
+    ]
+    async with engine.begin() as connection:
+        await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    now = datetime.now(timezone.utc)
+    async with sessions() as db:
+        lead = Leads(customer_name="Synthetic Customer", phone="000", area="harish", service_requested="cleaning")
+        relationship = BusinessRelationship(user_id="provider-user", relationship_type="managed_provider", status="active")
+        db.add_all([lead, relationship])
+        await db.flush()
+        booking = Booking(
+            quote_id=1, lead_id=lead.id, status="awaiting_schedule",
+            quoted_total_snapshot=Decimal("500"), deposit_required_snapshot=None,
+            scope_snapshot="Synthetic scope", version=1,
+        )
+        profile = ManagedProviderProfile(
+            relationship_id=relationship.id, display_name="Synthetic Provider",
+            operational_status="active", availability_status="available",
+        )
+        db.add_all([booking, profile])
+        await db.flush()
+        db.add(ProviderCapability(provider_profile_id=profile.id, service_key="cleaning", service_area="harish", is_verified=True))
+        db.add_all([
+            ProviderVettingItem(provider_profile_id=profile.id, requirement_key=key, status="approved", expires_at=now + timedelta(days=30))
+            for key in REQUIRED_PILOT_VETTING
+        ])
+        await db.commit()
+
+        insurance = await db.scalar(select(ProviderVettingItem).where(
+            ProviderVettingItem.provider_profile_id == profile.id,
+            ProviderVettingItem.requirement_key == "insurance",
+        ))
+        insurance.expires_at = now + timedelta(hours=12)
+        await db.commit()
+        assert not await provider_is_eligible(
+            db, profile.id, "cleaning", "harish",
+            required_through=now + timedelta(days=1, hours=2),
+        )
+        insurance.expires_at = now + timedelta(days=30)
+        await db.commit()
+
+        service = FulfillmentService(db)
+        with pytest.raises(FulfillmentConflict):
+            await service.confirm_booking_schedule(
+                booking.id, start=now - timedelta(minutes=1), end=now + timedelta(hours=1),
+                timezone_name="Asia/Jerusalem", expected_version=1,
+                actor_id="owner", idempotency_key="past-schedule-key",
+            )
+        with pytest.raises(FulfillmentConflict):
+            await service.confirm_booking_schedule(
+                booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=13),
+                timezone_name="Asia/Jerusalem", expected_version=1,
+                actor_id="owner", idempotency_key="long-schedule-key",
+            )
+        with pytest.raises(FulfillmentConflict):
+            await service.confirm_booking_schedule(
+                booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=2),
+                timezone_name="UTC", expected_version=1,
+                actor_id="owner", idempotency_key="timezone-schedule-key",
+            )
+        booking, job = await service.confirm_booking_schedule(
+            booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=2),
+            timezone_name="Asia/Jerusalem",
+            expected_version=1, actor_id="owner", idempotency_key="schedule-key-1",
+        )
+        replay_booking, replay_job = await service.confirm_booking_schedule(
+            booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=2),
+            timezone_name="Asia/Jerusalem",
+            expected_version=1, actor_id="owner", idempotency_key="schedule-key-1",
+        )
+        assert booking.status == "confirmed"
+        assert replay_booking.id == booking.id and replay_job.id == job.id
+        assert job.service_key == "cleaning" and job.service_area == "harish"
+        with pytest.raises(FulfillmentConflict):
+            await service.confirm_booking_schedule(
+                booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=3),
+                timezone_name="Asia/Jerusalem", expected_version=1,
+                actor_id="owner", idempotency_key="schedule-key-1",
+            )
+        assert await provider_is_eligible(
+            db, profile.id, "cleaning", "harish",
+            required_through=now + timedelta(days=1, hours=2),
+        )
+
+        offer = await service.create_offer(
+            job.id, provider_profile_id=profile.id, provider_payout=Decimal("300"),
+            response_deadline=now + timedelta(hours=1), instructions=None,
+            expected_job_version=1, actor_id="owner", idempotency_key="offer-key-001",
+        )
+        replay_offer = await service.create_offer(
+            job.id, provider_profile_id=profile.id, provider_payout=Decimal("300.00"),
+            response_deadline=now + timedelta(hours=1), instructions=None,
+            expected_job_version=1, actor_id="owner", idempotency_key="offer-key-001",
+        )
+        assert replay_offer.id == offer.id
+        with pytest.raises(FulfillmentConflict):
+            await service.create_offer(
+                job.id, provider_profile_id=profile.id, provider_payout=Decimal("301"),
+                response_deadline=now + timedelta(hours=1), instructions=None,
+                expected_job_version=1, actor_id="owner", idempotency_key="offer-key-001",
+            )
+        with pytest.raises(FulfillmentNotFound):
+            await service.provider_decide_offer(
+                offer.id, relationship_id=9999, decision="accepted", expected_version=1,
+                actor_id="intruder", idempotency_key="intruder-key",
+            )
+        offer = await service.provider_decide_offer(
+            offer.id, relationship_id=relationship.id, decision="accepted", expected_version=1,
+            actor_id="provider-user", idempotency_key="accept-key-01",
+        )
+        assert offer.status == "accepted" and job.status == "assigned"
+        with pytest.raises(FulfillmentNotFound):
+            await service.provider_decide_offer(
+                offer.id, relationship_id=9999, decision="accepted", expected_version=1,
+                actor_id="intruder", idempotency_key="accept-key-01",
+            )
+        offer, job = await service.confirm_assignment(
+            offer.id, expected_offer_version=2, expected_job_version=2,
+            actor_id="owner", idempotency_key="confirm-key-1",
+        )
+        assert offer.status == "confirmed" and job.status == "confirmed"
+        profile.operational_status = "paused"
+        await db.commit()
+        with pytest.raises(FulfillmentNotFound):
+            await service.provider_advance_job(
+                job.id, relationship_id=relationship.id, command="on_the_way",
+                expected_version=job.version, actor_id="provider-user",
+                idempotency_key="paused-provider-command",
+            )
+        profile.operational_status = "active"
+        await db.commit()
+        for command, expected in (("on_the_way", "on_the_way"), ("arrived", "arrived"), ("start", "in_progress")):
+            job = await service.provider_advance_job(
+                job.id, relationship_id=relationship.id, command=command,
+                expected_version=job.version, actor_id="provider-user",
+                idempotency_key=f"advance-{command}",
+            )
+            assert job.status == expected
+            with pytest.raises(FulfillmentNotFound):
+                await service.provider_advance_job(
+                    job.id, relationship_id=9999, command=command,
+                    expected_version=job.version, actor_id="intruder",
+                    idempotency_key=f"advance-{command}",
+                )
+    await engine.dispose()

@@ -87,6 +87,7 @@ import BusinessRulesCenter from "@/components/admin/BusinessRulesCenter";
 import GrowthCenter from "@/components/admin/GrowthCenter";
 import ThemeStudio from "@/components/admin/ThemeStudio";
 import DashboardTour from "@/components/DashboardTour";
+import FulfillmentCenter from "@/components/admin/FulfillmentCenter";
 
 type Section =
   | "overview"
@@ -94,6 +95,7 @@ type Section =
   | "leads"
   | "whatsapp"
   | "jobs"
+  | "fulfillment"
   | "providers"
   | "services"
   | "rules"
@@ -233,6 +235,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     label: "Operations",
     items: [
       { id: "jobs", label: "Jobs", icon: BriefcaseBusiness },
+      { id: "fulfillment", label: "Fulfillment", icon: ClipboardCheck },
       { id: "followups", label: "Follow-ups", icon: HeartHandshake },
     ],
   },
@@ -299,6 +302,7 @@ const statusStyle: Record<LeadStatus, string> = {
 
 const viewerLockedSections: Section[] = [
   "assistant",
+  "fulfillment",
   "whatsapp",
   "pricing",
   "content",
@@ -915,6 +919,7 @@ export default function AdminPage() {
           <WhatsAppOps leads={leads} openWhatsApp={openWhatsApp} />
         )}
         {section === "jobs" && <Jobs jobs={jobs} setJobs={setJobs} readOnly={isViewer} />}
+        {!isViewer && section === "fulfillment" && <FulfillmentCenter />}
         {section === "learning" && (
           <LearningCenter
             he={lang === "he"}

@@ -193,6 +193,8 @@ Railway CLI `5.30.1` exposes backup schedule and snapshot data through `railway 
 
 ## Recovery drill evidence
 
+The isolated PITR drill performed on 2026-09-08 did **not** pass recovery-point fidelity: both disposable restores became available but stopped at migration `d4e7a1b93c20` rather than the requested current production revision `a9d4e1f72b60`. See [RESTORE_DRILL_2026-09-08.md](RESTORE_DRILL_2026-09-08.md). Paid dispatch and other gated fulfillment capabilities must remain disabled until the current archive history is identified and a repeat drill matches the selected recovery point.
+
 A recovery gate passes only when all of the following are recorded without secrets or customer data:
 
 - backup identifier and creation time;

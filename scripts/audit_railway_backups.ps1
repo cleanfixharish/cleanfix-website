@@ -30,7 +30,8 @@ $results = foreach ($entry in $volumeInstances.GetEnumerator()) {
     }
 
     $result = $rawResult | ConvertFrom-Json
-    if ($result.errors) {
+    $graphqlErrors = @($result.PSObject.Properties | Where-Object { $_.Name -eq 'errors' })
+    if ($graphqlErrors.Count -gt 0 -and $graphqlErrors[0].Value) {
         throw "Railway API returned GraphQL errors for $($entry.Key)."
     }
 
