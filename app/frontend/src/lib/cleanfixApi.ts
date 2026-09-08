@@ -314,6 +314,16 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async listBookings() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/bookings`);
+    return response.data;
+  },
+
+  async approveServiceQuote(id: number | string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/quotes/${id}/approve`);
+    return response.data;
+  },
+
   async publishServiceQuote(id: number | string) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/quotes/${id}/publish`);
     return response.data;
@@ -324,8 +334,12 @@ export const cleanfixApi = {
     return response.data;
   },
 
-  async decidePublicServiceQuote(token: string, decision: 'accept' | 'decline') {
-    const response = await http.post(`${getAPIBaseURL()}/api/v1/public/quotes/${encodeURIComponent(token)}/decision`, { decision });
+  async decidePublicServiceQuote(token: string, decision: 'accept' | 'decline', idempotencyKey: string) {
+    const response = await http.post(
+      `${getAPIBaseURL()}/api/v1/public/quotes/${encodeURIComponent(token)}/decision`,
+      { decision },
+      { headers: { 'Idempotency-Key': idempotencyKey } },
+    );
     return response.data;
   },
 };
