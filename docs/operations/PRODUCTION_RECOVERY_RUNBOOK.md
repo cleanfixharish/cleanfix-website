@@ -13,10 +13,10 @@ Never print environment variables, database URLs, access tokens, or customer rec
 - Canonical URL: `https://cleanfixharish.co.il`
 - Railway environment: `production`
 - Web service ID: `b0b6b3d7-3486-48a7-9f9d-e8168efc755e`
-- Active verified deployment: `504f306e-a1b4-4761-a5b1-5cf578f2331f`
-- Application commit: `89c8717e26fbbc5c617664ce86788522d163002a`
-- Known-good application tag: `production-good-20260908-1052`
-- Production migration head: `c7d9e2f41a60`
+- Active verified deployment: `f6589e19-dc32-4315-af95-1ae97caad14c`
+- Application commit: `f02f3172e1d10c746021553efe88babc241a412d`
+- Known-good application tag: `production-good-20260908-1508`
+- Production migration head: `e8a6b42c1d70`
 - Required deployment gate: `python -m alembic upgrade head`
 - Required readiness path: `/health/ready`
 - Active database route: PostgreSQL HA through the `Postgres HA` endpoint
@@ -35,7 +35,21 @@ The additive Job Registry foundation was released on 2026-09-08 (Asia/Jerusalem)
 - Production passed all 20 live route, readiness, security-header, anonymous-access, and public-config checks.
 - Read-only production verification found all four ledger tables, active immutable-mutation trigger events, and zero initial ledger rows.
 
-Phase 1 is an additive persistence foundation. Canonical state transitions, finalization commands, private evidence/PII boundaries, and the Completed Job Records admin interface remain gated follow-up work. Existing mutable job CRUD must not be treated as the permanent ledger.
+Phase 1 is the additive persistence foundation. Release `f02f317` added the first controlled-command slice: owner-only job creation and transitions write append-only events atomically; generic status updates are rejected; hard deletion returns HTTP 405; cancellation/reopening and reviewed completion stages require reasons; the owner can read the permanent event timeline. Final completion remains deliberately locked until the immutable evidence, quality, and financial-close command is released. Private evidence/PII boundaries and the full Completed Job Records interface remain gated follow-up work.
+
+## Controlled jobs and learning release evidence
+
+Release `f02f317` was promoted on 2026-09-08 after:
+
+- pull request `26` and post-merge `main` CI passed backend, frontend, and container jobs;
+- 103 backend tests, frontend type-check/lint/build, and isolated migration upgrade/downgrade checks passed locally;
+- isolated staging deployment `db7763e0-29f0-40f8-aed5-e00147cf4f4f` completed successfully;
+- a staging-only synthetic job proved create/start/cancel events, direct-completion rejection, permanent timeline order, and HTTP 405 hard-delete rejection;
+- staging and production each passed all 20 live route, readiness, security-header, anonymous-access, discovery, and public-config checks;
+- production deployment `f6589e19-dc32-4315-af95-1ae97caad14c` migrated PostgreSQL to `e8a6b42c1d70` and passed `/health/ready`;
+- the known-good rollback tag `production-good-20260908-1508` was pushed after verification.
+
+The same release made business-relationship decisions primary-owner-only, requires a reason, stores an immutable decision audit event, and removes internal approver identity from the business self-service response. It also introduced bilingual role tours and the Manager OS Learning Center. Advertising and automatic publication remain disabled.
 
 ## Production acceptance evidence
 
