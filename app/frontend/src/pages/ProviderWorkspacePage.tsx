@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 
 type Offer = { id: number; job_id: number; status: string; provider_payout: number; currency: string; service_key: string; service_area: string; window_start: string; window_end: string; response_deadline: string; instructions?: string; version: number };
 type ProviderJob = { id: number; title: string; general_area?: string; scheduled_for?: string; confirmed_window_end?: string; status: 'confirmed' | 'on_the_way' | 'arrived' | 'in_progress'; version: number };
+type PrivateLocation = { exact_address: string; access_instructions?: string; version: number };
 
 const nav: PortalNavItem[] = [
   { href: '/provider', labelEn: 'Today', labelHe: 'היום', icon: CalendarClock },
@@ -61,9 +62,11 @@ function ProviderWork({ he, view }: { he: boolean; view: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
   const [disabled, setDisabled] = useState(false);
+  const [locations, setLocations] = useState<Record<number, PrivateLocation>>({});
 
   const load = async () => {
     setLoading(true);
+    setLocations({});
     try {
       const [offerRows, jobRows] = await Promise.all([cleanfixApi.listProviderOffers(), cleanfixApi.listProviderJobs()]);
       setOffers(offerRows as Offer[]); setJobs(jobRows as ProviderJob[]); setDisabled(false);
@@ -97,6 +100,15 @@ function ProviderWork({ he, view }: { he: boolean; view: string }) {
     finally { setBusy(''); }
   };
 
+  const revealLocation = async (job: ProviderJob) => {
+    setBusy(`location-${job.id}`);
+    try {
+      const location = await cleanfixApi.getProviderServiceLocation(job.id) as PrivateLocation;
+      setLocations((current) => ({ ...current, [job.id]: location }));
+    } catch (error) { toast.error(message(error, he)); }
+    finally { setBusy(''); }
+  };
+
   if (disabled) return <Disabled he={he} retry={() => void load()} />;
   if (loading) return <Loading he={he} />;
 
@@ -106,7 +118,7 @@ function ProviderWork({ he, view }: { he: boolean; view: string }) {
   return <div className="space-y-5">
     {view === '/provider' && <DashboardTour kind="provider" he={he} />}
     {showOffers && <section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-semibold text-[#173f46]">{he ? 'הצעות שממתינות לתשובה' : 'Offers awaiting your decision'}</h2><Badge variant="outline">{openOffers.length}</Badge></div><div className="grid gap-4 xl:grid-cols-2">{openOffers.map((offer) => <OfferCard key={offer.id} offer={offer} he={he} busy={!!busy} reason={declineReasons[offer.id] || ''} setReason={(value) => setDeclineReasons((current) => ({ ...current, [offer.id]: value }))} decide={decide} />)}{!openOffers.length && <Empty text={he ? 'אין הצעות פתוחות אמיתיות כרגע.' : 'There are no real open offers right now.'} />}</div></section>}
-    {showJobs && <section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-semibold text-[#173f46]">{he ? 'עבודות פעילות' : 'Active jobs'}</h2><Badge variant="outline">{jobs.length}</Badge></div><div className="grid gap-4 xl:grid-cols-2">{jobs.map((job) => <JobCard key={job.id} job={job} he={he} busy={!!busy} advance={advance} />)}{!jobs.length && <Empty text={he ? 'אין עבודות פעילות שמשויכות לחשבון.' : 'No active jobs are assigned to this account.'} />}</div></section>}
+    {showJobs && <section><div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-semibold text-[#173f46]">{he ? 'עבודות פעילות' : 'Active jobs'}</h2><Badge variant="outline">{jobs.length}</Badge></div><div className="grid gap-4 xl:grid-cols-2">{jobs.map((job) => <JobCard key={job.id} job={job} he={he} busy={!!busy} location={locations[job.id]} advance={advance} revealLocation={revealLocation} />)}{!jobs.length && <Empty text={he ? 'אין עבודות פעילות שמשויכות לחשבון.' : 'No active jobs are assigned to this account.'} />}</div></section>}
   </div>;
 }
 
@@ -114,9 +126,9 @@ function OfferCard({ offer, he, busy, reason, setReason, decide }: { offer: Offe
   return <Card className="border-[#d9d7cf] bg-[#fbfaf7]"><CardHeader><CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg"><span>{he ? 'הצעה' : 'Offer'} #{offer.id}</span><Badge>{offer.service_key}</Badge></CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 text-sm sm:grid-cols-2"><Info icon={MapPin} label={he ? 'אזור כללי' : 'General area'} value={offer.service_area} /><Info icon={Clock3} label={he ? 'חלון עבודה' : 'Work window'} value={`${formatDate(offer.window_start, he)} – ${formatDate(offer.window_end, he)}`} /><Info icon={CheckCircle2} label={he ? 'תשלום ברוטו מוסכם' : 'Agreed gross payout'} value={`${offer.currency} ${Number(offer.provider_payout).toLocaleString()}`} /><Info icon={TimerReset} label={he ? 'מועד תשובה' : 'Response deadline'} value={formatDate(offer.response_deadline, he)} /></div>{offer.instructions && <p className="rounded-xl bg-white p-3 text-sm leading-6 text-[#526064]">{offer.instructions}</p>}<p className="text-xs text-[#736f68]">{he ? 'זהות הלקוח וכתובת מדויקת אינן מוצגות לפני אישור השיבוץ.' : 'Customer identity and exact address are not shown before assignment confirmation.'}</p><div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]"><Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={he ? 'סיבה נדרשת רק לדחייה' : 'Reason required only to decline'} /><Button variant="outline" disabled={busy} onClick={() => void decide(offer, 'decline')}>{he ? 'דחייה' : 'Decline'}</Button><Button className="bg-[#174e57]" disabled={busy} onClick={() => void decide(offer, 'accept')}>{he ? 'קבלה' : 'Accept'}</Button></div></CardContent></Card>;
 }
 
-function JobCard({ job, he, busy, advance }: { job: ProviderJob; he: boolean; busy: boolean; advance: (job: ProviderJob) => Promise<void> }) {
+function JobCard({ job, he, busy, location, advance, revealLocation }: { job: ProviderJob; he: boolean; busy: boolean; location?: PrivateLocation; advance: (job: ProviderJob) => Promise<void>; revealLocation: (job: ProviderJob) => Promise<void> }) {
   const action = job.status === 'confirmed' ? (he ? 'יצאתי לדרך' : 'I am on the way') : job.status === 'on_the_way' ? (he ? 'הגעתי' : 'I arrived') : job.status === 'arrived' ? (he ? 'התחלת עבודה' : 'Start work') : null;
-  return <Card className="border-[#d9d7cf] bg-white"><CardHeader><CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg"><span>#{job.id} · {job.title}</span><Badge variant="outline">{job.status.replace(/_/g, ' ')}</Badge></CardTitle></CardHeader><CardContent className="space-y-4"><Info icon={MapPin} label={he ? 'אזור כללי' : 'General area'} value={job.general_area || '—'} /><Info icon={CalendarClock} label={he ? 'חלון מאושר' : 'Confirmed window'} value={`${formatDate(job.scheduled_for, he)} – ${formatDate(job.confirmed_window_end, he)}`} /><p className="text-xs leading-5 text-[#736f68]">{he ? 'כתובת מדויקת עדיין לא קיימת ברשומה זו. אין לנחש כתובת או להתחיל לפני תיאום.' : 'No exact address exists in this record yet. Do not infer an address or begin before coordination.'}</p>{action ? <Button className="min-h-12 w-full bg-[#174e57]" disabled={busy} onClick={() => void advance(job)}><Navigation className="me-2 h-4 w-4" />{action}</Button> : <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{he ? 'העבודה החלה. בקרות סיום, תיעוד ותשלום עדיין אינן זמינות.' : 'Work is in progress. Completion, evidence, and payment controls are not available yet.'}</div>}</CardContent></Card>;
+  return <Card className="border-[#d9d7cf] bg-white"><CardHeader><CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg"><span>#{job.id} · {job.title}</span><Badge variant="outline">{job.status.replace(/_/g, ' ')}</Badge></CardTitle></CardHeader><CardContent className="space-y-4"><Info icon={MapPin} label={he ? 'אזור כללי' : 'General area'} value={job.general_area || '—'} /><Info icon={CalendarClock} label={he ? 'חלון מאושר' : 'Confirmed window'} value={`${formatDate(job.scheduled_for, he)} – ${formatDate(job.confirmed_window_end, he)}`} />{location ? <div className="rounded-xl border border-amber-300 bg-amber-50 p-3" aria-live="polite"><p className="text-xs font-semibold uppercase tracking-wide text-amber-800">{he ? 'מיקום פרטי · הצפייה נרשמה' : 'Private location · access audited'}</p><p className="mt-1 font-semibold text-[#173f46]">{location.exact_address}</p>{location.access_instructions && <p className="mt-2 text-sm text-[#526064]">{location.access_instructions}</p>}</div> : <div className="space-y-2"><p className="text-xs leading-5 text-[#736f68]">{he ? 'הכתובת המדויקת אינה מוצגת ברשימות. היא זמינה רק לשיבוץ המאושר וכל צפייה נרשמת.' : 'The exact address is excluded from listings. It is available only for this confirmed assignment and every reveal is audited.'}</p><Button variant="outline" className="w-full" disabled={busy} onClick={() => void revealLocation(job)}><MapPin className="me-2 h-4 w-4" />{he ? 'הצגת מיקום שירות מאובטח' : 'Reveal secure service location'}</Button></div>}{action ? <Button className="min-h-12 w-full bg-[#174e57]" disabled={busy} onClick={() => void advance(job)}><Navigation className="me-2 h-4 w-4" />{action}</Button> : <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{he ? 'העבודה החלה. בקרות סיום, תיעוד ותשלום עדיין אינן זמינות.' : 'Work is in progress. Completion, evidence, and payment controls are not available yet.'}</div>}</CardContent></Card>;
 }
 
 function Info({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) { return <div className="flex min-w-0 gap-2 rounded-xl bg-[#f3f5f1] p-3"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#a67d39]" /><div className="min-w-0"><p className="text-[11px] uppercase tracking-wide text-[#7a746c]">{label}</p><p className="break-words font-medium text-[#334b4f]">{value}</p></div></div>; }

@@ -9,11 +9,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
+from core.private_data_crypto import decrypt_private_payload, encrypt_private_payload
 from models.bookings import Booking, BookingEvent
 from models.business_relationship import BusinessRelationship
 from models.fulfillment import (
     AssignmentOffer, AssignmentOfferEvent, ManagedProviderProfile,
-    ProviderCapability, ProviderVettingItem,
+    ProviderCapability, ProviderVettingItem, ServiceLocation, ServiceLocationEvent,
 )
 from models.job_ledger import JobEvent
 from models.jobs import Jobs
@@ -139,6 +140,117 @@ async def _operational_profile(db: AsyncSession, relationship_id: int, profile_i
 class FulfillmentService:
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    async def set_service_location(
+        self, booking_id: int, *, exact_address: str, access_instructions: str | None,
+        expected_version: int, actor_id: str, idempotency_key: str,
+    ) -> ServiceLocation:
+        _require_enabled()
+        address = exact_address.strip()
+        instructions = (access_instructions or "").strip() or None
+        command_hash = _hash({
+            "command": "set_service_location", "booking_id": booking_id,
+            "exact_address": address, "access_instructions": instructions,
+            "expected_version": expected_version, "actor_id": actor_id,
+        })
+        replay = await self.db.scalar(select(ServiceLocationEvent).where(
+            ServiceLocationEvent.source == "owner_location_command",
+            ServiceLocationEvent.idempotency_key == idempotency_key,
+        ))
+        if replay:
+            if replay.command_hash != command_hash or replay.booking_id != booking_id:
+                raise FulfillmentConflict("Idempotency key payload does not match the recorded command")
+            location = await self.db.get(ServiceLocation, replay.service_location_id)
+            if location is None or location.version != replay.location_version:
+                raise FulfillmentConflict("Service location changed after this command; refresh before retrying")
+            return location
+        if not address:
+            raise FulfillmentConflict("Exact service address is required")
+        booking = await self.db.get(Booking, booking_id)
+        if booking is None:
+            raise FulfillmentNotFound("Booking not found")
+        location = await self.db.scalar(
+            select(ServiceLocation).where(ServiceLocation.booking_id == booking_id).with_for_update()
+        )
+        previous_version = location.version if location else 0
+        if previous_version != expected_version:
+            raise FulfillmentConflict("Service location was changed; refresh before retrying")
+        encrypted = encrypt_private_payload({
+            "exact_address": address, "access_instructions": instructions,
+        })
+        if location is None:
+            location = ServiceLocation(
+                booking_id=booking_id, encrypted_payload=encrypted,
+                payload_version=1, version=1, set_by=actor_id,
+            )
+            self.db.add(location)
+            await self.db.flush()
+            event_type = "location_set"
+        else:
+            location.encrypted_payload = encrypted
+            location.set_by = actor_id
+            location.version += 1
+            event_type = "location_updated"
+        self.db.add(ServiceLocationEvent(
+            service_location_id=location.id, booking_id=booking_id, job_id=None,
+            event_type=event_type, location_version=location.version,
+            actor_id=actor_id, actor_role="owner", source="owner_location_command",
+            idempotency_key=idempotency_key, command_hash=command_hash,
+        ))
+        try:
+            await self.db.commit()
+        except IntegrityError as exc:
+            await self.db.rollback()
+            raise FulfillmentConflict("Service-location command conflicts with an existing command") from exc
+        return location
+
+    async def owner_access_service_location(
+        self, booking_id: int, *, actor_id: str,
+    ) -> tuple[ServiceLocation, dict[str, str | None]]:
+        _require_enabled()
+        location = await self.db.scalar(select(ServiceLocation).where(ServiceLocation.booking_id == booking_id))
+        if location is None:
+            raise FulfillmentNotFound("Service location not found")
+        payload = decrypt_private_payload(location.encrypted_payload)
+        self.db.add(ServiceLocationEvent(
+            service_location_id=location.id, booking_id=booking_id, job_id=None,
+            event_type="owner_accessed", location_version=location.version,
+            actor_id=actor_id, actor_role="owner", source="owner_location_access",
+            idempotency_key=None, command_hash=None,
+        ))
+        await self.db.commit()
+        return location, payload
+
+    async def provider_access_service_location(
+        self, job_id: int, *, relationship_id: int, actor_id: str,
+    ) -> tuple[ServiceLocation, dict[str, str | None]]:
+        _require_enabled()
+        profile = await _operational_profile(self.db, relationship_id)
+        job = await self.db.scalar(select(Jobs).where(
+            Jobs.id == job_id,
+            Jobs.status.in_(("confirmed", "on_the_way", "arrived", "in_progress")),
+        ))
+        if profile is None or job is None or job.booking_id is None or job.managed_provider_profile_id != profile.id:
+            raise FulfillmentNotFound("Service location not found")
+        confirmed_offer = await self.db.scalar(select(AssignmentOffer.id).where(
+            AssignmentOffer.job_id == job.id,
+            AssignmentOffer.provider_profile_id == profile.id,
+            AssignmentOffer.status == "confirmed",
+        ))
+        if confirmed_offer is None:
+            raise FulfillmentNotFound("Service location not found")
+        location = await self.db.scalar(select(ServiceLocation).where(ServiceLocation.booking_id == job.booking_id))
+        if location is None:
+            raise FulfillmentNotFound("Service location not found")
+        payload = decrypt_private_payload(location.encrypted_payload)
+        self.db.add(ServiceLocationEvent(
+            service_location_id=location.id, booking_id=job.booking_id, job_id=job.id,
+            event_type="provider_accessed", location_version=location.version,
+            actor_id=actor_id, actor_role="managed_provider", source="provider_location_access",
+            idempotency_key=None, command_hash=None,
+        ))
+        await self.db.commit()
+        return location, payload
 
     async def confirm_booking_schedule(
         self, booking_id: int, *, start: datetime, end: datetime, timezone_name: str,

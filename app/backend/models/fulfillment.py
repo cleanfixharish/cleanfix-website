@@ -103,3 +103,39 @@ class AssignmentOfferEvent(Base):
     idempotency_key = Column(String(100), nullable=False)
     command_hash = Column(String(64), nullable=False)
     occurred_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now, server_default=func.now())
+
+
+class ServiceLocation(Base):
+    __tablename__ = "service_locations"
+    __table_args__ = (UniqueConstraint("booking_id", name="uq_service_locations_booking"),)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    booking_id = Column(Integer, ForeignKey("bookings.id", ondelete="RESTRICT"), nullable=False, index=True)
+    encrypted_payload = Column(Text, nullable=False)
+    payload_version = Column(Integer, nullable=False, default=1, server_default="1")
+    version = Column(Integer, nullable=False, default=1, server_default="1")
+    set_by = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now, onupdate=datetime.now, server_default=func.now())
+
+
+class ServiceLocationEvent(Base):
+    __tablename__ = "service_location_events"
+    __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('location_set', 'location_updated', 'owner_accessed', 'provider_accessed')",
+            name="ck_service_location_events_type",
+        ),
+        UniqueConstraint("source", "idempotency_key", name="uq_service_location_events_source_idempotency"),
+    )
+    id = Column(BigInteger().with_variant(Integer(), "sqlite"), Identity(), primary_key=True)
+    service_location_id = Column(Integer, ForeignKey("service_locations.id", ondelete="RESTRICT"), nullable=False, index=True)
+    booking_id = Column(Integer, ForeignKey("bookings.id", ondelete="RESTRICT"), nullable=False, index=True)
+    job_id = Column(Integer, ForeignKey("jobs.id", ondelete="RESTRICT"), nullable=True, index=True)
+    event_type = Column(String(40), nullable=False)
+    location_version = Column(Integer, nullable=False)
+    actor_id = Column(String(255), nullable=False)
+    actor_role = Column(String(30), nullable=False)
+    source = Column(String(60), nullable=False)
+    idempotency_key = Column(String(100), nullable=True)
+    command_hash = Column(String(64), nullable=True)
+    occurred_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now, server_default=func.now())

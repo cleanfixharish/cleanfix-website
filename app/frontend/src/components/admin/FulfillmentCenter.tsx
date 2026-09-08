@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { CalendarClock, CheckCircle2, HardHat, RefreshCw, Send, ShieldCheck } from 'lucide-react';
+import { CalendarClock, CheckCircle2, HardHat, MapPin, RefreshCw, Send, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cleanfixApi } from '@/lib/cleanfixApi';
@@ -16,6 +16,7 @@ type Job = { id: number; booking_id?: number; title: string; status: string; ser
 type Relationship = { id: number; user_id: string; relationship_type: string; status: string };
 type Profile = { id: number; relationship_id: number; display_name: string; operational_status: string; availability_status: string; version: number };
 type Offer = { id: number; job_id: number; provider_profile_id: number; status: string; version: number };
+type ServiceLocation = { booking_id: number; exact_address: string; access_instructions?: string; version: number };
 
 function stableKey(scope: string) {
   const storageKey = `cleanfix.fulfillment.command.${scope}`;
@@ -68,6 +69,11 @@ export default function FulfillmentCenter() {
   const [payout, setPayout] = useState('');
   const [deadline, setDeadline] = useState('');
   const [offerId, setOfferId] = useState('');
+  const [locationBookingId, setLocationBookingId] = useState('');
+  const [exactAddress, setExactAddress] = useState('');
+  const [accessInstructions, setAccessInstructions] = useState('');
+  const [locationVersion, setLocationVersion] = useState(0);
+  const [locationCommandKey, setLocationCommandKey] = useState(() => crypto.randomUUID());
 
   const load = async () => {
     setLoading(true);
@@ -78,6 +84,12 @@ export default function FulfillmentCenter() {
       setBookings(bookingRows as Booking[]);
       setJobs(((jobRows as { items?: Job[] }).items || []) as Job[]);
       setRelationships((relationshipRows as Relationship[]).filter((item) => item.relationship_type === 'managed_provider'));
+      const [profileResult, offerResult] = await Promise.allSettled([
+        cleanfixApi.listManagedProviders(), cleanfixApi.listAssignmentOffers(),
+      ]);
+      if (profileResult.status === 'fulfilled') setKnownProfiles(profileResult.value as Profile[]);
+      if (offerResult.status === 'fulfilled') setKnownOffers(offerResult.value as Offer[]);
+      if ([profileResult, offerResult].some((item) => item.status === 'rejected' && axios.isAxiosError(item.reason) && item.reason.response?.status === 503)) setDisabled(true);
     } catch (error) {
       toast.error(issue(error, he));
     } finally {
@@ -92,6 +104,7 @@ export default function FulfillmentCenter() {
   const eligibleBookings = bookings.filter((item) => item.status === 'awaiting_schedule');
   const offerableJobs = jobs.filter((item) => item.booking_id && item.status === 'unassigned');
   const confirmableJobs = jobs.filter((item) => item.booking_id && item.status === 'assigned');
+  const acceptedOffers = knownOffers.filter((item) => item.status === 'accepted' && (!jobId || String(item.job_id) === jobId));
   const activeRelationships = relationships.filter((item) => item.status === 'active');
 
   const run = async (action: () => Promise<void>) => {
@@ -149,13 +162,31 @@ export default function FulfillmentCenter() {
   });
 
   const assignedJob = useMemo(() => confirmableJobs.find((item) => String(item.id) === jobId), [confirmableJobs, jobId]);
+  const selectedOffer = useMemo(() => knownOffers.find((item) => String(item.id) === offerId), [knownOffers, offerId]);
   const confirmAssignment = () => run(async () => {
-    if (!assignedJob) throw new Error('missing job');
+    if (!assignedJob || !selectedOffer || selectedOffer.job_id !== assignedJob.id) throw new Error('missing assignment');
     await cleanfixApi.confirmAssignment(Number(offerId), {
-      expected_offer_version: 2, expected_job_version: assignedJob.version,
+      expected_offer_version: selectedOffer.version, expected_job_version: assignedJob.version,
     }, stableKey(`confirm-offer-${offerId}-job-v${assignedJob.version}`));
     toast.success(he ? 'השיבוץ אושר. בעל המקצוע יכול להתחיל במסע השטח.' : 'Assignment confirmed. The provider can begin the field journey.');
     await load();
+  });
+
+  const loadLocation = () => run(async () => {
+    const location = await cleanfixApi.getOwnerServiceLocation(Number(locationBookingId)) as ServiceLocation;
+    setExactAddress(location.exact_address);
+    setAccessInstructions(location.access_instructions || '');
+    setLocationVersion(location.version);
+  });
+
+  const saveLocation = () => run(async () => {
+    const location = await cleanfixApi.setServiceLocation(Number(locationBookingId), {
+      exact_address: exactAddress.trim(), access_instructions: accessInstructions.trim() || null,
+      expected_version: locationVersion,
+    }, locationCommandKey) as ServiceLocation;
+    setLocationVersion(location.version);
+    setLocationCommandKey(crypto.randomUUID());
+    toast.success(he ? 'המיקום המדויק נשמר באופן מוצפן.' : 'Exact service location saved encrypted.');
   });
 
   return <div className="space-y-5">
@@ -173,10 +204,16 @@ export default function FulfillmentCenter() {
       {!eligibleBookings.length && !loading && <p className="text-sm text-[#6f6a62]">{he ? 'אין הזמנות שממתינות לאישור מועד.' : 'No bookings are waiting for schedule confirmation.'}</p>}
     </CardContent></Card>
 
+    <Card><CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5" />{he ? 'מיקום שירות פרטי' : 'Private service location'}</CardTitle></CardHeader><CardContent className="space-y-4">
+      <p className="text-sm text-[#6f6a62]">{he ? 'הכתובת והוראות הגישה מוצפנות ואינן מופיעות ברשימות. כל צפייה נרשמת.' : 'The address and access instructions are encrypted, excluded from listings, and every reveal is audited.'}</p>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><Field label={he ? 'הזמנה' : 'Booking'}><Select value={locationBookingId} onValueChange={(value) => { setLocationBookingId(value); setExactAddress(''); setAccessInstructions(''); setLocationVersion(0); setLocationCommandKey(crypto.randomUUID()); }}><SelectTrigger><SelectValue placeholder={he ? 'בחירת הזמנה' : 'Select booking'} /></SelectTrigger><SelectContent>{bookings.map((item) => <SelectItem key={item.id} value={String(item.id)}>#{item.id} · {item.scope_snapshot.slice(0, 60)}</SelectItem>)}</SelectContent></Select></Field><Field label={he ? 'כתובת מדויקת' : 'Exact address'}><Input autoComplete="street-address" value={exactAddress} onChange={(event) => { setExactAddress(event.target.value); setLocationCommandKey(crypto.randomUUID()); }} /></Field><Field label={he ? 'הוראות גישה' : 'Access instructions'}><Input value={accessInstructions} onChange={(event) => { setAccessInstructions(event.target.value); setLocationCommandKey(crypto.randomUUID()); }} /></Field><div className="flex items-end gap-2"><Button variant="outline" disabled={busy || disabled || !locationBookingId} onClick={loadLocation}>{he ? 'טעינה' : 'Load'}</Button><Button disabled={busy || disabled || !locationBookingId || exactAddress.trim().length < 3} onClick={saveLocation}>{he ? 'שמירה מוצפנת' : 'Save encrypted'}</Button></div></div>
+      <p className="text-xs text-[#736f68]">{he ? `גרסת מיקום: ${locationVersion}. יש לטעון לפני עדכון קיים.` : `Location version: ${locationVersion}. Load before updating an existing record.`}</p>
+    </CardContent></Card>
+
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><HardHat className="h-5 w-5" />{he ? '2. כשירות בעל מקצוע' : '2. Provider eligibility'}</CardTitle></CardHeader><CardContent className="space-y-5">
       <div className="grid gap-3 md:grid-cols-3"><Field label={he ? 'קשר פעיל' : 'Active relationship'}><Select value={relationshipId} onValueChange={setRelationshipId}><SelectTrigger><SelectValue placeholder={he ? 'בחירת קשר' : 'Select relationship'} /></SelectTrigger><SelectContent>{activeRelationships.map((item) => <SelectItem key={item.id} value={String(item.id)}>#{item.id} · {item.user_id}</SelectItem>)}</SelectContent></Select></Field><Field label={he ? 'שם תצוגה' : 'Display name'}><Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></Field><div className="flex items-end"><Button variant="outline" className="w-full" disabled={busy || !relationshipId || !displayName.trim()} onClick={createProfile}>{he ? 'יצירת פרופיל טיוטה' : 'Create draft profile'}</Button></div></div>
       {!!knownProfiles.length && <div className="flex flex-wrap gap-2">{knownProfiles.map((item) => <Badge key={item.id} variant="outline">#{item.id} · {item.display_name} · {item.operational_status}</Badge>)}</div>}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5"><Field label={he ? 'מזהה פרופיל' : 'Profile ID'}><Input inputMode="numeric" value={profileId} onChange={(event) => setProfileId(event.target.value)} /></Field><Field label={he ? 'גרסת פרופיל' : 'Profile version'}><Input inputMode="numeric" value={profileVersion} onChange={(event) => setProfileVersion(event.target.value)} /></Field><Field label={he ? 'מפתח שירות' : 'Service key'}><Input value={serviceKey} onChange={(event) => setServiceKey(event.target.value)} placeholder="cleaning" /></Field><Field label={he ? 'אזור כללי' : 'General area'}><Input value={serviceArea} onChange={(event) => setServiceArea(event.target.value)} /></Field><div className="flex items-end"><Button className="w-full" disabled={busy || !profileId || !serviceKey.trim() || !serviceArea.trim()} onClick={addCapability}>{he ? 'אימות יכולת' : 'Verify capability'}</Button></div></div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5"><Field label={he ? 'פרופיל בעל מקצוע' : 'Provider profile'}><Select value={profileId} onValueChange={(value) => { const profile = knownProfiles.find((item) => String(item.id) === value); setProfileId(value); setProfileVersion(String(profile?.version || 1)); }}><SelectTrigger><SelectValue placeholder={he ? 'בחירת פרופיל' : 'Select profile'} /></SelectTrigger><SelectContent>{knownProfiles.map((item) => <SelectItem key={item.id} value={String(item.id)}>#{item.id} · {item.display_name}</SelectItem>)}</SelectContent></Select></Field><Field label={he ? 'גרסת פרופיל' : 'Profile version'}><Input inputMode="numeric" value={profileVersion} readOnly /></Field><Field label={he ? 'מפתח שירות' : 'Service key'}><Input value={serviceKey} onChange={(event) => setServiceKey(event.target.value)} placeholder="cleaning" /></Field><Field label={he ? 'אזור כללי' : 'General area'}><Input value={serviceArea} onChange={(event) => setServiceArea(event.target.value)} /></Field><div className="flex items-end"><Button className="w-full" disabled={busy || !profileId || !serviceKey.trim() || !serviceArea.trim()} onClick={addCapability}>{he ? 'אימות יכולת' : 'Verify capability'}</Button></div></div>
       <div className="grid gap-3 md:grid-cols-3"><Field label={he ? 'בדיקת חובה' : 'Required vetting'}><Select value={requirement} onValueChange={setRequirement}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['identity_check','provider_agreement','invoice_capability','insurance'].map((key) => <SelectItem key={key} value={key}>{key.replace(/_/g, ' ')}</SelectItem>)}</SelectContent></Select></Field><Field label={he ? 'תוקף, אם קיים' : 'Expiry, if applicable'}><Input type="datetime-local" value={vettingExpiry} onChange={(event) => setVettingExpiry(event.target.value)} /></Field><div className="flex items-end"><Button variant="outline" className="w-full" disabled={busy || !profileId} onClick={addVetting}>{he ? 'שמירת בדיקה מאושרת' : 'Record approved vetting'}</Button></div></div>
       <Button disabled={busy || !profileId} onClick={activate}><CheckCircle2 className="me-2 h-4 w-4" />{he ? 'הפעלת בעל מקצוע לאחר ארבע הבדיקות' : 'Activate after all four checks'}</Button>
     </CardContent></Card>
@@ -184,7 +221,7 @@ export default function FulfillmentCenter() {
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><Send className="h-5 w-5" />{he ? '3. הצעה ושיבוץ' : '3. Offer and assignment'}</CardTitle></CardHeader><CardContent className="space-y-5">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><Field label={he ? 'עבודה לא משובצת' : 'Unassigned job'}><Select value={jobId} onValueChange={setJobId}><SelectTrigger><SelectValue placeholder={he ? 'בחירת עבודה' : 'Select job'} /></SelectTrigger><SelectContent>{offerableJobs.map((item) => <SelectItem key={item.id} value={String(item.id)}>#{item.id} · {item.title} · {item.service_area}</SelectItem>)}</SelectContent></Select></Field><Field label={he ? 'תשלום מוסכם לבעל המקצוע ₪' : 'Agreed provider payout ₪'}><Input type="number" min="0" value={payout} onChange={(event) => setPayout(event.target.value)} /></Field><Field label={he ? 'מועד אחרון לתשובה' : 'Response deadline'}><Input type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)} /></Field><div className="flex items-end"><Button className="w-full bg-[#174E57]" disabled={busy || disabled || !selectedJob || !profileId || !payout || !deadline} onClick={createOffer}>{he ? 'שליחת הצעה אחת' : 'Send one offer'}</Button></div></div>
       {!!knownOffers.length && <div className="flex flex-wrap gap-2">{knownOffers.map((item) => <Badge key={item.id} variant="outline">{he ? 'הצעה' : 'Offer'} #{item.id} · {item.status}</Badge>)}</div>}
-      <div className="border-t pt-5"><p className="mb-3 text-sm font-semibold text-[#173F46]">{he ? 'אישור בעלים לאחר שהספק קיבל' : 'Owner confirmation after provider acceptance'}</p><div className="grid gap-3 md:grid-cols-3"><Field label={he ? 'עבודה במצב assigned' : 'Assigned job'}><Select value={jobId} onValueChange={setJobId}><SelectTrigger><SelectValue placeholder={he ? 'בחירת עבודה' : 'Select job'} /></SelectTrigger><SelectContent>{confirmableJobs.map((item) => <SelectItem key={item.id} value={String(item.id)}>#{item.id} · {item.title} · profile #{item.managed_provider_profile_id}</SelectItem>)}</SelectContent></Select></Field><Field label={he ? 'מזהה ההצעה שהתקבלה' : 'Accepted offer ID'}><Input inputMode="numeric" value={offerId} onChange={(event) => setOfferId(event.target.value)} /></Field><div className="flex items-end"><Button disabled={busy || disabled || !assignedJob || !offerId} onClick={confirmAssignment}>{he ? 'אישור שיבוץ' : 'Confirm assignment'}</Button></div></div></div>
+      <div className="border-t pt-5"><p className="mb-3 text-sm font-semibold text-[#173F46]">{he ? 'אישור בעלים לאחר שהספק קיבל' : 'Owner confirmation after provider acceptance'}</p><div className="grid gap-3 md:grid-cols-3"><Field label={he ? 'עבודה במצב assigned' : 'Assigned job'}><Select value={jobId} onValueChange={(value) => { setJobId(value); setOfferId(''); }}><SelectTrigger><SelectValue placeholder={he ? 'בחירת עבודה' : 'Select job'} /></SelectTrigger><SelectContent>{confirmableJobs.map((item) => <SelectItem key={item.id} value={String(item.id)}>#{item.id} · {item.title} · profile #{item.managed_provider_profile_id}</SelectItem>)}</SelectContent></Select></Field><Field label={he ? 'הצעה שהתקבלה' : 'Accepted offer'}><Select value={offerId} onValueChange={setOfferId}><SelectTrigger><SelectValue placeholder={he ? 'בחירת הצעה' : 'Select accepted offer'} /></SelectTrigger><SelectContent>{acceptedOffers.map((item) => <SelectItem key={item.id} value={String(item.id)}>#{item.id} · profile #{item.provider_profile_id}</SelectItem>)}</SelectContent></Select></Field><div className="flex items-end"><Button disabled={busy || disabled || !assignedJob || !selectedOffer} onClick={confirmAssignment}>{he ? 'אישור שיבוץ' : 'Confirm assignment'}</Button></div></div></div>
     </CardContent></Card>
   </div>;
 }

@@ -336,6 +336,11 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async listManagedProviders() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/managed-providers`);
+    return response.data;
+  },
+
   async addProviderCapability(profileId: number, data: Record<string, unknown>) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/capabilities`, data);
     return response.data;
@@ -360,6 +365,23 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async listAssignmentOffers() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/assignment-offers`);
+    return response.data;
+  },
+
+  async setServiceLocation(bookingId: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/admin/bookings/${bookingId}/service-location`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async getOwnerServiceLocation(bookingId: number) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/bookings/${bookingId}/service-location`);
+    return response.data;
+  },
+
   async confirmAssignment(offerId: number, data: Record<string, unknown>, idempotencyKey: string) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/assignment-offers/${offerId}/confirm`, data, {
       headers: { 'Idempotency-Key': idempotencyKey },
@@ -381,6 +403,11 @@ export const cleanfixApi = {
 
   async listProviderJobs() {
     const response = await http.get(`${getAPIBaseURL()}/api/v1/provider/jobs`);
+    return response.data;
+  },
+
+  async getProviderServiceLocation(jobId: number) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/provider/jobs/${jobId}/service-location`);
     return response.data;
   },
 

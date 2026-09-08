@@ -96,6 +96,19 @@ The isolated staging environment was refreshed to accepted repository commit `48
 
 This repair affected only `staging-isolated`; production application and database services were not changed.
 
+## Guarded fulfillment staging evidence
+
+Pull request `32` was deployed to the isolated staging environment on 2026-09-08 without changing production:
+
+- Commit `7e796d9` passed backend, frontend, and container CI. Independent local verification also passed all 124 backend tests plus frontend type-check, lint, and production build.
+- Both `FULFILLMENT_ENABLED` and `FULFILLMENT_SETUP_ENABLED` were explicitly set to `false` on the isolated application service before deployment.
+- Deployment `e480b4a6-8a4a-449a-b757-488155a5ed46` completed with status `SUCCESS`.
+- The pre-deploy migration gate used PostgreSQL transactional DDL and advanced `a9d4e1f72b60` to `f2b7c31d9a80`.
+- `/`, `/health`, and `/health/ready` returned HTTP 200 after deployment.
+- No production application, database, environment variable, or deployment was changed.
+
+This evidence proves disabled schema and application compatibility in isolated PostgreSQL staging. It does not authorize fulfillment, paid dispatch, or production promotion. Recovery issue `#31`, private service-location handling, reloadable owner management APIs, and external professional approvals remain release gates.
+
 ## First five minutes
 
 Run these read-only checks from a clean repository checkout:

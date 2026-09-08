@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # provider, insurance, and payment prerequisites are verified.
     fulfillment_enabled: bool = False
     fulfillment_setup_enabled: bool = False
+    # Required independently of the feature flags before private service
+    # locations can be written or revealed. There is deliberately no fallback.
+    service_location_encryption_key: str = ""
 
     # Server
     host: str = "0.0.0.0"

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from core.config import settings
+from core.private_data_crypto import PrivateDataCryptoError
 from dependencies.auth import BusinessPortalPrincipal, get_managed_provider, get_owner_user
 from models.business_relationship import BusinessRelationship
 from models.fulfillment import AssignmentOffer, ManagedProviderProfile, ProviderCapability, ProviderVettingItem
@@ -52,6 +53,8 @@ async def _active_provider_profile(db: AsyncSession, relationship_id: int) -> Ma
 
 
 def _raise(exc: Exception) -> None:
+    if isinstance(exc, PrivateDataCryptoError):
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     if isinstance(exc, FulfillmentNotFound):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -71,6 +74,36 @@ class ProviderProfileResponse(BaseModel):
     availability_status: str
     version: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProviderProfileDetail(ProviderProfileResponse):
+    capabilities: list[dict]
+    vetting: list[dict]
+
+
+@router.get("/admin/managed-providers", response_model=list[ProviderProfileDetail])
+async def list_provider_profiles(response: Response, db: AsyncSession = Depends(get_db), _owner: UserResponse = Depends(get_owner_user)):
+    _private(response)
+    require_fulfillment_setup_enabled()
+    profiles = (await db.execute(select(ManagedProviderProfile).order_by(ManagedProviderProfile.created_at.desc()))).scalars().all()
+    rows = []
+    for profile in profiles:
+        capabilities = (await db.execute(select(ProviderCapability).where(ProviderCapability.provider_profile_id == profile.id).order_by(ProviderCapability.id))).scalars().all()
+        vetting = (await db.execute(select(ProviderVettingItem).where(ProviderVettingItem.provider_profile_id == profile.id).order_by(ProviderVettingItem.requirement_key))).scalars().all()
+        rows.append({
+            "id": profile.id, "relationship_id": profile.relationship_id,
+            "display_name": profile.display_name, "operational_status": profile.operational_status,
+            "availability_status": profile.availability_status, "version": profile.version,
+            "capabilities": [{
+                "id": item.id, "service_key": item.service_key, "service_area": item.service_area,
+                "is_verified": item.is_verified,
+            } for item in capabilities],
+            "vetting": [{
+                "id": item.id, "requirement_key": item.requirement_key,
+                "status": item.status, "expires_at": item.expires_at,
+            } for item in vetting],
+        })
+    return rows
 
 
 @router.post("/admin/managed-providers", response_model=ProviderProfileResponse, status_code=201)
@@ -212,6 +245,65 @@ class OfferResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+@router.get("/admin/assignment-offers", response_model=list[OfferResponse])
+async def list_assignment_offers(response: Response, db: AsyncSession = Depends(get_db), _owner: UserResponse = Depends(get_owner_user)):
+    _private(response)
+    require_fulfillment_enabled()
+    result = await db.execute(select(AssignmentOffer).order_by(AssignmentOffer.created_at.desc()))
+    return result.scalars().all()
+
+
+class ServiceLocationCommand(BaseModel):
+    exact_address: str = Field(min_length=3, max_length=500)
+    access_instructions: str | None = Field(default=None, max_length=2000)
+    expected_version: int = Field(ge=0)
+    model_config = ConfigDict(extra="forbid")
+
+
+class ServiceLocationResponse(BaseModel):
+    booking_id: int
+    exact_address: str
+    access_instructions: str | None
+    version: int
+
+
+@router.put("/admin/bookings/{booking_id}/service-location", response_model=ServiceLocationResponse)
+async def set_service_location(
+    booking_id: int, data: ServiceLocationCommand, response: Response,
+    db: AsyncSession = Depends(get_db), owner: UserResponse = Depends(get_owner_user),
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=100),
+):
+    _private(response)
+    require_fulfillment_enabled()
+    try:
+        location = await FulfillmentService(db).set_service_location(
+            booking_id, exact_address=data.exact_address,
+            access_instructions=data.access_instructions, expected_version=data.expected_version,
+            actor_id=owner.id, idempotency_key=idempotency_key,
+        )
+    except (FulfillmentConflict, FulfillmentNotFound, PrivateDataCryptoError) as exc:
+        _raise(exc)
+    return {
+        "booking_id": booking_id, "exact_address": data.exact_address.strip(),
+        "access_instructions": (data.access_instructions or "").strip() or None,
+        "version": location.version,
+    }
+
+
+@router.get("/admin/bookings/{booking_id}/service-location", response_model=ServiceLocationResponse)
+async def get_owner_service_location(
+    booking_id: int, response: Response, db: AsyncSession = Depends(get_db),
+    owner: UserResponse = Depends(get_owner_user),
+):
+    _private(response)
+    require_fulfillment_enabled()
+    try:
+        location, payload = await FulfillmentService(db).owner_access_service_location(booking_id, actor_id=owner.id)
+    except (FulfillmentConflict, FulfillmentNotFound, PrivateDataCryptoError) as exc:
+        _raise(exc)
+    return {"booking_id": booking_id, **payload, "version": location.version}
+
+
 @router.post("/admin/jobs/{job_id}/assignment-offers", response_model=OfferResponse, status_code=201)
 async def create_offer(job_id: int, data: OfferCreate, response: Response, db: AsyncSession = Depends(get_db), owner: UserResponse = Depends(get_owner_user), idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=100)):
     require_fulfillment_enabled()
@@ -337,4 +429,20 @@ async def get_provider_job(job_id: int, response: Response, db: AsyncSession = D
     )
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
-    return {"id": job.id, "title": job.title, "general_area": job.service_area, "exact_address": None, "phone": job.phone, "scheduled_for": job.scheduled_for, "confirmed_window_end": job.confirmed_window_end, "status": job.status, "version": job.version}
+    return {"id": job.id, "title": job.title, "general_area": job.service_area, "scheduled_for": job.scheduled_for, "confirmed_window_end": job.confirmed_window_end, "status": job.status, "version": job.version}
+
+
+@router.get("/provider/jobs/{job_id}/service-location")
+async def get_provider_service_location(
+    job_id: int, response: Response, db: AsyncSession = Depends(get_db),
+    provider: BusinessPortalPrincipal = Depends(get_managed_provider),
+):
+    _private(response)
+    require_fulfillment_enabled()
+    try:
+        location, payload = await FulfillmentService(db).provider_access_service_location(
+            job_id, relationship_id=provider.relationship_id, actor_id=provider.user.id,
+        )
+    except (FulfillmentConflict, FulfillmentNotFound, PrivateDataCryptoError) as exc:
+        _raise(exc)
+    return {**payload, "version": location.version}

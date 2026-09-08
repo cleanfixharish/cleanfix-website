@@ -8,14 +8,18 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from core.database import Base
 from core.config import Settings
+from core.private_data_crypto import PrivateDataCryptoError, decrypt_private_payload, encrypt_private_payload
 from models.auth import User  # registers the relationship FK target
 from models.bookings import Booking, BookingEvent
 from models.business_relationship import BusinessRelationship
-from models.fulfillment import AssignmentOffer, AssignmentOfferEvent, ManagedProviderProfile, ProviderCapability, ProviderVettingItem
+from models.fulfillment import AssignmentOffer, AssignmentOfferEvent, ManagedProviderProfile, ProviderCapability, ProviderVettingItem, ServiceLocation, ServiceLocationEvent
 from models.jobs import Jobs
 from models.leads import Leads
 from models.pricing import ServiceQuote  # registers the booking/job FK target
-from routers.fulfillment import _private, require_fulfillment_enabled, require_fulfillment_setup_enabled
+from routers.fulfillment import (
+    _private, list_assignment_offers, list_provider_profiles,
+    require_fulfillment_enabled, require_fulfillment_setup_enabled,
+)
 from routers.jobs import JobData, create_job
 from schemas.auth import UserResponse
 from services.fulfillment import REQUIRED_PILOT_VETTING, FulfillmentConflict, FulfillmentNotFound, FulfillmentService, provider_is_eligible
@@ -35,6 +39,16 @@ def test_private_fulfillment_responses_are_not_cacheable():
     _private(response)
     assert response.headers["Cache-Control"] == "private, no-store"
     assert response.headers["Pragma"] == "no-cache"
+
+
+def test_private_location_encryption_fails_closed_and_never_stores_plaintext(monkeypatch):
+    monkeypatch.setattr("core.private_data_crypto.settings.service_location_encryption_key", "")
+    with pytest.raises(PrivateDataCryptoError):
+        encrypt_private_payload({"exact_address": "Synthetic 1", "access_instructions": None})
+    monkeypatch.setattr("core.private_data_crypto.settings.service_location_encryption_key", "test-only-secret-with-at-least-thirty-two-characters")
+    ciphertext = encrypt_private_payload({"exact_address": "Synthetic 1", "access_instructions": "Gate B"})
+    assert "Synthetic 1" not in ciphertext and "Gate B" not in ciphertext
+    assert decrypt_private_payload(ciphertext)["exact_address"] == "Synthetic 1"
 
 
 def test_fulfillment_dispatch_defaults_disabled(monkeypatch):
@@ -83,12 +97,14 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
 
     monkeypatch.setattr("services.fulfillment._append_job_event", no_ledger_event)
     monkeypatch.setattr("services.fulfillment.settings.fulfillment_enabled", True)
+    monkeypatch.setattr("core.private_data_crypto.settings.service_location_encryption_key", "test-only-secret-with-at-least-thirty-two-characters")
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     tables = [
         Leads.__table__, Booking.__table__, BookingEvent.__table__,
         BusinessRelationship.__table__, ManagedProviderProfile.__table__,
         ProviderCapability.__table__, ProviderVettingItem.__table__, Jobs.__table__,
-        AssignmentOffer.__table__, AssignmentOfferEvent.__table__,
+        AssignmentOffer.__table__, AssignmentOfferEvent.__table__, ServiceLocation.__table__,
+        ServiceLocationEvent.__table__,
     ]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
@@ -173,6 +189,28 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
             required_through=now + timedelta(days=1, hours=2),
         )
 
+        location = await service.set_service_location(
+            booking.id, exact_address="Synthetic Street 10", access_instructions="Gate B",
+            expected_version=0, actor_id="owner", idempotency_key="location-key-001",
+        )
+        assert "Synthetic Street 10" not in location.encrypted_payload
+        replay_location = await service.set_service_location(
+            booking.id, exact_address="Synthetic Street 10", access_instructions="Gate B",
+            expected_version=0, actor_id="owner", idempotency_key="location-key-001",
+        )
+        assert replay_location.id == location.id
+        with pytest.raises(FulfillmentConflict):
+            await service.set_service_location(
+                booking.id, exact_address="Different Address 11", access_instructions="Gate B",
+                expected_version=0, actor_id="owner", idempotency_key="location-key-001",
+            )
+        owner_location, owner_payload = await service.owner_access_service_location(booking.id, actor_id="owner")
+        assert owner_location.id == location.id and owner_payload["exact_address"] == "Synthetic Street 10"
+        with pytest.raises(FulfillmentNotFound):
+            await service.provider_access_service_location(
+                job.id, relationship_id=relationship.id, actor_id="provider-user",
+            )
+
         offer = await service.create_offer(
             job.id, provider_profile_id=profile.id, provider_payout=Decimal("300"),
             response_deadline=now + timedelta(hours=1), instructions=None,
@@ -210,8 +248,28 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
             actor_id="owner", idempotency_key="confirm-key-1",
         )
         assert offer.status == "confirmed" and job.status == "confirmed"
+        monkeypatch.setattr("routers.fulfillment.settings.fulfillment_setup_enabled", True)
+        owner = UserResponse(id="owner", email="owner@example.invalid", role="admin")
+        profile_rows = await list_provider_profiles(Response(), db, owner)
+        offer_rows = await list_assignment_offers(Response(), db, owner)
+        assert profile_rows[0]["id"] == profile.id
+        assert {item["requirement_key"] for item in profile_rows[0]["vetting"]} == REQUIRED_PILOT_VETTING
+        assert offer_rows[0].id == offer.id and offer_rows[0].status == "confirmed"
+        provider_location, provider_payload = await service.provider_access_service_location(
+            job.id, relationship_id=relationship.id, actor_id="provider-user",
+        )
+        assert provider_location.id == location.id and provider_payload["access_instructions"] == "Gate B"
+        access_events = (await db.execute(select(ServiceLocationEvent).where(
+            ServiceLocationEvent.service_location_id == location.id,
+            ServiceLocationEvent.event_type.in_(("owner_accessed", "provider_accessed")),
+        ))).scalars().all()
+        assert {event.actor_role for event in access_events} == {"owner", "managed_provider"}
         profile.operational_status = "paused"
         await db.commit()
+        with pytest.raises(FulfillmentNotFound):
+            await service.provider_access_service_location(
+                job.id, relationship_id=relationship.id, actor_id="provider-user",
+            )
         with pytest.raises(FulfillmentNotFound):
             await service.provider_advance_job(
                 job.id, relationship_id=relationship.id, command="on_the_way",
