@@ -1,6 +1,6 @@
 # CleanFixHarish Company Source of Truth
 
-Version: 1.0.0
+Version: 1.0.1
 Adopted: 2026-08-23
 Status: Core operating constitution. Changes require owner approval, a dated Git commit, focused verification and a new verified-good recovery tag.
 
@@ -112,6 +112,15 @@ Israeli counsel, accountant and insurance adviser must approve the binding docum
 - A successful release receives a dated `production-good-YYYYMMDD-HHMM` tag.
 - "Return to default" may restore only the most recent owner-approved, verified-good website presentation; it must never alter accounts, leads, jobs, providers, payments, payouts, evidence or uploaded customer data.
 - Secrets never enter source control or public diagnostics.
+
+### AI model budget and quality rule
+
+- Use the least expensive model that fully satisfies the task's quality, reliability, privacy and security requirements.
+- Never reduce required quality or security to save credits. Security, financial, legal, customer-data, architecture and production-release decisions require appropriately capable reasoning and verification.
+- Prefer deterministic code, tests and local CLI checks when a model call adds no material value.
+- Set explicit usage limits before enabling unattended AI workflows. Keep a reserve for incidents and owner-critical work, and stop optional automation before a provider quota is exhausted.
+- Do not blindly retry quota, rate-limit or provider failures. Use bounded retries, then fall back safely or alert the owner without weakening a release gate.
+- Model selection, limits and automation status must be owner-configurable in the admin system before paid or unattended AI production work is enabled.
 
 ## 10. Business workspaces are strictly separated
 
