@@ -50,7 +50,9 @@ The isolated staging environment was refreshed to accepted repository commit `48
 - The canonical pre-deploy migration gate then advanced staging to head `b9e7d3c1a502`.
 - Schema verification found all three canonical growth tables and all three lead attribution columns, with zero abandoned financial tables remaining.
 - `/health`, `/health/ready`, and the home page returned HTTP 200.
-- The reusable application audit passed all 14 checks with zero failures.
+- The expanded reusable application audit passed all 20 route, readiness, security-header, anonymous-access and public-config checks with zero failures.
+- A short-lived staging-only owner token completed the authenticated lead-to-job workflow: synthetic lead creation, owner update, refresh persistence, linked job creation and update.
+- The synthetic job and lead were deleted immediately after verification; the lead follow-up read returned HTTP 404.
 
 This repair affected only `staging-isolated`; production application and database services were not changed.
 
