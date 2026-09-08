@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from dependencies.auth import get_admin_user
+from dependencies.auth import get_admin_user, get_owner_user
 from models.pricing import LocalPriceEvidence, PriceEstimate, PriceObservation, PricingSource
 from schemas.auth import UserResponse
 
@@ -95,7 +95,7 @@ async def list_estimates(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/estimates/{estimate_id}/approve")
-async def approve_estimate(estimate_id: int, admin: UserResponse = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def approve_estimate(estimate_id: int, admin: UserResponse = Depends(get_owner_user), db: AsyncSession = Depends(get_db)):
     estimate = await db.get(PriceEstimate, estimate_id)
     if estimate is None:
         raise HTTPException(404, "Estimate not found")
@@ -110,7 +110,11 @@ async def approve_estimate(estimate_id: int, admin: UserResponse = Depends(get_a
 
 
 @router.post("/estimates/{estimate_id}/reject")
-async def reject_estimate(estimate_id: int, db: AsyncSession = Depends(get_db)):
+async def reject_estimate(
+    estimate_id: int,
+    _owner: UserResponse = Depends(get_owner_user),
+    db: AsyncSession = Depends(get_db),
+):
     estimate = await db.get(PriceEstimate, estimate_id)
     if estimate is None:
         raise HTTPException(404, "Estimate not found")
@@ -135,7 +139,7 @@ async def list_local_evidence(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/local-evidence/{evidence_id}/approve")
-async def approve_local_evidence(evidence_id: int, admin: UserResponse = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+async def approve_local_evidence(evidence_id: int, admin: UserResponse = Depends(get_owner_user), db: AsyncSession = Depends(get_db)):
     row = await db.get(LocalPriceEvidence, evidence_id)
     if row is None:
         raise HTTPException(404, "Local evidence not found")

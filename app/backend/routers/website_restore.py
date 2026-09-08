@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from dependencies.auth import get_admin_user
+from dependencies.auth import get_admin_user, get_owner_user
 from models.services import Services
 from models.site_content import Site_content
 from models.site_settings import SiteSettings
@@ -92,7 +92,7 @@ async def get_default_restore_point(db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=500, detail="The protected default could not be prepared") from exc
 
 
-@router.post("/default", response_model=RestoreResponse, dependencies=[Depends(get_admin_user)])
+@router.post("/default", response_model=RestoreResponse, dependencies=[Depends(get_owner_user)])
 async def restore_default_website(db: AsyncSession = Depends(get_db)):
     """Restore public presentation data without touching operations, accounts, or media files."""
     restore_point = await db.get(WebsiteRestorePoint, 1)

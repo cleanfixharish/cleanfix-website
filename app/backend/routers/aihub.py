@@ -10,7 +10,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from dependencies.auth import get_admin_user
+from dependencies.auth import get_owner_user
 from schemas.aihub import (
     AnalyzePdfRequest,
     AnalyzePdfResponse,
@@ -115,7 +115,7 @@ def extract_error_message(error: Any) -> str:
 router = APIRouter(prefix="/api/v1/aihub", tags=["aihub"])
 
 
-@router.post("/gentxt", dependencies=[Depends(get_admin_user)])
+@router.post("/gentxt", dependencies=[Depends(get_owner_user)])
 async def generate_text(
     request: GenTxtRequest,
 ):
@@ -159,7 +159,7 @@ async def generate_text(
         )
 
 
-@router.post("/genimg", response_model=GenImgResponse, dependencies=[Depends(get_admin_user)])
+@router.post("/genimg", response_model=GenImgResponse, dependencies=[Depends(get_owner_user)])
 async def generate_image(
     request: GenImgRequest,
 ):
@@ -197,7 +197,7 @@ async def generate_image(
         )
 
 
-@router.post("/genvideo", response_model=GenVideoResponse, dependencies=[Depends(get_admin_user)])
+@router.post("/genvideo", response_model=GenVideoResponse, dependencies=[Depends(get_owner_user)])
 async def generate_video(request: GenVideoRequest):
     """
     Text-to-Video / Image-to-Video endpoint.
@@ -223,7 +223,7 @@ async def generate_video(request: GenVideoRequest):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=extract_error_message(e))
 
 
-@router.post("/genaudio", response_model=GenAudioResponse, dependencies=[Depends(get_admin_user)])
+@router.post("/genaudio", response_model=GenAudioResponse, dependencies=[Depends(get_owner_user)])
 async def generate_audio(request: GenAudioRequest):
     """
     Text-to-Speech (TTS) endpoint.
@@ -248,7 +248,7 @@ async def generate_audio(request: GenAudioRequest):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=extract_error_message(e))
 
 
-@router.post("/transcribe", response_model=TranscribeAudioResponse, dependencies=[Depends(get_admin_user)])
+@router.post("/transcribe", response_model=TranscribeAudioResponse, dependencies=[Depends(get_owner_user)])
 async def transcribe_audio(request: TranscribeAudioRequest):
     """
     Speech-to-Text (STT) endpoint.
@@ -274,7 +274,7 @@ async def transcribe_audio(request: TranscribeAudioRequest):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=extract_error_message(e))
 
 
-@router.post("/analyzepdf", response_model=AnalyzePdfResponse, dependencies=[Depends(get_admin_user)])
+@router.post("/analyzepdf", response_model=AnalyzePdfResponse, dependencies=[Depends(get_owner_user)])
 async def analyze_pdf(request: AnalyzePdfRequest):
     """
     Analyze a single PDF using native PDF input.

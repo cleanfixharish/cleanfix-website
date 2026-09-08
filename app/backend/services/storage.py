@@ -23,6 +23,8 @@ from schemas.storage import (
 
 logger = logging.getLogger(__name__)
 
+PRESIGNED_URL_TTL_SECONDS = 300
+
 
 class StorageService:
     """Service for handling file upload and display with ObjectStorage service integration."""
@@ -46,7 +48,7 @@ class StorageService:
             result = await self._apost_oss_service(endpoint, payload)
             return BucketResponse(bucket_name=result.get("bucket_name"), created_at=result.get("created_at"))
         except Exception as e:
-            logger.error(f"Failed to create bucket: {e}")
+            logger.error("Failed to create bucket (%s)", type(e).__name__)
             raise
 
     async def list_buckets(self) -> BucketListResponse:
@@ -61,7 +63,7 @@ class StorageService:
                 list_buckets.buckets.append(BucketInfo(bucket_name=item["bucket_name"], visibility=item["visibility"]))
             return list_buckets
         except Exception as e:
-            logger.error(f"Failed to list buckets: {e}")
+            logger.error("Failed to list buckets (%s)", type(e).__name__)
             raise
 
     async def list_objects(self, request: OSSBaseModel) -> ObjectListResponse:
@@ -84,7 +86,7 @@ class StorageService:
                 )
             return list_objs
         except Exception as e:
-            logger.error(f"Failed to list bucket objects: {e}")
+            logger.error("Failed to list bucket objects (%s)", type(e).__name__)
             raise
 
     async def get_object_info(self, request: ObjectRequest) -> ObjectInfo:
@@ -103,7 +105,7 @@ class StorageService:
                 etag=result["etag"],
             )
         except Exception as e:
-            logger.error(f"Failed to get object metadata: {e}")
+            logger.error("Failed to get object metadata (%s)", type(e).__name__)
             raise
 
     async def rename_object(self, request: RenameRequest) -> dict:
@@ -117,7 +119,7 @@ class StorageService:
             await self._apost_oss_service(endpoint, payload)
             return RenameResponse(success=True)
         except Exception as e:
-            logger.error(f"Failed to rename object: {e}")
+            logger.error("Failed to rename object (%s)", type(e).__name__)
             raise
 
     async def delete_object(self, request: ObjectRequest) -> DeleteResponse:
@@ -127,7 +129,7 @@ class StorageService:
             await self._adelete_oss_service(endpoint, payload)
             return DeleteResponse(success=True)
         except Exception as e:
-            logger.error(f"Failed to rename object: {e}")
+            logger.error("Failed to delete object (%s)", type(e).__name__)
             raise
 
     async def create_upload_url(self, request: FileUpDownRequest) -> FileUpDownResponse:
@@ -135,7 +137,7 @@ class StorageService:
         Create presigned URL for file upload with access URL.
         """
         endpoint = f"/api/v1/infra/client/oss/buckets/{request.bucket_name}/objects/upload_url"
-        payload = {"expires_in": 0, "object_key": request.object_key}
+        payload = {"expires_in": PRESIGNED_URL_TTL_SECONDS, "object_key": request.object_key}
         try:
             result = await self._apost_oss_service(endpoint, payload)
             # Format response according to ObjectStorage service response
@@ -144,7 +146,7 @@ class StorageService:
                 expires_at=result.get("expires_at"),
             )
         except Exception as e:
-            logger.error(f"Failed to create upload URL: {e}")
+            logger.error("Failed to create upload URL (%s)", type(e).__name__)
             raise
 
     async def create_download_url(self, request: FileUpDownRequest) -> FileUpDownResponse:
@@ -157,7 +159,7 @@ class StorageService:
             content_type = "application/octet-stream"
         payload = {
             "content_type": content_type,  # like "image/jpeg"
-            "expires_in": 0,
+            "expires_in": PRESIGNED_URL_TTL_SECONDS,
             "object_key": request.object_key,
         }
         try:
@@ -169,7 +171,7 @@ class StorageService:
             )
 
         except Exception as e:
-            logger.error(f"Failed to create upload URL: {e}")
+            logger.error("Failed to create download URL (%s)", type(e).__name__)
             raise
 
     async def _aget_oss_service(self, endpoint: str, params: dict) -> dict:
@@ -204,16 +206,13 @@ class StorageService:
                 result = response.json()
 
                 if result.get("code") != 0:
-                    logger.warning(f"ObjectStorage service error: {result}")
-                    error_msg = result.get("error", "Unknown error")
-                    message = result.get("message", "")
-                    raise ValueError(f"ObjectStorage service error: {error_msg}. {message}")
+                    logger.warning("ObjectStorage service returned an application error")
+                    raise ValueError("ObjectStorage service rejected the request")
 
                 return result.get("data", [])
         except httpx.HTTPStatusError as e:
-            error_msg = f"ObjectStorage service HTTP error: {e.response.status_code} - {e.response.text}"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
+            logger.error("ObjectStorage HTTP error (%s)", e.response.status_code)
+            raise ValueError("ObjectStorage service rejected the request") from e
         except Exception as e:
-            logger.error(f"Failed to call ObjectStorage service: {e}")
+            logger.error("ObjectStorage request failed (%s)", type(e).__name__)
             raise

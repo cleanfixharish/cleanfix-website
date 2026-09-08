@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal, Optional
 
 from core.database import get_db
-from dependencies.auth import get_admin_user
+from dependencies.auth import get_owner_user
 from fastapi import APIRouter, Depends, HTTPException, status
 from models.viewer_access import ViewerAccess
 from pydantic import BaseModel, EmailStr
@@ -31,7 +31,7 @@ class ViewerResponse(BaseModel):
 
 @router.get("", response_model=list[ViewerResponse])
 async def list_viewers(
-    _admin: UserResponse = Depends(get_admin_user), db: AsyncSession = Depends(get_db)
+    _owner: UserResponse = Depends(get_owner_user), db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(ViewerAccess).where(ViewerAccess.is_active.is_(True)).order_by(ViewerAccess.email))
     return result.scalars().all()
@@ -39,7 +39,7 @@ async def list_viewers(
 
 @router.post("", response_model=ViewerResponse, status_code=status.HTTP_201_CREATED)
 async def add_viewer(
-    data: ViewerCreate, _admin: UserResponse = Depends(get_admin_user), db: AsyncSession = Depends(get_db)
+    data: ViewerCreate, _owner: UserResponse = Depends(get_owner_user), db: AsyncSession = Depends(get_db)
 ):
     email = str(data.email).strip().lower()
     result = await db.execute(select(ViewerAccess).where(ViewerAccess.email == email))
@@ -57,7 +57,7 @@ async def add_viewer(
 
 @router.delete("/{viewer_id}")
 async def remove_viewer(
-    viewer_id: int, _admin: UserResponse = Depends(get_admin_user), db: AsyncSession = Depends(get_db)
+    viewer_id: int, _owner: UserResponse = Depends(get_owner_user), db: AsyncSession = Depends(get_db)
 ):
     viewer = await db.get(ViewerAccess, viewer_id)
     if not viewer:
