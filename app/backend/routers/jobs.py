@@ -77,7 +77,6 @@ class JobTransitionCommand(BaseModel):
         "in_progress",
         "completion_submitted",
         "quality_approved",
-        "completed",
         "cancelled",
         "reopened",
     ]
@@ -86,8 +85,8 @@ class JobTransitionCommand(BaseModel):
 
     @model_validator(mode="after")
     def require_reason_for_exception_transitions(self):
-        if self.new_status in {"cancelled", "reopened"} and not (self.reason or "").strip():
-            raise ValueError("A reason is required to cancel or reopen a job")
+        if self.new_status in {"completion_submitted", "quality_approved", "cancelled", "reopened"} and not (self.reason or "").strip():
+            raise ValueError("A reason is required for this reviewed job transition")
         return self
 
 

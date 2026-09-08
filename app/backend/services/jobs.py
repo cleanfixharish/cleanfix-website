@@ -19,7 +19,9 @@ CANONICAL_JOB_TRANSITIONS = {
     "in_progress": {"completion_submitted", "cancelled"},
     "in progress": {"completion_submitted", "cancelled"},
     "completion_submitted": {"quality_approved", "in_progress", "cancelled"},
-    "quality_approved": {"completed", "in_progress"},
+    # Final completion remains locked until the immutable completion command
+    # writes its evidence, quality, and commercial snapshot atomically.
+    "quality_approved": {"in_progress"},
     "completed": {"reopened"},
     "reopened": {"in_progress", "cancelled"},
     "cancelled": {"reopened"},

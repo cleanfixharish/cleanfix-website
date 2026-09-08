@@ -1689,13 +1689,13 @@ function Jobs({
     "in progress": ["completion_submitted", "cancelled"],
     in_progress: ["completion_submitted", "cancelled"],
     completion_submitted: ["quality_approved", "in_progress", "cancelled"],
-    quality_approved: ["completed", "in_progress"],
+    quality_approved: ["in_progress"],
     completed: ["reopened"],
     reopened: ["in_progress", "cancelled"],
     cancelled: ["reopened"],
   };
   const changeJobStatus = async (job: DashboardJob, status: string) => {
-    const reasonRequired = status === "cancelled" || status === "reopened";
+    const reasonRequired = ["completion_submitted", "quality_approved", "cancelled", "reopened"].includes(status);
     const reason = reasonRequired
       ? window.prompt(tr("Enter the operational reason for this permanent record:"))?.trim()
       : undefined;
@@ -1744,7 +1744,7 @@ function Jobs({
       <Card className="mb-5 border-[#C8B07C] bg-[#FFF8E8]">
         <CardContent className="p-4 text-sm leading-6 text-[#684F2B]">
           <strong>{tr("Controlled workflow")}</strong>
-          <p>{tr("A provider submits completion evidence; the owner reviews quality before the job can be completed. Jobs cannot be hard-deleted.")}</p>
+          <p>{tr("A provider submits completion evidence and the owner records a quality review. Final completion remains locked until the immutable evidence and financial close command is released. Jobs cannot be hard-deleted.")}</p>
         </CardContent>
       </Card>
       <div className="grid gap-4">
