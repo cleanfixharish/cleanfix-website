@@ -54,3 +54,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build --tag cleanfixharish:migration-check .
+      - name: Verify production static assets are packaged
+        run: |
+          docker run --rm --entrypoint sh cleanfixharish:migration-check -c '
+            test -s /app/app/frontend/dist/assets/brand/cf-gold-monogram-128.png &&
+            test -s /app/app/frontend/dist/assets/images/cleanfix-documentary/web/hero-managed-service-768.webp &&
+            test -s /app/app/frontend/dist/assets/images/cleanfix-mobile-v3/web/handyman-shelf-768.webp &&
+            test -s /app/app/frontend/dist/assets/images/transformations/garden-hillside-cascade-1536.webp
+          '

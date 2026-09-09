@@ -2,7 +2,7 @@
 .github
 .atoms
 .mgx
-assets
+assets/**
 project_materials
 android
 docs
