@@ -63,6 +63,19 @@ Tracking issue: `#31` — Production recovery gate: PITR restore stops at stale 
 4. Require the restored migration, aggregate counts, foreign-key checks, append-only triggers, and job-event chains to match the accepted recovery point.
 5. Keep `FULFILLMENT_ENABLED=false` and all payment, payout, evidence, completion, advertising, and automatic-publication features disabled until the repeated drill passes.
 
+## Follow-up investigation — 2026-09-09
+
+Read-only Railway GraphQL introspection confirmed that `sourceRepoPath` is an optional argument on both `volumeInstancePitrRestoreEstimate` and `volumeInstancePITRRestore`, but the authenticated public schema exposes no query that enumerates valid repository-history paths.
+
+Read-only estimates returned the same base-backup label across all three HA volume instances:
+
+- target `2026-09-08T15:45:00Z`: `20260902-172654F_20260907-173111D`;
+- a current 2026-09-09 target: `20260902-172654F_20260908-173215D`.
+
+The production application deployment that applied `a9d4e1f72b60` began at `2026-09-08T13:47:17.188Z`, before the second requested recovery point. This strengthens the platform-history mismatch rather than explaining it as a post-target migration.
+
+No restore, deployment, variable change or production mutation was performed during this investigation. A sanitized Central Station submission is prepared in `RAILWAY_SUPPORT_CASE_31.md`. A third restore remains blocked until Railway identifies the authoritative current-history selector.
+
 ## Acceptance status
 
 - Source availability: **PASS**
