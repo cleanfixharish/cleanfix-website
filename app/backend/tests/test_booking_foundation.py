@@ -85,7 +85,7 @@ async def test_acceptance_atomically_creates_one_booking_and_one_decision(monkey
         )
         db.add(classification)
         await db.flush()
-        scope, exclusions, terms = canonical_pilot_quote_contract(classification)
+        scope, exclusions, terms = canonical_pilot_quote_contract(classification.task_key)
         quote = ServiceQuote(
             estimate_id=1,
             lead_id=lead.id,

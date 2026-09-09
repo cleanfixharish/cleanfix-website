@@ -18,6 +18,7 @@ from models.leads import Leads
 from models.pricing import PriceEstimate, ServiceQuote
 from models.pilot import PilotTaskClassification
 from schemas.auth import UserResponse
+from services.pilot_tasks import canonical_pilot_quote_contract
 
 
 admin_router = APIRouter(
@@ -99,18 +100,6 @@ def set_private_quote_headers(response: Response) -> None:
     response.headers["Referrer-Policy"] = "no-referrer"
 
 
-def canonical_pilot_quote_contract(classification: PilotTaskClassification) -> tuple[str, str, str]:
-    task_labels = {
-        "mounting_under_5kg": "Mount one customer-supplied interior item weighing no more than 5 kg, using an existing verified fixing only; owner onsite.",
-        "flat_pack_under_25kg": "Assemble one customer-supplied flat-pack component weighing no more than 25 kg from its manufacturer instructions; owner onsite.",
-        "cabinet_hardware": "Replace or adjust one specified customer-supplied cabinet or drawer hardware item; owner onsite.",
-    }
-    scope = task_labels[classification.task_key]
-    exclusions = "No electrical, plumbing, gas, HVAC, structural, glazing, lock/security, wall-penetration, powered-drilling, new-anchor, hazardous, licensed-trade, or two-person-lift work. No additional task is included."
-    terms = "PILOT-HOME-VISIT-v1 · Harish only · Monday–Thursday 09:00–17:00 Asia/Jerusalem · final schedule requires owner confirmation."
-    return scope, exclusions, terms
-
-
 async def _require_quote_classification_binding(db: AsyncSession, quote: ServiceQuote) -> PilotTaskClassification:
     if quote.lead_id is None or quote.pilot_task_classification_id is None:
         raise HTTPException(409, "The quote is not bound to an immutable pilot task classification")
@@ -121,7 +110,7 @@ async def _require_quote_classification_binding(db: AsyncSession, quote: Service
         or classification.scope_version != PILOT_SCOPE_VERSION
         or classification.scope_hash != PILOT_SCOPE_HASH
         or quote.pilot_scope_hash != PILOT_SCOPE_HASH
-        or (quote.scope, quote.exclusions, quote.terms) != canonical_pilot_quote_contract(classification)
+        or (quote.scope, quote.exclusions, quote.terms) != canonical_pilot_quote_contract(classification.task_key)
     ):
         raise HTTPException(409, "The quote contract no longer matches its approved pilot task classification")
     return classification
@@ -148,7 +137,7 @@ async def create_quote(
     classification = await db.scalar(select(PilotTaskClassification).where(PilotTaskClassification.lead_id == estimate.lead_id))
     if classification is None or classification.scope_version != PILOT_SCOPE_VERSION or classification.scope_hash != PILOT_SCOPE_HASH:
         raise HTTPException(409, "A current immutable pilot task classification is required before creating a paid pilot quote")
-    canonical_scope, canonical_exclusions, canonical_terms = canonical_pilot_quote_contract(classification)
+    canonical_scope, canonical_exclusions, canonical_terms = canonical_pilot_quote_contract(classification.task_key)
 
     quote = ServiceQuote(
         **data.model_dump(),

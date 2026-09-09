@@ -39,6 +39,46 @@ class ProviderCapability(Base):
     verified_at = Column(DateTime(timezone=True), nullable=True)
 
 
+class ProviderCapabilityDecision(Base):
+    __tablename__ = "provider_capability_decisions"
+    __table_args__ = (
+        CheckConstraint("status IN ('eligible_supervised', 'suspended', 'rejected', 'expired', 'superseded')", name="ck_provider_capability_decision_status"),
+        CheckConstraint("service_area = 'harish'", name="ck_provider_capability_decision_area"),
+        CheckConstraint("supervision_only = true", name="ck_provider_capability_decision_supervision"),
+        UniqueConstraint("supersedes_id", name="uq_provider_capability_decision_supersedes"),
+    )
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    provider_profile_id = Column(Integer, ForeignKey("managed_provider_profiles.id", ondelete="RESTRICT"), nullable=False, index=True)
+    service_key = Column(String(60), nullable=False, index=True)
+    service_area = Column(String(30), nullable=False, default="harish", server_default="harish")
+    status = Column(String(30), nullable=False)
+    assessment_method = Column(String(50), nullable=False)
+    assessment_result = Column(String(30), nullable=False)
+    evidence_reference = Column(String(120), nullable=False)
+    evidence_hash = Column(String(64), nullable=False)
+    assessor_name = Column(String(160), nullable=False)
+    assessor_role = Column(String(60), nullable=False)
+    assessed_at = Column(DateTime(timezone=True), nullable=False)
+    effective_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    review_trigger = Column(String(300), nullable=False)
+    conditions_open = Column(Boolean, nullable=False, default=False, server_default="false")
+    supervision_only = Column(Boolean, nullable=False, default=True, server_default="true")
+    safety_acknowledgements = Column(Text, nullable=False)
+    scope_version = Column(String(80), nullable=False)
+    scope_hash = Column(String(64), nullable=False)
+    task_definition_hash = Column(String(64), nullable=False)
+    task_definition_version = Column(String(40), nullable=False)
+    confirmation_set_version = Column(String(50), nullable=False)
+    confirmation_set_hash = Column(String(64), nullable=False)
+    decision_reason = Column(String(500), nullable=False)
+    supersedes_id = Column(Integer, ForeignKey("provider_capability_decisions.id", ondelete="RESTRICT"), nullable=True)
+    recorded_by = Column(String(255), nullable=False)
+    idempotency_key = Column(String(100), nullable=False, unique=True)
+    command_hash = Column(String(64), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now, server_default=func.now())
+
+
 class ProviderVettingItem(Base):
     __tablename__ = "provider_vetting_items"
     __table_args__ = (
@@ -75,6 +115,9 @@ class AssignmentOffer(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     job_id = Column(Integer, ForeignKey("jobs.id", ondelete="RESTRICT"), nullable=False, index=True)
     provider_profile_id = Column(Integer, ForeignKey("managed_provider_profiles.id", ondelete="RESTRICT"), nullable=False, index=True)
+    capability_decision_id = Column(Integer, ForeignKey("provider_capability_decisions.id", ondelete="RESTRICT"), nullable=True, index=True)
+    capability_task_definition_hash = Column(String(64), nullable=True)
+    capability_evidence_hash = Column(String(64), nullable=True)
     sequence_number = Column(Integer, nullable=False)
     status = Column(String(20), nullable=False, default="offered", server_default="offered", index=True)
     provider_payout = Column(Numeric(12, 2), nullable=False)
@@ -102,6 +145,13 @@ class AssignmentOfferEvent(Base):
     id = Column(BigInteger().with_variant(Integer(), "sqlite"), Identity(), primary_key=True)
     offer_id = Column(Integer, ForeignKey("assignment_offers.id", ondelete="RESTRICT"), nullable=False, index=True)
     job_id = Column(Integer, ForeignKey("jobs.id", ondelete="RESTRICT"), nullable=False, index=True)
+    capability_decision_id = Column(Integer, ForeignKey("provider_capability_decisions.id", ondelete="RESTRICT"), nullable=True, index=True)
+    capability_task_definition_hash = Column(String(64), nullable=True)
+    capability_evidence_hash = Column(String(64), nullable=True)
+    service_key_snapshot = Column(String(120), nullable=True)
+    service_area_snapshot = Column(String(120), nullable=True)
+    window_start_snapshot = Column(DateTime(timezone=True), nullable=True)
+    window_end_snapshot = Column(DateTime(timezone=True), nullable=True)
     event_type = Column(String(40), nullable=False)
     actor_id = Column(String(255), nullable=False)
     actor_role = Column(String(30), nullable=False)

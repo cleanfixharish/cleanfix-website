@@ -15,6 +15,7 @@ PILOT_PROVIDER_VETTING_ROLES = {
 PILOT_PROVIDER_VETTING_KEYS = frozenset(PILOT_PROVIDER_VETTING_ROLES)
 PILOT_SCOPE_VERSION = "PILOT-HOME-VISIT-v1"
 PILOT_SCOPE_HASH = "1e7b4e3047f8fe32cd1cc4399ba4df35e810880fc5bdc933599dc09836a8ca81"
+ALLOWED_TASK_KEYS = frozenset({"mounting_under_5kg", "flat_pack_under_25kg", "cabinet_hardware"})
 
 
 def _utc(value: datetime) -> datetime:

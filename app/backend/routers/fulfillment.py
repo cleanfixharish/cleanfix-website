@@ -1,5 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
+import hashlib
+import json
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -12,12 +14,14 @@ from core.config import settings
 from core.private_data_crypto import PrivateDataCryptoError
 from dependencies.auth import BusinessPortalPrincipal, get_managed_provider, get_owner_user
 from models.business_relationship import BusinessRelationship
-from models.fulfillment import AssignmentOffer, ManagedProviderProfile, ProviderCapability, ProviderVettingItem
+from models.fulfillment import AssignmentOffer, ManagedProviderProfile, ProviderCapability, ProviderCapabilityDecision, ProviderVettingItem
 from models.jobs import Jobs
 from schemas.auth import UserResponse
 from services.fulfillment import REQUIRED_PILOT_VETTING, FulfillmentConflict, FulfillmentNotFound, FulfillmentService
 from services.pilot_readiness import pilot_readiness_blockers
 from services.provider_vetting import PILOT_PROVIDER_VETTING_ROLES, provider_vetting_is_valid
+from services.provider_capability import any_provider_capability_is_valid
+from services.pilot_tasks import CAPABILITY_ACKNOWLEDGEMENTS, CAPABILITY_CONFIRMATION_SET_VERSION, TASK_DEFINITION_VERSION, confirmation_set_hash, task_definition_hash
 
 router = APIRouter(prefix="/api/v1", tags=["fulfillment"])
 
@@ -35,6 +39,11 @@ def require_fulfillment_enabled() -> None:
 def require_fulfillment_setup_enabled() -> None:
     if not settings.fulfillment_setup_enabled:
         raise HTTPException(status_code=503, detail="Fulfillment setup is not enabled")
+
+
+def require_fulfillment_controls_enabled() -> None:
+    if not (settings.fulfillment_setup_enabled or settings.fulfillment_enabled):
+        raise HTTPException(status_code=503, detail="Fulfillment controls are disabled")
 
 
 async def _active_provider_profile(db: AsyncSession, relationship_id: int) -> ManagedProviderProfile:
@@ -80,17 +89,19 @@ class ProviderProfileResponse(BaseModel):
 
 class ProviderProfileDetail(ProviderProfileResponse):
     capabilities: list[dict]
+    capability_decisions: list[dict]
     vetting: list[dict]
 
 
 @router.get("/admin/managed-providers", response_model=list[ProviderProfileDetail])
 async def list_provider_profiles(response: Response, db: AsyncSession = Depends(get_db), _owner: UserResponse = Depends(get_owner_user)):
     _private(response)
-    require_fulfillment_setup_enabled()
+    require_fulfillment_controls_enabled()
     profiles = (await db.execute(select(ManagedProviderProfile).order_by(ManagedProviderProfile.created_at.desc()))).scalars().all()
     rows = []
     for profile in profiles:
         capabilities = (await db.execute(select(ProviderCapability).where(ProviderCapability.provider_profile_id == profile.id).order_by(ProviderCapability.id))).scalars().all()
+        capability_decisions = (await db.execute(select(ProviderCapabilityDecision).where(ProviderCapabilityDecision.provider_profile_id == profile.id).order_by(ProviderCapabilityDecision.id.desc()))).scalars().all()
         vetting = (await db.execute(select(ProviderVettingItem).where(ProviderVettingItem.provider_profile_id == profile.id).order_by(ProviderVettingItem.requirement_key))).scalars().all()
         rows.append({
             "id": profile.id, "relationship_id": profile.relationship_id,
@@ -100,6 +111,13 @@ async def list_provider_profiles(response: Response, db: AsyncSession = Depends(
                 "id": item.id, "service_key": item.service_key, "service_area": item.service_area,
                 "is_verified": item.is_verified,
             } for item in capabilities],
+            "capability_decisions": [{
+                "id": item.id, "service_key": item.service_key, "service_area": item.service_area,
+                "status": item.status, "evidence_reference": item.evidence_reference,
+                "evidence_hash": item.evidence_hash, "effective_at": item.effective_at,
+                "expires_at": item.expires_at, "supersedes_id": item.supersedes_id,
+                "task_definition_hash": item.task_definition_hash,
+            } for item in capability_decisions],
             "vetting": [{
                 "id": item.id, "requirement_key": item.requirement_key,
                 "status": item.status, "expires_at": item.expires_at,
@@ -140,21 +158,162 @@ class CapabilityCommand(BaseModel):
 async def add_capability(profile_id: int, data: CapabilityCommand, response: Response, db: AsyncSession = Depends(get_db), owner: UserResponse = Depends(get_owner_user)):
     _private(response)
     require_fulfillment_setup_enabled()
-    if await db.get(ManagedProviderProfile, profile_id) is None:
+    raise HTTPException(status_code=410, detail="Bare capability verification was retired; record an evidence-backed supervised capability decision")
+
+
+class CapabilityDecisionCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    service_key: str = Field(pattern="^(mounting_under_5kg|flat_pack_under_25kg|cabinet_hardware)$")
+    status: str = Field(pattern="^(eligible_supervised)$")
+    assessment_method: str = Field(pattern="^(supervised_trial)$")
+    assessment_result: str = Field(pattern="^(passed|failed)$")
+    evidence_reference: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,119}$")
+    evidence_hash: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+    assessor_name: str = Field(min_length=2, max_length=160)
+    assessor_role: str = Field(pattern="^(owner_supervisor|qualified_supervisor)$")
+    assessed_at: datetime
+    effective_at: datetime
+    expires_at: datetime
+    review_trigger: str = Field(min_length=3, max_length=300)
+    conditions_open: bool = False
+    supervision_only: bool = True
+    safety_acknowledgements: list[str] = Field(min_length=6, max_length=6)
+    decision_reason: str = Field(min_length=10, max_length=500)
+    supersedes_id: int | None = Field(default=None, ge=1)
+
+    @field_validator("assessed_at", "effective_at", "expires_at")
+    @classmethod
+    def capability_dates_are_timezone_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("Capability decision dates must include a timezone")
+        return value
+
+
+@router.post("/admin/managed-providers/{profile_id}/capability-decisions", status_code=201)
+async def add_capability_decision(
+    profile_id: int, data: CapabilityDecisionCommand, response: Response,
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=100),
+    db: AsyncSession = Depends(get_db), owner: UserResponse = Depends(get_owner_user),
+):
+    _private(response)
+    require_fulfillment_setup_enabled()
+    profile = await db.scalar(select(ManagedProviderProfile).where(ManagedProviderProfile.id == profile_id).with_for_update())
+    if profile is None:
         raise HTTPException(status_code=404, detail="Provider profile not found")
-    capability = ProviderCapability(
-        provider_profile_id=profile_id, service_key=data.service_key.strip().lower(),
-        service_area=data.service_area.strip().lower(), is_verified=data.verified,
-        verified_by=owner.id if data.verified else None, verified_at=datetime.now().astimezone() if data.verified else None,
+    payload = data.model_dump(mode="json")
+    command_hash = hashlib.sha256(json.dumps({"profile_id": profile_id, **payload}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    replay = await db.scalar(select(ProviderCapabilityDecision).where(ProviderCapabilityDecision.idempotency_key == idempotency_key))
+    if replay is not None:
+        if replay.command_hash != command_hash:
+            raise HTTPException(status_code=409, detail="Idempotency key was used for a different capability decision")
+        return {"id": replay.id, "status": replay.status, "service_key": replay.service_key}
+    latest = await db.scalar(select(ProviderCapabilityDecision).where(
+        ProviderCapabilityDecision.provider_profile_id == profile_id,
+        ProviderCapabilityDecision.service_key == data.service_key,
+        ProviderCapabilityDecision.service_area == "harish",
+    ).order_by(ProviderCapabilityDecision.id.desc()).limit(1).with_for_update())
+    if (latest is None and data.supersedes_id is not None) or (latest is not None and data.supersedes_id != latest.id):
+        raise HTTPException(status_code=409, detail="Capability decision history changed; supersede the current decision")
+    now = datetime.now(timezone.utc)
+    confirmations = set(data.safety_acknowledgements)
+    if confirmations != CAPABILITY_ACKNOWLEDGEMENTS or len(confirmations) != len(data.safety_acknowledgements):
+        raise HTTPException(status_code=422, detail="The exact supervised capability confirmation set is required")
+    if data.status == "eligible_supervised" and (
+        data.assessment_result != "passed" or data.conditions_open or not data.supervision_only
+        or data.assessed_at > data.effective_at or data.effective_at > now
+        or data.expires_at <= data.effective_at or data.expires_at <= now
+    ):
+        raise HTTPException(status_code=422, detail="Supervised eligibility requires a passed, current, condition-free assessment")
+    row = ProviderCapabilityDecision(
+        provider_profile_id=profile_id, service_key=data.service_key, service_area="harish",
+        status=data.status, assessment_method=data.assessment_method, assessment_result=data.assessment_result,
+        evidence_reference=data.evidence_reference, evidence_hash=data.evidence_hash.lower(),
+        assessor_name=data.assessor_name.strip(), assessor_role=data.assessor_role,
+        assessed_at=data.assessed_at, effective_at=data.effective_at, expires_at=data.expires_at,
+        review_trigger=data.review_trigger.strip(), conditions_open=data.conditions_open,
+        supervision_only=data.supervision_only, safety_acknowledgements=json.dumps(sorted(confirmations)),
+        scope_version="PILOT-HOME-VISIT-v1", scope_hash="1e7b4e3047f8fe32cd1cc4399ba4df35e810880fc5bdc933599dc09836a8ca81",
+        task_definition_hash=task_definition_hash(data.service_key), decision_reason=data.decision_reason.strip(),
+        task_definition_version=TASK_DEFINITION_VERSION,
+        confirmation_set_version=CAPABILITY_CONFIRMATION_SET_VERSION,
+        confirmation_set_hash=confirmation_set_hash(),
+        supersedes_id=data.supersedes_id, recorded_by=owner.id,
+        idempotency_key=idempotency_key, command_hash=command_hash,
     )
-    db.add(capability)
+    db.add(row)
     try:
         await db.commit()
-        await db.refresh(capability)
+        await db.refresh(row)
     except IntegrityError as exc:
         await db.rollback()
-        raise HTTPException(status_code=409, detail="Capability already exists") from exc
-    return {"id": capability.id, "provider_profile_id": profile_id, "verified": capability.is_verified}
+        raise HTTPException(status_code=409, detail="Capability decision was already recorded") from exc
+    return {"id": row.id, "status": row.status, "service_key": row.service_key, "task_definition_hash": row.task_definition_hash}
+
+
+class CapabilityStopCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: str = Field(pattern="^(suspended|rejected|expired)$")
+    service_key: str = Field(pattern="^(mounting_under_5kg|flat_pack_under_25kg|cabinet_hardware)$")
+    supersedes_id: int = Field(ge=1)
+    evidence_reference: str | None = Field(default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,119}$")
+    evidence_hash: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{64}$")
+    review_trigger: str = Field(default="Owner requalification required before dispatch", min_length=3, max_length=300)
+    decision_reason: str = Field(min_length=10, max_length=500)
+
+
+@router.post("/admin/managed-providers/{profile_id}/capability-decisions/stop", status_code=201)
+async def stop_capability_decision(
+    profile_id: int, data: CapabilityStopCommand, response: Response,
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=100),
+    db: AsyncSession = Depends(get_db), owner: UserResponse = Depends(get_owner_user),
+):
+    _private(response)
+    # Emergency stop must remain available whenever either setup or live
+    # dispatch is enabled; a flag mismatch can never disable the kill switch.
+    require_fulfillment_controls_enabled()
+    profile = await db.scalar(select(ManagedProviderProfile).where(ManagedProviderProfile.id == profile_id).with_for_update())
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Provider profile not found")
+    payload = data.model_dump(mode="json")
+    command_hash = hashlib.sha256(json.dumps({"profile_id": profile_id, **payload}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    if bool(data.evidence_reference) != bool(data.evidence_hash):
+        raise HTTPException(status_code=422, detail="Stop evidence reference and hash must be supplied together")
+    replay = await db.scalar(select(ProviderCapabilityDecision).where(ProviderCapabilityDecision.idempotency_key == idempotency_key))
+    if replay is not None:
+        if replay.command_hash != command_hash:
+            raise HTTPException(status_code=409, detail="Idempotency key was used for a different capability decision")
+        return {"id": replay.id, "status": replay.status, "service_key": replay.service_key}
+    latest = await db.scalar(select(ProviderCapabilityDecision).where(
+        ProviderCapabilityDecision.provider_profile_id == profile_id,
+        ProviderCapabilityDecision.service_key == data.service_key,
+        ProviderCapabilityDecision.service_area == "harish",
+    ).order_by(ProviderCapabilityDecision.id.desc()).limit(1).with_for_update())
+    if latest is None or latest.id != data.supersedes_id:
+        raise HTTPException(status_code=409, detail="Capability decision history changed; stop the current decision")
+    now = datetime.now(timezone.utc)
+    row = ProviderCapabilityDecision(
+        provider_profile_id=profile_id, service_key=data.service_key, service_area="harish", status=data.status,
+        assessment_method=latest.assessment_method, assessment_result="failed",
+        evidence_reference=data.evidence_reference or f"owner-stop:{command_hash[:24]}",
+        evidence_hash=data.evidence_hash.lower() if data.evidence_hash else command_hash,
+        assessor_name="Owner safety stop", assessor_role="owner_supervisor", assessed_at=now, effective_at=now,
+        expires_at=latest.expires_at, review_trigger=data.review_trigger.strip(), conditions_open=False,
+        supervision_only=True, safety_acknowledgements="[]", scope_version=latest.scope_version,
+        scope_hash=latest.scope_hash, task_definition_hash=latest.task_definition_hash,
+        task_definition_version=latest.task_definition_version,
+        confirmation_set_version=latest.confirmation_set_version,
+        confirmation_set_hash=latest.confirmation_set_hash,
+        decision_reason=data.decision_reason.strip(), supersedes_id=latest.id, recorded_by=owner.id,
+        idempotency_key=idempotency_key, command_hash=command_hash,
+    )
+    db.add(row)
+    try:
+        await db.commit()
+        await db.refresh(row)
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Capability stop was already recorded") from exc
+    return {"id": row.id, "status": row.status, "service_key": row.service_key}
 
 
 class VettingCommand(BaseModel):
@@ -240,9 +399,8 @@ async def activate_provider(profile_id: int, data: ActivateProviderCommand, resp
     ))
     if relationship is None:
         raise HTTPException(status_code=409, detail="Managed-provider relationship is not active")
-    verified = await db.scalar(select(func.count(ProviderCapability.id)).where(ProviderCapability.provider_profile_id == profile_id, ProviderCapability.is_verified.is_(True)))
-    now = datetime.now().astimezone()
-    if not verified or not await provider_vetting_is_valid(db, profile_id):
+    valid_capability = await any_provider_capability_is_valid(db, profile_id)
+    if not valid_capability or not await provider_vetting_is_valid(db, profile_id):
         raise HTTPException(status_code=409, detail="Verified capability and all required pilot vetting are required")
     profile.operational_status = "active"
     profile.version += 1
@@ -259,6 +417,27 @@ class OfferCreate(BaseModel):
 
 
 class OfferResponse(BaseModel):
+    id: int
+    job_id: int
+    provider_profile_id: int
+    capability_decision_id: int | None
+    capability_task_definition_hash: str | None
+    capability_evidence_hash: str | None
+    sequence_number: int
+    status: str
+    provider_payout: Decimal
+    currency: str
+    service_key: str
+    service_area: str
+    window_start: datetime
+    window_end: datetime
+    response_deadline: datetime
+    instructions: str | None
+    version: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProviderOfferResponse(BaseModel):
     id: int
     job_id: int
     provider_profile_id: int
@@ -359,12 +538,12 @@ async def _decide(offer_id: int, decision: str, data: OfferDecision, response: R
         _raise(exc)
 
 
-@router.post("/provider/offers/{offer_id}/accept", response_model=OfferResponse)
+@router.post("/provider/offers/{offer_id}/accept", response_model=ProviderOfferResponse)
 async def accept_offer(offer_id: int, data: OfferDecision, response: Response, db: AsyncSession = Depends(get_db), provider: BusinessPortalPrincipal = Depends(get_managed_provider), idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=100)):
     return await _decide(offer_id, "accepted", data, response, db, provider, idempotency_key)
 
 
-@router.post("/provider/offers/{offer_id}/decline", response_model=OfferResponse)
+@router.post("/provider/offers/{offer_id}/decline", response_model=ProviderOfferResponse)
 async def decline_offer(offer_id: int, data: OfferDecision, response: Response, db: AsyncSession = Depends(get_db), provider: BusinessPortalPrincipal = Depends(get_managed_provider), idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=100)):
     return await _decide(offer_id, "declined", data, response, db, provider, idempotency_key)
 
@@ -414,7 +593,7 @@ async def start_job(job_id: int, data: JobAdvance, response: Response, db: Async
     return await _advance(job_id, "start", data, response, db, provider, idempotency_key)
 
 
-@router.get("/provider/offers", response_model=list[OfferResponse])
+@router.get("/provider/offers", response_model=list[ProviderOfferResponse])
 async def list_provider_offers(response: Response, db: AsyncSession = Depends(get_db), provider: BusinessPortalPrincipal = Depends(get_managed_provider)):
     _private(response)
     require_fulfillment_enabled()

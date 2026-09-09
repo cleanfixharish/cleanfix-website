@@ -366,6 +366,20 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async addProviderCapabilityDecision(profileId: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/capability-decisions`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async stopProviderCapabilityDecision(profileId: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/capability-decisions/stop`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
   async addProviderVetting(profileId: number, data: Record<string, unknown>) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/vetting`, data);
     return response.data;

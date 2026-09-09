@@ -6,9 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from models.business_relationship import BusinessRelationship
-from models.fulfillment import ManagedProviderProfile, ProviderCapability, ProviderVettingItem
+from models.fulfillment import ManagedProviderProfile
 from models.pilot import PilotApprovalGate, PilotConfiguration
-from services.provider_vetting import provider_vetting_is_valid
+from services.provider_vetting import ALLOWED_TASK_KEYS, provider_vetting_is_valid
+from services.provider_capability import any_provider_capability_is_valid
 
 PILOT_SCOPE_VERSION = "PILOT-HOME-VISIT-v1"
 PILOT_SCOPE_HASH = "1e7b4e3047f8fe32cd1cc4399ba4df35e810880fc5bdc933599dc09836a8ca81"
@@ -42,7 +43,6 @@ TECHNICAL_GATES = (
     "SYSTEM_ISOLATED_RESTORE_PARITY_VERIFIED",
 )
 REQUIRED_GATES = EXTERNAL_GATES + TECHNICAL_GATES
-ALLOWED_TASK_KEYS = frozenset({"mounting_under_5kg", "flat_pack_under_25kg", "cabinet_hardware"})
 REQUIRED_PROVIDER_VETTING = frozenset({"identity_check", "provider_agreement", "invoice_capability", "insurance"})
 
 
@@ -120,13 +120,8 @@ async def pilot_readiness_blockers(db: AsyncSession, *, include_runtime: bool = 
         )).scalars().all()
         eligible_count = 0
         for profile in active_profiles:
-            capability = await db.scalar(select(ProviderCapability.id).where(
-                ProviderCapability.provider_profile_id == profile.id,
-                ProviderCapability.service_key.in_(ALLOWED_TASK_KEYS),
-                ProviderCapability.service_area == "harish",
-                ProviderCapability.is_verified.is_(True),
-            ))
-            if capability is not None and await provider_vetting_is_valid(db, profile.id):
+            capability_is_current = await any_provider_capability_is_valid(db, profile.id)
+            if capability_is_current and await provider_vetting_is_valid(db, profile.id):
                 eligible_count += 1
         if eligible_count < 1:
             blockers.append("eligible_managed_provider_missing")
