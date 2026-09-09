@@ -102,3 +102,40 @@ class PilotTaskClassification(Base):
     reason = Column(String(500), nullable=False)
     classified_by = Column(String(255), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now, server_default=func.now())
+
+
+class PilotTechnicalAttestation(Base):
+    """Immutable receipt for a signature-verified technical release check."""
+
+    __tablename__ = "pilot_technical_attestations"
+    __table_args__ = (
+        CheckConstraint("gate_key IN ('SYSTEM_BOOKING_SCHEDULE_VERIFIED','SYSTEM_PROVIDER_ELIGIBILITY_VERIFIED','SYSTEM_OFFER_ASSIGNMENT_VERIFIED','SYSTEM_PROVIDER_MOBILE_WORKFLOW_VERIFIED','SYSTEM_PRIVATE_EVIDENCE_VERIFIED','SYSTEM_QUALITY_REWORK_VERIFIED','SYSTEM_PAYMENT_PAYOUT_LEDGER_VERIFIED','SYSTEM_GUARDED_COMPLETION_VERIFIED','SYSTEM_ISOLATED_RESTORE_PARITY_VERIFIED')", name="ck_pilot_technical_attestation_gate"),
+        CheckConstraint("run_attempt >= 1", name="ck_pilot_technical_attestation_attempt"),
+        CheckConstraint("length(commit_sha) = 40 AND length(release_sha) = 40", name="ck_pilot_technical_attestation_release_hashes"),
+        CheckConstraint("length(scope_hash) = 64 AND length(artifact_digest) = 64 AND length(signature_bundle_digest) = 64", name="ck_pilot_technical_attestation_digests"),
+        CheckConstraint("environment = 'production'", name="ck_pilot_technical_attestation_environment"),
+        CheckConstraint("expires_at > issued_at", name="ck_pilot_technical_attestation_lifetime"),
+        UniqueConstraint("repository", "workflow_path", "run_id", "run_attempt", name="uq_pilot_technical_attestation_run"),
+        UniqueConstraint("artifact_digest", name="uq_pilot_technical_attestation_artifact"),
+    )
+    id = Column(BigInteger().with_variant(Integer(), "sqlite"), Identity(), primary_key=True)
+    gate_key = Column(String(100), nullable=False, index=True)
+    repository = Column(String(200), nullable=False)
+    workflow_path = Column(String(200), nullable=False)
+    git_ref = Column(String(200), nullable=False)
+    run_id = Column(String(40), nullable=False)
+    run_attempt = Column(Integer, nullable=False)
+    commit_sha = Column(String(64), nullable=False)
+    release_sha = Column(String(64), nullable=False)
+    migration_head = Column(String(40), nullable=False)
+    scope_version = Column(String(80), nullable=False)
+    scope_hash = Column(String(64), nullable=False)
+    environment = Column(String(80), nullable=False)
+    artifact_reference = Column(String(120), nullable=False)
+    artifact_digest = Column(String(64), nullable=False)
+    signature_bundle_digest = Column(String(64), nullable=False)
+    oidc_issuer = Column(String(300), nullable=False)
+    oidc_subject = Column(String(500), nullable=False)
+    issued_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    verified_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now, server_default=func.now())
