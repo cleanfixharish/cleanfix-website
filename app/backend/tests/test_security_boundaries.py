@@ -83,8 +83,9 @@ def test_render_service_worker_is_available_for_cache_retirement(monkeypatch):
     )
     assert response.status_code == 200
     assert "IS_LEGACY_RENDER_ORIGIN" in response.text
-    assert "cleanfix-harish-v7-mobile-install-recovery" in response.text
+    assert "cleanfix-harish-v8-static-asset-recovery" in response.text
     assert "shouldNeverCache" in response.text
+    assert "isSafeStaticResponse" in response.text
     assert "isSameOrigin" in response.text
     assert "'/'," not in response.text
 
@@ -116,6 +117,21 @@ def test_frontend_shell_is_never_cached_but_hashed_assets_are_immutable(tmp_path
     assert sw_response.headers["cache-control"] == "no-cache, must-revalidate"
     assert photo_response.headers["cache-control"] == "public, max-age=3600"
     assert webp_response.media_type == "image/webp"
+
+
+def test_missing_static_asset_is_not_disguised_as_app_shell(monkeypatch, tmp_path):
+    (tmp_path / "index.html").write_text("<!doctype html><div id='root'></div>", encoding="utf-8")
+    monkeypatch.setattr(main, "FRONTEND_DIST", tmp_path)
+
+    missing_image = client.get("/assets/images/missing.webp")
+    missing_icon = client.get("/icons/missing.png")
+    client_route = client.get("/services")
+
+    assert missing_image.status_code == 404
+    assert missing_image.headers["content-type"].startswith("application/json")
+    assert missing_icon.status_code == 404
+    assert client_route.status_code == 200
+    assert "id='root'" in client_route.text
 
 
 def test_account_directory_is_not_public():

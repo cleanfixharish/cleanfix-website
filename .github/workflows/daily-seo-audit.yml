@@ -1,8 +1,8 @@
-name: Daily production health and SEO audit
+name: Production health, media and SEO audit
 
 on:
   schedule:
-    - cron: '17 3 * * *'
+    - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
       simulate_failure:

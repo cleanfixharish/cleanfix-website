@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cleanfix-harish-v7-mobile-install-recovery';
+const CACHE_NAME = 'cleanfix-harish-v8-static-asset-recovery';
 const LEGACY_RENDER_HOST = 'cleanfixharish-web.onrender.com';
 const OFFICIAL_ORIGIN = 'https://www.cleanfixharish.co.il';
 const IS_LEGACY_RENDER_ORIGIN = self.location.hostname === LEGACY_RENDER_HOST;
@@ -37,6 +37,15 @@ function shouldNeverCache(request) {
   if (!isStaticAsset(url)) return true;
 
   return false;
+}
+
+function isSafeStaticResponse(request, response) {
+  if (!response.ok) return false;
+  const responseUrl = new URL(response.url);
+  if (!isSameOrigin(responseUrl)) return false;
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  // Never preserve an SPA fallback under an image, icon, script, or stylesheet URL.
+  return !contentType.includes('text/html') || request.mode === 'navigate';
 }
 
 // Install - cache static assets
@@ -90,8 +99,7 @@ self.addEventListener('fetch', (event) => {
         }
 
         return fetch(event.request).then((response) => {
-          const responseUrl = new URL(response.url);
-          if (response.ok && isSameOrigin(responseUrl)) {
+          if (isSafeStaticResponse(event.request, response)) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseClone);

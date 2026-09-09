@@ -2,6 +2,13 @@ const base = (process.env.PRODUCTION_BASE_URL || process.env.SEO_BASE_URL || 'ht
   .replace(/\/$/, '');
 const seoRoutes = ['/', '/services', '/gardening', '/how-it-works', '/local-partners', '/quote', '/partners', '/about'];
 const applicationRoutes = ['/admin', '/account'];
+const criticalAssets = [
+  '/assets/brand/cf-gold-monogram-128.png',
+  '/assets/brand/cleanfixharish-social-1200x630.png',
+  '/assets/images/cleanfix-documentary/web/hero-managed-service-768.webp',
+  '/assets/images/cleanfix-mobile-v3/web/handyman-shelf-768.webp',
+  '/assets/images/transformations/garden-hillside-cascade-1536.webp',
+];
 const protectedEndpoints = [
   '/api/v1/entities/leads',
   '/api/v1/entities/jobs',
@@ -87,6 +94,53 @@ for (const route of applicationRoutes) {
     };
   });
 }
+
+function hasExpectedImageSignature(asset, buffer) {
+  const bytes = new Uint8Array(buffer);
+  if (asset.endsWith('.png')) {
+    return bytes.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10]
+      .every((value, index) => bytes[index] === value);
+  }
+  if (asset.endsWith('.webp')) {
+    return bytes.length >= 12
+      && new TextDecoder('ascii').decode(bytes.slice(0, 4)) === 'RIFF'
+      && new TextDecoder('ascii').decode(bytes.slice(8, 12)) === 'WEBP';
+  }
+  return false;
+}
+
+for (const asset of criticalAssets) {
+  await runCheck(`asset:${asset}`, async () => {
+    const { response, durationMs } = await request(asset, { redirect: 'error' });
+    const contentType = response.headers.get('content-type') || '';
+    const body = await response.arrayBuffer();
+    const bytes = body.byteLength;
+    return {
+      checks: {
+        status: response.ok,
+        imageContentType: contentType.startsWith('image/'),
+        nonEmptyBody: bytes > 512,
+        validImageSignature: hasExpectedImageSignature(asset, body),
+        ...securityChecks(response),
+      },
+      details: { asset, status: response.status, contentType, bytes, durationMs },
+    };
+  });
+}
+
+
+await runCheck('missing-static-asset', async () => {
+  const { response, durationMs } = await request('/assets/monitor-intentionally-missing.webp', { redirect: 'error' });
+  const contentType = response.headers.get('content-type') || '';
+  return {
+    checks: {
+      status404: response.status === 404,
+      notHtml: !contentType.includes('text/html'),
+      ...securityChecks(response),
+    },
+    details: { status: response.status, contentType, durationMs },
+  };
+});
 
 for (const endpoint of ['/health', '/health/ready']) {
   await runCheck(`health:${endpoint}`, async () => {
@@ -181,7 +235,7 @@ await runCheck('discovery', async () => {
 
 console.log(JSON.stringify({
   base,
-  checks: seoRoutes.length + applicationRoutes.length + protectedEndpoints.length + 5,
+  checks: seoRoutes.length + applicationRoutes.length + criticalAssets.length + protectedEndpoints.length + 6,
   failures,
 }));
 if (failures) process.exitCode = 1;

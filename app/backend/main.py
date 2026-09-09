@@ -383,6 +383,11 @@ async def serve_frontend(full_path: str):
     directory_index = requested / "index.html"
     if directory_index.is_file():
         return frontend_file_response(directory_index)
+    # Missing static files must not be disguised as a successful SPA route.
+    # Returning index.html here makes browsers reject the response by MIME type
+    # while uptime checks incorrectly record a 200 response.
+    if full_path.startswith(("assets/", "icons/")) or requested.suffix:
+        raise HTTPException(status_code=404, detail="Static file not found")
     index_file = FRONTEND_DIST / "index.html"
     if index_file.is_file():
         return frontend_file_response(index_file)
