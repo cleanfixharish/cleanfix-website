@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Response
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +16,8 @@ from models.fulfillment import AssignmentOffer, ManagedProviderProfile, Provider
 from models.jobs import Jobs
 from schemas.auth import UserResponse
 from services.fulfillment import REQUIRED_PILOT_VETTING, FulfillmentConflict, FulfillmentNotFound, FulfillmentService
+from services.pilot_readiness import pilot_readiness_blockers
+from services.provider_vetting import PILOT_PROVIDER_VETTING_ROLES, provider_vetting_is_valid
 
 router = APIRouter(prefix="/api/v1", tags=["fulfillment"])
 
@@ -159,6 +161,19 @@ class VettingCommand(BaseModel):
     requirement_key: str = Field(min_length=1, max_length=100)
     status: str = Field(pattern="^(pending|approved|rejected|expired)$")
     expires_at: datetime | None = None
+    effective_at: datetime
+    reviewer_role: str = Field(pattern="^(identity_verifier|contract_reviewer|accountant|insurance_broker|insurance_adviser)$")
+    evidence_reference: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,119}$")
+    evidence_hash: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+    review_trigger: str = Field(min_length=3, max_length=300)
+    conditions_open: bool = False
+
+    @field_validator("expires_at", "effective_at")
+    @classmethod
+    def dates_are_timezone_aware(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("Vetting dates must include a timezone")
+        return value
 
 
 @router.post("/admin/managed-providers/{profile_id}/vetting", status_code=201)
@@ -167,10 +182,21 @@ async def add_vetting(profile_id: int, data: VettingCommand, response: Response,
     require_fulfillment_setup_enabled()
     if await db.get(ManagedProviderProfile, profile_id) is None:
         raise HTTPException(status_code=404, detail="Provider profile not found")
+    now = datetime.now().astimezone()
+    required_roles = PILOT_PROVIDER_VETTING_ROLES
+    if data.requirement_key not in required_roles or data.reviewer_role not in required_roles[data.requirement_key]:
+        raise HTTPException(status_code=422, detail="Verifier role does not match this vetting requirement")
+    if data.status == "approved" and (data.conditions_open or data.effective_at > now or data.expires_at and data.expires_at <= now):
+        raise HTTPException(status_code=422, detail="Approved vetting must be effective, current, and free of open conditions")
     item = ProviderVettingItem(
         provider_profile_id=profile_id, requirement_key=data.requirement_key.strip().lower(),
         status=data.status, expires_at=data.expires_at, reviewed_by=owner.id,
-        reviewed_at=datetime.now().astimezone(),
+        reviewed_at=now,
+        effective_at=data.effective_at, reviewer_role=data.reviewer_role,
+        evidence_reference=data.evidence_reference, evidence_hash=data.evidence_hash.lower(),
+        scope_version="PILOT-HOME-VISIT-v1",
+        scope_hash="1e7b4e3047f8fe32cd1cc4399ba4df35e810880fc5bdc933599dc09836a8ca81",
+        review_trigger=data.review_trigger.strip(), conditions_open=data.conditions_open,
     )
     db.add(item)
     try:
@@ -190,6 +216,18 @@ class ActivateProviderCommand(BaseModel):
 async def activate_provider(profile_id: int, data: ActivateProviderCommand, response: Response, db: AsyncSession = Depends(get_db), _owner: UserResponse = Depends(get_owner_user)):
     _private(response)
     require_fulfillment_setup_enabled()
+    pilot_blockers = await pilot_readiness_blockers(db, include_runtime=False, include_provider=False, lock=True)
+    if pilot_blockers:
+        raise HTTPException(status_code=409, detail="Pilot approvals must be complete before a provider can be activated")
+    # Serialize provider activation through the singleton pilot row so two
+    # concurrent requests cannot both cross the two-provider boundary.
+    from models.pilot import PilotConfiguration
+    pilot_config = await db.scalar(select(PilotConfiguration).where(PilotConfiguration.id == 1).with_for_update())
+    active_profiles = int(await db.scalar(select(func.count(ManagedProviderProfile.id)).where(
+        ManagedProviderProfile.operational_status == "active",
+    )) or 0)
+    if pilot_config is None or active_profiles >= pilot_config.max_managed_providers:
+        raise HTTPException(status_code=409, detail="Pilot managed-provider cap has been reached")
     profile = await db.scalar(select(ManagedProviderProfile).where(ManagedProviderProfile.id == profile_id).with_for_update())
     if profile is None:
         raise HTTPException(status_code=404, detail="Provider profile not found")
@@ -204,14 +242,7 @@ async def activate_provider(profile_id: int, data: ActivateProviderCommand, resp
         raise HTTPException(status_code=409, detail="Managed-provider relationship is not active")
     verified = await db.scalar(select(func.count(ProviderCapability.id)).where(ProviderCapability.provider_profile_id == profile_id, ProviderCapability.is_verified.is_(True)))
     now = datetime.now().astimezone()
-    approved_required = await db.scalar(select(func.count(func.distinct(ProviderVettingItem.requirement_key))).where(
-        ProviderVettingItem.provider_profile_id == profile_id,
-        ProviderVettingItem.requirement_key.in_(REQUIRED_PILOT_VETTING),
-        ProviderVettingItem.status == "approved",
-        ProviderVettingItem.expires_at.is_(None) |
-        (ProviderVettingItem.expires_at >= now),
-    ))
-    if not verified or int(approved_required or 0) != len(REQUIRED_PILOT_VETTING):
+    if not verified or not await provider_vetting_is_valid(db, profile_id):
         raise HTTPException(status_code=409, detail="Verified capability and all required pilot vetting are required")
     profile.operational_status = "active"
     profile.version += 1

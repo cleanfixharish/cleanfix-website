@@ -10,8 +10,10 @@ from core.database import Base
 from models.bookings import Booking, QuoteEvent
 from models.leads import Leads
 from models.pricing import PriceEstimate, PriceObservation, PricingSource, ServiceQuote
+from models.pilot import PilotTaskClassification
 from routers.quotes import (
     CustomerDecision,
+    canonical_pilot_quote_contract,
     decide_public_quote,
     hash_quote_token,
     set_private_quote_headers,
@@ -49,13 +51,17 @@ def test_private_quote_responses_disable_caching_and_referrers():
 
 
 @pytest.mark.asyncio
-async def test_acceptance_atomically_creates_one_booking_and_one_decision():
+async def test_acceptance_atomically_creates_one_booking_and_one_decision(monkeypatch):
+    async def active_pilot(_db, **_kwargs):
+        return []
+    monkeypatch.setattr("routers.quotes.pilot_readiness_blockers", active_pilot)
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     tables = [
         Leads.__table__,
         PricingSource.__table__,
         PriceObservation.__table__,
         PriceEstimate.__table__,
+        PilotTaskClassification.__table__,
         ServiceQuote.__table__,
         Booking.__table__,
         QuoteEvent.__table__,
@@ -71,14 +77,26 @@ async def test_acceptance_atomically_creates_one_booking_and_one_decision():
         lead = Leads(customer_name="Synthetic Customer", phone="000", status="new")
         db.add(lead)
         await db.flush()
+        classification = PilotTaskClassification(
+            lead_id=lead.id, task_key="mounting_under_5kg", measured_weight_kg=Decimal("4.5"),
+            safety_confirmations="[]", scope_version="PILOT-HOME-VISIT-v1",
+            scope_hash="1e7b4e3047f8fe32cd1cc4399ba4df35e810880fc5bdc933599dc09836a8ca81",
+            reason="Synthetic owner-reviewed classification", classified_by="owner",
+        )
+        db.add(classification)
+        await db.flush()
+        scope, exclusions, terms = canonical_pilot_quote_contract(classification)
         quote = ServiceQuote(
             estimate_id=1,
             lead_id=lead.id,
+            pilot_task_classification_id=classification.id,
+            pilot_task_key=classification.task_key,
+            pilot_scope_hash=classification.scope_hash,
             quoted_total=Decimal("500"),
             deposit_required=Decimal("100"),
-            scope="Synthetic bounded service scope",
-            exclusions="No additional work",
-            terms="Synthetic test terms",
+            scope=scope,
+            exclusions=exclusions,
+            terms=terms,
             status="published",
             public_token_hash=hash_quote_token(token),
             expires_at=datetime.now(timezone.utc) + timedelta(days=1),

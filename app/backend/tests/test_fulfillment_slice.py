@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import HTTPException, Response
@@ -16,6 +17,7 @@ from models.fulfillment import AssignmentOffer, AssignmentOfferEvent, ManagedPro
 from models.jobs import Jobs
 from models.leads import Leads
 from models.pricing import ServiceQuote  # registers the booking/job FK target
+from models.pilot import PilotApprovalGate, PilotConfiguration, PilotTaskClassification
 from routers.fulfillment import (
     _private, list_assignment_offers, list_provider_profiles,
     require_fulfillment_enabled, require_fulfillment_setup_enabled,
@@ -23,6 +25,7 @@ from routers.fulfillment import (
 from routers.jobs import JobData, create_job
 from schemas.auth import UserResponse
 from services.fulfillment import REQUIRED_PILOT_VETTING, FulfillmentConflict, FulfillmentNotFound, FulfillmentService, provider_is_eligible
+from services.pilot_readiness import PILOT_SCOPE_HASH, PILOT_SCOPE_VERSION, REQUIRED_GATES
 
 
 def test_fulfillment_constraints_enforce_one_job_and_one_open_offer():
@@ -104,14 +107,21 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
         BusinessRelationship.__table__, ManagedProviderProfile.__table__,
         ProviderCapability.__table__, ProviderVettingItem.__table__, Jobs.__table__,
         AssignmentOffer.__table__, AssignmentOfferEvent.__table__, ServiceLocation.__table__,
-        ServiceLocationEvent.__table__,
+            ServiceLocationEvent.__table__,
+                PilotConfiguration.__table__, PilotApprovalGate.__table__,
+                PilotTaskClassification.__table__,
     ]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     now = datetime.now(timezone.utc)
+    local_candidate = (now.astimezone(ZoneInfo("Asia/Jerusalem")) + timedelta(days=1)).replace(hour=11, minute=0, second=0, microsecond=0)
+    while local_candidate.weekday() > 3:
+        local_candidate += timedelta(days=1)
+    scheduled_start = local_candidate.astimezone(timezone.utc)
+    scheduled_end = scheduled_start + timedelta(hours=2)
     async with sessions() as db:
-        lead = Leads(customer_name="Synthetic Customer", phone="000", area="harish", service_requested="cleaning")
+        lead = Leads(customer_name="Synthetic Customer", phone="000", area="harish", service_requested="mounting_under_5kg")
         relationship = BusinessRelationship(user_id="provider-user", relationship_type="managed_provider", status="active")
         db.add_all([lead, relationship])
         await db.flush()
@@ -126,9 +136,39 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
         )
         db.add_all([booking, profile])
         await db.flush()
-        db.add(ProviderCapability(provider_profile_id=profile.id, service_key="cleaning", service_area="harish", is_verified=True))
+        db.add(PilotTaskClassification(
+            lead_id=lead.id, task_key="mounting_under_5kg", service_area="harish",
+            measured_weight_kg=Decimal("4.5"),
+            safety_confirmations='["customer_supplied_item","feet_on_floor","fixing_method_verified"]',
+            scope_version=PILOT_SCOPE_VERSION, scope_hash=PILOT_SCOPE_HASH,
+            reason="Synthetic owner-reviewed classification", classified_by="owner",
+        ))
+        db.add(PilotConfiguration(
+            id=1, scope_version=PILOT_SCOPE_VERSION, scope_hash=PILOT_SCOPE_HASH,
+            company_legal_name="Synthetic Registered Business",
+            encrypted_company_registration_id="test-ciphertext",
+            entity_or_dealer_type="licensed_dealer", identifier_type="israeli_business_number",
+        ))
         db.add_all([
-            ProviderVettingItem(provider_profile_id=profile.id, requirement_key=key, status="approved", expires_at=now + timedelta(days=30))
+            PilotApprovalGate(
+                gate_key=key, status="approved", scope_version=PILOT_SCOPE_VERSION,
+                scope_hash=PILOT_SCOPE_HASH, reviewer_name="Synthetic Reviewer",
+                reviewer_role="system_verifier" if key.startswith("SYSTEM_") else "israeli_counsel" if key.startswith("LEGAL_") else "israeli_accountant" if key.startswith("ACCOUNT_") else "insurance_broker", evidence_reference=f"TEST-{key}",
+                evidence_hash="a" * 64, reviewed_at=now, effective_at=now,
+                review_trigger="Review on scope change", conditions_open=False,
+            ) for key in REQUIRED_GATES
+        ])
+        db.add(ProviderCapability(provider_profile_id=profile.id, service_key="mounting_under_5kg", service_area="harish", is_verified=True))
+        db.add_all([
+            ProviderVettingItem(
+                provider_profile_id=profile.id, requirement_key=key, status="approved",
+                expires_at=now + timedelta(days=30), reviewed_by="owner",
+                reviewed_at=now, effective_at=now,
+                reviewer_role="identity_verifier" if key == "identity_check" else "contract_reviewer" if key == "provider_agreement" else "accountant" if key == "invoice_capability" else "insurance_broker",
+                evidence_reference=f"PROVIDER-{key}", evidence_hash="b" * 64,
+                scope_version=PILOT_SCOPE_VERSION, scope_hash=PILOT_SCOPE_HASH,
+                review_trigger="Review on expiry or scope change", conditions_open=False,
+            )
             for key in REQUIRED_PILOT_VETTING
         ])
         await db.commit()
@@ -140,8 +180,8 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
         insurance.expires_at = now + timedelta(hours=12)
         await db.commit()
         assert not await provider_is_eligible(
-            db, profile.id, "cleaning", "harish",
-            required_through=now + timedelta(days=1, hours=2),
+            db, profile.id, "mounting_under_5kg", "harish",
+            required_through=scheduled_end,
         )
         insurance.expires_at = now + timedelta(days=30)
         await db.commit()
@@ -155,38 +195,38 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
             )
         with pytest.raises(FulfillmentConflict):
             await service.confirm_booking_schedule(
-                booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=13),
+                booking.id, start=scheduled_start, end=scheduled_start + timedelta(hours=13),
                 timezone_name="Asia/Jerusalem", expected_version=1,
                 actor_id="owner", idempotency_key="long-schedule-key",
             )
         with pytest.raises(FulfillmentConflict):
             await service.confirm_booking_schedule(
-                booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=2),
+                booking.id, start=scheduled_start, end=scheduled_end,
                 timezone_name="UTC", expected_version=1,
                 actor_id="owner", idempotency_key="timezone-schedule-key",
             )
         booking, job = await service.confirm_booking_schedule(
-            booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=2),
+            booking.id, start=scheduled_start, end=scheduled_end,
             timezone_name="Asia/Jerusalem",
             expected_version=1, actor_id="owner", idempotency_key="schedule-key-1",
         )
         replay_booking, replay_job = await service.confirm_booking_schedule(
-            booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=2),
+            booking.id, start=scheduled_start, end=scheduled_end,
             timezone_name="Asia/Jerusalem",
             expected_version=1, actor_id="owner", idempotency_key="schedule-key-1",
         )
         assert booking.status == "confirmed"
         assert replay_booking.id == booking.id and replay_job.id == job.id
-        assert job.service_key == "cleaning" and job.service_area == "harish"
+        assert job.service_key == "mounting_under_5kg" and job.service_area == "harish"
         with pytest.raises(FulfillmentConflict):
             await service.confirm_booking_schedule(
-                booking.id, start=now + timedelta(days=1), end=now + timedelta(days=1, hours=3),
+                booking.id, start=scheduled_start, end=scheduled_start + timedelta(hours=3),
                 timezone_name="Asia/Jerusalem", expected_version=1,
                 actor_id="owner", idempotency_key="schedule-key-1",
             )
         assert await provider_is_eligible(
-            db, profile.id, "cleaning", "harish",
-            required_through=now + timedelta(days=1, hours=2),
+            db, profile.id, "mounting_under_5kg", "harish",
+            required_through=scheduled_end,
         )
 
         location = await service.set_service_location(
@@ -266,11 +306,11 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
         assert {event.actor_role for event in access_events} == {"owner", "managed_provider"}
         profile.operational_status = "paused"
         await db.commit()
-        with pytest.raises(FulfillmentNotFound):
+        with pytest.raises(FulfillmentConflict):
             await service.provider_access_service_location(
                 job.id, relationship_id=relationship.id, actor_id="provider-user",
             )
-        with pytest.raises(FulfillmentNotFound):
+        with pytest.raises(FulfillmentConflict):
             await service.provider_advance_job(
                 job.id, relationship_id=relationship.id, command="on_the_way",
                 expected_version=job.version, actor_id="provider-user",

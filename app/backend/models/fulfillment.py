@@ -52,6 +52,14 @@ class ProviderVettingItem(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)
     reviewed_by = Column(String(255), nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    effective_at = Column(DateTime(timezone=True), nullable=True)
+    reviewer_role = Column(String(80), nullable=True)
+    evidence_reference = Column(String(120), nullable=True)
+    evidence_hash = Column(String(64), nullable=True)
+    scope_version = Column(String(80), nullable=True)
+    scope_hash = Column(String(64), nullable=True)
+    review_trigger = Column(String(300), nullable=True)
+    conditions_open = Column(Boolean, nullable=False, default=False, server_default="false")
 
 
 class AssignmentOffer(Base):

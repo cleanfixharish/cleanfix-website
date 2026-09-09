@@ -54,14 +54,12 @@ def test_quote_requires_future_expiry_and_valid_deposit():
             estimate_id=1,
             quoted_total=Decimal("500"),
             deposit_required=Decimal("600"),
-            scope="Mount two shelves and protect the work area.",
             expires_at=datetime.now(timezone.utc) + timedelta(days=1),
         )
     with pytest.raises(ValidationError):
         QuoteCreate(
             estimate_id=1,
             quoted_total=Decimal("500"),
-            scope="Mount two shelves and protect the work area.",
             expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
         )
 

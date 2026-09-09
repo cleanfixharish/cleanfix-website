@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Required independently of the feature flags before private service
     # locations can be written or revealed. There is deliberately no fallback.
     service_location_encryption_key: str = ""
+    # Dedicated key for the write-only legal identifier. Never reuse a key
+    # whose rotation or access policy belongs to another data class.
+    pilot_identity_encryption_key: str = ""
 
     # Server
     host: str = "0.0.0.0"

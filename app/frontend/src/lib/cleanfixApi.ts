@@ -341,6 +341,26 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async getPilotReadiness() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/pilot-readiness`);
+    return response.data;
+  },
+
+  async updatePilotConfiguration(data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/admin/pilot-readiness/configuration`, data);
+    return response.data;
+  },
+
+  async updatePilotGate(gateKey: string, data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/admin/pilot-readiness/gates/${encodeURIComponent(gateKey)}`, data);
+    return response.data;
+  },
+
+  async createPilotTaskClassification(data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/pilot-readiness/task-classifications`, data);
+    return response.data;
+  },
+
   async addProviderCapability(profileId: number, data: Record<string, unknown>) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/capabilities`, data);
     return response.data;

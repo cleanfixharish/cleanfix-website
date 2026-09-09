@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -19,6 +20,10 @@ from models.fulfillment import (
 from models.job_ledger import JobEvent
 from models.jobs import Jobs
 from models.leads import Leads
+from services.pilot_readiness import ALLOWED_TASK_KEYS, require_pilot_dispatch_ready
+from models.pilot import PilotConfiguration, PilotTaskClassification
+from services.pilot_readiness import PILOT_SCOPE_HASH, PILOT_SCOPE_VERSION
+from services.provider_vetting import PILOT_PROVIDER_VETTING_KEYS, provider_vetting_is_valid
 
 
 class FulfillmentConflict(ValueError):
@@ -29,18 +34,18 @@ class FulfillmentNotFound(ValueError):
     pass
 
 
-REQUIRED_PILOT_VETTING = frozenset({
-    "identity_check", "provider_agreement", "invoice_capability", "insurance",
-})
+REQUIRED_PILOT_VETTING = PILOT_PROVIDER_VETTING_KEYS
 
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _require_enabled() -> None:
-    if not settings.fulfillment_enabled:
-        raise FulfillmentConflict("Fulfillment is not enabled")
+async def _require_enabled(db: AsyncSession) -> None:
+    try:
+        await require_pilot_dispatch_ready(db)
+    except RuntimeError as exc:
+        raise FulfillmentConflict(str(exc)) from exc
 
 
 def _aware(value: datetime) -> datetime:
@@ -58,6 +63,11 @@ def _canonical_decimal(value: Decimal) -> str:
 def _hash(payload: dict) -> str:
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def _require_pilot_job_scope(job: Jobs) -> None:
+    if job.service_key not in ALLOWED_TASK_KEYS or job.service_area != "harish":
+        raise FulfillmentConflict("Job is outside the approved first paid pilot scope")
 
 
 async def _append_job_event(
@@ -110,14 +120,7 @@ async def provider_is_eligible(
     ))
     if capability is None:
         return False
-    approved_required = await db.scalar(select(func.count(func.distinct(ProviderVettingItem.requirement_key))).where(
-        ProviderVettingItem.provider_profile_id == profile_id,
-        ProviderVettingItem.requirement_key.in_(REQUIRED_PILOT_VETTING),
-        ProviderVettingItem.status == "approved",
-        ProviderVettingItem.expires_at.is_(None) |
-        (ProviderVettingItem.expires_at >= required_through),
-    ))
-    return int(approved_required or 0) == len(REQUIRED_PILOT_VETTING)
+    return await provider_vetting_is_valid(db, profile_id, required_through=required_through)
 
 
 async def _operational_profile(db: AsyncSession, relationship_id: int, profile_id: int | None = None):
@@ -145,7 +148,7 @@ class FulfillmentService:
         self, booking_id: int, *, exact_address: str, access_instructions: str | None,
         expected_version: int, actor_id: str, idempotency_key: str,
     ) -> ServiceLocation:
-        _require_enabled()
+        await _require_enabled(self.db)
         address = exact_address.strip()
         instructions = (access_instructions or "").strip() or None
         command_hash = _hash({
@@ -207,7 +210,7 @@ class FulfillmentService:
     async def owner_access_service_location(
         self, booking_id: int, *, actor_id: str,
     ) -> tuple[ServiceLocation, dict[str, str | None]]:
-        _require_enabled()
+        await _require_enabled(self.db)
         location = await self.db.scalar(select(ServiceLocation).where(ServiceLocation.booking_id == booking_id))
         if location is None:
             raise FulfillmentNotFound("Service location not found")
@@ -224,7 +227,7 @@ class FulfillmentService:
     async def provider_access_service_location(
         self, job_id: int, *, relationship_id: int, actor_id: str,
     ) -> tuple[ServiceLocation, dict[str, str | None]]:
-        _require_enabled()
+        await _require_enabled(self.db)
         profile = await _operational_profile(self.db, relationship_id)
         job = await self.db.scalar(select(Jobs).where(
             Jobs.id == job_id,
@@ -256,7 +259,7 @@ class FulfillmentService:
         self, booking_id: int, *, start: datetime, end: datetime, timezone_name: str,
         expected_version: int, actor_id: str, idempotency_key: str,
     ) -> tuple[Booking, Jobs]:
-        _require_enabled()
+        await _require_enabled(self.db)
         command_hash = _hash({
             "command": "confirm_booking_schedule", "booking_id": booking_id,
             "start": _canonical_datetime(start), "end": _canonical_datetime(end),
@@ -301,10 +304,37 @@ class FulfillmentService:
         lead = await self.db.get(Leads, booking.lead_id)
         if lead is None:
             raise FulfillmentConflict("Booking customer request no longer exists")
-        service_key = (lead.service_requested or "").strip().lower()
-        service_area = (lead.area or "").strip().lower()
-        if not service_key or not service_area:
-            raise FulfillmentConflict("Customer request must contain an authoritative service and general area")
+        classification = await self.db.scalar(select(PilotTaskClassification).where(
+            PilotTaskClassification.lead_id == lead.id,
+        ))
+        if classification is None:
+            raise FulfillmentConflict("Owner-reviewed pilot task classification is required")
+        if classification.scope_version != PILOT_SCOPE_VERSION or classification.scope_hash != PILOT_SCOPE_HASH:
+            raise FulfillmentConflict("Pilot task classification is stale")
+        service_key = classification.task_key
+        service_area = classification.service_area
+        if service_key not in ALLOWED_TASK_KEYS:
+            raise FulfillmentConflict("Task is outside the approved first paid pilot allowlist")
+        if service_area != "harish":
+            raise FulfillmentConflict("The first paid pilot is limited to Harish")
+        local_zone = ZoneInfo("Asia/Jerusalem")
+        local_start = _aware(start).astimezone(local_zone)
+        local_end = _aware(end).astimezone(local_zone)
+        if local_start.date() != local_end.date() or local_start.weekday() > 3:
+            raise FulfillmentConflict("Pilot work must be scheduled Monday through Thursday")
+        if local_start.strftime("%H:%M") < "09:00" or local_end.strftime("%H:%M") > "17:00":
+            raise FulfillmentConflict("Pilot work must stay within 09:00–17:00 Asia/Jerusalem")
+        week_start_local = (local_start - timedelta(days=local_start.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        week_end_local = week_start_local + timedelta(days=7)
+        # Serialize all bookings for the shared weekly pilot quota. Locking only
+        # the booking row would let concurrent bookings both pass the count.
+        config = await self.db.scalar(select(PilotConfiguration).where(PilotConfiguration.id == 1).with_for_update())
+        scheduled_count = int(await self.db.scalar(select(func.count(Jobs.id)).where(
+            Jobs.booking_id.is_not(None), Jobs.scheduled_for >= week_start_local.astimezone(timezone.utc),
+            Jobs.scheduled_for < week_end_local.astimezone(timezone.utc),
+        )) or 0)
+        if config is None or scheduled_count >= config.weekly_job_cap:
+            raise FulfillmentConflict("Pilot weekly job cap has been reached")
         existing = await self.db.scalar(select(Jobs).where(Jobs.booking_id == booking_id))
         if existing is not None:
             raise FulfillmentConflict("Booking already has a job")
@@ -352,7 +382,7 @@ class FulfillmentService:
         response_deadline: datetime, instructions: str | None,
         expected_job_version: int, actor_id: str, idempotency_key: str,
     ) -> AssignmentOffer:
-        _require_enabled()
+        await _require_enabled(self.db)
         command_hash = _hash({
             "command": "create_assignment_offer", "job_id": job_id,
             "provider_profile_id": provider_profile_id, "provider_payout": _canonical_decimal(provider_payout),
@@ -373,6 +403,7 @@ class FulfillmentService:
         job = await self.db.scalar(select(Jobs).where(Jobs.id == job_id).with_for_update())
         if job is None:
             raise FulfillmentNotFound("Job not found")
+        _require_pilot_job_scope(job)
         if job.version != expected_job_version:
             raise FulfillmentConflict("Job was changed; refresh before retrying")
         if job.status != "unassigned" or not job.service_key or not job.service_area or not job.scheduled_for or not job.confirmed_window_end:
@@ -418,7 +449,7 @@ class FulfillmentService:
         expected_version: int, actor_id: str, idempotency_key: str,
         decline_reason: str | None = None,
     ) -> AssignmentOffer:
-        _require_enabled()
+        await _require_enabled(self.db)
         source = "provider_offer_command"
         command_hash = _hash({
             "command": f"provider_offer_{decision}", "offer_id": offer_id,
@@ -456,6 +487,7 @@ class FulfillmentService:
         if decision == "declined" and not (decline_reason or "").strip():
             raise FulfillmentConflict("A decline reason is required")
         job = await self.db.scalar(select(Jobs).where(Jobs.id == offer.job_id).with_for_update())
+        _require_pilot_job_scope(job)
         previous = offer.status
         now = _utcnow()
         if decision == "accepted":
@@ -491,7 +523,7 @@ class FulfillmentService:
         self, offer_id: int, *, expected_offer_version: int,
         expected_job_version: int, actor_id: str, idempotency_key: str,
     ) -> tuple[AssignmentOffer, Jobs]:
-        _require_enabled()
+        await _require_enabled(self.db)
         source = "owner_assignment_command"
         command_hash = _hash({
             "command": "confirm_assignment", "offer_id": offer_id,
@@ -512,6 +544,7 @@ class FulfillmentService:
         if offer is None:
             raise FulfillmentNotFound("Offer not found")
         job = await self.db.scalar(select(Jobs).where(Jobs.id == offer.job_id).with_for_update())
+        _require_pilot_job_scope(job)
         if offer.version != expected_offer_version or job.version != expected_job_version:
             raise FulfillmentConflict("Offer or job was changed; refresh before retrying")
         if offer.status != "accepted" or job.status != "assigned" or job.managed_provider_profile_id != offer.provider_profile_id:
@@ -545,7 +578,7 @@ class FulfillmentService:
         self, job_id: int, *, relationship_id: int, command: str,
         expected_version: int, actor_id: str, idempotency_key: str,
     ) -> Jobs:
-        _require_enabled()
+        await _require_enabled(self.db)
         transitions = {
             "on_the_way": ("confirmed", "on_the_way", "on_the_way_at"),
             "arrived": ("on_the_way", "arrived", "arrived_at"),
@@ -566,6 +599,7 @@ class FulfillmentService:
             replay_job = await self.db.get(Jobs, job_id)
             if replay_profile is None or replay_job is None or replay_job.managed_provider_profile_id != replay_profile.id:
                 raise FulfillmentNotFound("Job not found")
+            _require_pilot_job_scope(replay_job)
             replay_assignment = await self.db.scalar(select(AssignmentOffer.id).where(
                 AssignmentOffer.job_id == job_id,
                 AssignmentOffer.provider_profile_id == replay_profile.id,
@@ -585,6 +619,7 @@ class FulfillmentService:
         job = await self.db.scalar(select(Jobs).where(Jobs.id == job_id).with_for_update())
         if profile is None or job is None or job.managed_provider_profile_id != profile.id:
             raise FulfillmentNotFound("Job not found")
+        _require_pilot_job_scope(job)
         confirmed_offer = await self.db.scalar(select(AssignmentOffer).where(
             AssignmentOffer.job_id == job_id,
             AssignmentOffer.provider_profile_id == profile.id,
