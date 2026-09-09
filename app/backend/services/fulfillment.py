@@ -24,6 +24,7 @@ from services.pilot_readiness import ALLOWED_TASK_KEYS, require_pilot_dispatch_r
 from models.pilot import PilotConfiguration, PilotTaskClassification
 from services.pilot_readiness import PILOT_SCOPE_HASH, PILOT_SCOPE_VERSION
 from services.provider_vetting import PILOT_PROVIDER_VETTING_KEYS, provider_vetting_is_valid
+from services.provider_capability import current_provider_capability_decision, provider_capability_is_valid
 
 
 class FulfillmentConflict(ValueError):
@@ -70,6 +71,21 @@ def _require_pilot_job_scope(job: Jobs) -> None:
         raise FulfillmentConflict("Job is outside the approved first paid pilot scope")
 
 
+def _offer_authorization_matches(offer: AssignmentOffer, decision, job: Jobs) -> bool:
+    """Verify the mutable offer projection against its authoritative decision and job."""
+    return bool(
+        decision is not None
+        and decision.id == offer.capability_decision_id
+        and decision.provider_profile_id == offer.provider_profile_id
+        and decision.service_key == offer.service_key == job.service_key
+        and decision.service_area == offer.service_area == job.service_area
+        and decision.task_definition_hash == offer.capability_task_definition_hash
+        and decision.evidence_hash == offer.capability_evidence_hash
+        and _canonical_datetime(offer.window_start) == _canonical_datetime(job.scheduled_for)
+        and _canonical_datetime(offer.window_end) == _canonical_datetime(job.confirmed_window_end)
+    )
+
+
 async def _append_job_event(
     db: AsyncSession, job: Jobs, *, event_type: str, actor_id: str,
     actor_role: str, source: str, idempotency_key: str,
@@ -109,16 +125,11 @@ async def provider_is_eligible(
             BusinessRelationship.relationship_type == "managed_provider",
             BusinessRelationship.status == "active",
         )
+        .with_for_update()
     )
     if profile is None:
         return False
-    capability = await db.scalar(select(ProviderCapability.id).where(
-        ProviderCapability.provider_profile_id == profile_id,
-        ProviderCapability.service_key == service_key,
-        ProviderCapability.service_area == service_area,
-        ProviderCapability.is_verified.is_(True),
-    ))
-    if capability is None:
+    if service_area != "harish" or not await provider_capability_is_valid(db, profile_id, service_key, required_through=required_through):
         return False
     return await provider_vetting_is_valid(db, profile_id, required_through=required_through)
 
@@ -137,7 +148,16 @@ async def _operational_profile(db: AsyncSession, relationship_id: int, profile_i
     )
     if profile_id is not None:
         query = query.where(ManagedProviderProfile.id == profile_id)
-    return await db.scalar(query)
+    return await db.scalar(query.with_for_update())
+
+
+async def _locked_provider_profile(db: AsyncSession, profile_id: int) -> ManagedProviderProfile | None:
+    """Serialize dispatch commands with capability approval and emergency stop."""
+    return await db.scalar(
+        select(ManagedProviderProfile)
+        .where(ManagedProviderProfile.id == profile_id)
+        .with_for_update()
+    )
 
 
 class FulfillmentService:
@@ -383,23 +403,41 @@ class FulfillmentService:
         expected_job_version: int, actor_id: str, idempotency_key: str,
     ) -> AssignmentOffer:
         await _require_enabled(self.db)
-        command_hash = _hash({
+        command_material = {
             "command": "create_assignment_offer", "job_id": job_id,
             "provider_profile_id": provider_profile_id, "provider_payout": _canonical_decimal(provider_payout),
             "currency": "ILS", "response_deadline": _canonical_datetime(response_deadline),
             "instructions": instructions, "expected_job_version": expected_job_version,
             "actor_id": actor_id,
-        })
+        }
         replay = await self.db.scalar(select(AssignmentOfferEvent).where(
             AssignmentOfferEvent.source == "owner_offer_command",
             AssignmentOfferEvent.idempotency_key == idempotency_key,
         ))
         if replay:
-            if replay.command_hash != command_hash:
+            replay_offer = await self.db.get(AssignmentOffer, replay.offer_id)
+            if replay_offer is None:
+                raise FulfillmentConflict("Recorded offer no longer exists")
+            replay_hash = _hash({
+                **command_material,
+                "service_key": replay_offer.service_key,
+                "service_area": replay_offer.service_area,
+                "window_start": _canonical_datetime(replay_offer.window_start),
+                "window_end": _canonical_datetime(replay_offer.window_end),
+                "capability_decision_id": replay_offer.capability_decision_id,
+                "capability_task_definition_hash": replay_offer.capability_task_definition_hash,
+                "capability_evidence_hash": replay_offer.capability_evidence_hash,
+            })
+            if replay.command_hash != replay_hash:
                 raise FulfillmentConflict("Idempotency key payload does not match the recorded command")
             if replay.job_id != job_id or replay.event_type != "offer_created":
                 raise FulfillmentConflict("Idempotency key was used for another command")
-            return await self.db.get(AssignmentOffer, replay.offer_id)
+            return replay_offer
+        preview_job = await self.db.get(Jobs, job_id)
+        if preview_job is None:
+            raise FulfillmentNotFound("Job not found")
+        if await _locked_provider_profile(self.db, provider_profile_id) is None:
+            raise FulfillmentConflict("Provider is not currently eligible for this job")
         job = await self.db.scalar(select(Jobs).where(Jobs.id == job_id).with_for_update())
         if job is None:
             raise FulfillmentNotFound("Job not found")
@@ -415,6 +453,19 @@ class FulfillmentService:
             required_through=job.confirmed_window_end,
         ):
             raise FulfillmentConflict("Provider is not currently eligible for this job")
+        capability_decision = await current_provider_capability_decision(self.db, provider_profile_id, job.service_key)
+        if capability_decision is None:
+            raise FulfillmentConflict("Provider capability evidence is missing")
+        command_hash = _hash({
+            **command_material,
+            "service_key": job.service_key,
+            "service_area": job.service_area,
+            "window_start": _canonical_datetime(job.scheduled_for),
+            "window_end": _canonical_datetime(job.confirmed_window_end),
+            "capability_decision_id": capability_decision.id,
+            "capability_task_definition_hash": capability_decision.task_definition_hash,
+            "capability_evidence_hash": capability_decision.evidence_hash,
+        })
         open_offer = await self.db.scalar(select(AssignmentOffer.id).where(
             AssignmentOffer.job_id == job_id,
             AssignmentOffer.status.in_(("offered", "accepted")),
@@ -424,6 +475,9 @@ class FulfillmentService:
         sequence = int(await self.db.scalar(select(func.coalesce(func.max(AssignmentOffer.sequence_number), 0)).where(AssignmentOffer.job_id == job_id)) or 0) + 1
         offer = AssignmentOffer(
             job_id=job_id, provider_profile_id=provider_profile_id,
+            capability_decision_id=capability_decision.id,
+            capability_task_definition_hash=capability_decision.task_definition_hash,
+            capability_evidence_hash=capability_decision.evidence_hash,
             sequence_number=sequence, provider_payout=provider_payout,
             service_key=job.service_key, service_area=job.service_area,
             window_start=job.scheduled_for, window_end=job.confirmed_window_end,
@@ -433,6 +487,11 @@ class FulfillmentService:
         await self.db.flush()
         self.db.add(AssignmentOfferEvent(
             offer_id=offer.id, job_id=job_id, event_type="offer_created",
+            capability_decision_id=capability_decision.id,
+            capability_task_definition_hash=capability_decision.task_definition_hash,
+            capability_evidence_hash=capability_decision.evidence_hash,
+            service_key_snapshot=job.service_key, service_area_snapshot=job.service_area,
+            window_start_snapshot=job.scheduled_for, window_end_snapshot=job.confirmed_window_end,
             actor_id=actor_id, actor_role="owner", previous_status=None,
             new_status="offered", source="owner_offer_command", idempotency_key=idempotency_key,
             command_hash=command_hash,
@@ -472,11 +531,12 @@ class FulfillmentService:
             if replay.offer_id != offer_id or replay.event_type != f"offer_{decision}":
                 raise FulfillmentConflict("Idempotency key was used for another command")
             return replay_offer
-        offer = await self.db.scalar(select(AssignmentOffer).where(AssignmentOffer.id == offer_id).with_for_update())
-        if offer is None:
+        preview_offer = await self.db.get(AssignmentOffer, offer_id)
+        if preview_offer is None:
             raise FulfillmentNotFound("Offer not found")
-        profile = await _operational_profile(self.db, relationship_id, offer.provider_profile_id)
-        if profile is None:
+        profile = await _operational_profile(self.db, relationship_id, preview_offer.provider_profile_id)
+        offer = await self.db.scalar(select(AssignmentOffer).where(AssignmentOffer.id == offer_id).with_for_update())
+        if offer is None or profile is None or offer.provider_profile_id != profile.id:
             raise FulfillmentNotFound("Offer not found")
         if offer.version != expected_version:
             raise FulfillmentConflict("Offer was changed; refresh before retrying")
@@ -498,6 +558,9 @@ class FulfillmentService:
                 required_through=job.confirmed_window_end,
             ):
                 raise FulfillmentConflict("Provider is no longer eligible for this job")
+            current_capability = await current_provider_capability_decision(self.db, profile.id, job.service_key)
+            if not _offer_authorization_matches(offer, current_capability, job):
+                raise FulfillmentConflict("Provider capability decision changed; issue a new offer")
             offer.status, offer.accepted_at = "accepted", now
             job.status = "assigned"
             job.managed_provider_profile_id = profile.id
@@ -508,6 +571,11 @@ class FulfillmentService:
         offer.version += 1
         self.db.add(AssignmentOfferEvent(
             offer_id=offer.id, job_id=offer.job_id, event_type=f"offer_{decision}",
+            capability_decision_id=offer.capability_decision_id,
+            capability_task_definition_hash=offer.capability_task_definition_hash,
+            capability_evidence_hash=offer.capability_evidence_hash,
+            service_key_snapshot=offer.service_key, service_area_snapshot=offer.service_area,
+            window_start_snapshot=offer.window_start, window_end_snapshot=offer.window_end,
             actor_id=actor_id, actor_role="managed_provider", previous_status=previous,
             new_status=offer.status, source=source, idempotency_key=idempotency_key,
             command_hash=command_hash,
@@ -540,8 +608,13 @@ class FulfillmentService:
             if replay.offer_id != offer_id or replay.event_type != "assignment_confirmed":
                 raise FulfillmentConflict("Idempotency key was used for another command")
             return await self.db.get(AssignmentOffer, offer_id), await self.db.get(Jobs, replay.job_id)
+        preview_offer = await self.db.get(AssignmentOffer, offer_id)
+        if preview_offer is None:
+            raise FulfillmentNotFound("Offer not found")
+        if await _locked_provider_profile(self.db, preview_offer.provider_profile_id) is None:
+            raise FulfillmentConflict("Provider is no longer eligible for this job")
         offer = await self.db.scalar(select(AssignmentOffer).where(AssignmentOffer.id == offer_id).with_for_update())
-        if offer is None:
+        if offer is None or offer.provider_profile_id != preview_offer.provider_profile_id:
             raise FulfillmentNotFound("Offer not found")
         job = await self.db.scalar(select(Jobs).where(Jobs.id == offer.job_id).with_for_update())
         _require_pilot_job_scope(job)
@@ -554,6 +627,9 @@ class FulfillmentService:
             required_through=job.confirmed_window_end,
         ):
             raise FulfillmentConflict("Provider is no longer eligible for this job")
+        current_capability = await current_provider_capability_decision(self.db, offer.provider_profile_id, job.service_key)
+        if not _offer_authorization_matches(offer, current_capability, job):
+            raise FulfillmentConflict("Provider capability decision changed; issue a new offer")
         previous = offer.status
         now = _utcnow()
         offer.status, offer.confirmed_at = "confirmed", now
@@ -562,6 +638,11 @@ class FulfillmentService:
         job.version += 1
         self.db.add(AssignmentOfferEvent(
             offer_id=offer.id, job_id=job.id, event_type="assignment_confirmed",
+            capability_decision_id=offer.capability_decision_id,
+            capability_task_definition_hash=offer.capability_task_definition_hash,
+            capability_evidence_hash=offer.capability_evidence_hash,
+            service_key_snapshot=offer.service_key, service_area_snapshot=offer.service_area,
+            window_start_snapshot=offer.window_start, window_end_snapshot=offer.window_end,
             actor_id=actor_id, actor_role="owner", previous_status=previous,
             new_status="confirmed", source=source, idempotency_key=idempotency_key,
             command_hash=command_hash,
@@ -600,12 +681,13 @@ class FulfillmentService:
             if replay_profile is None or replay_job is None or replay_job.managed_provider_profile_id != replay_profile.id:
                 raise FulfillmentNotFound("Job not found")
             _require_pilot_job_scope(replay_job)
-            replay_assignment = await self.db.scalar(select(AssignmentOffer.id).where(
+            replay_assignment = await self.db.scalar(select(AssignmentOffer).where(
                 AssignmentOffer.job_id == job_id,
                 AssignmentOffer.provider_profile_id == replay_profile.id,
                 AssignmentOffer.status == "confirmed",
             ))
-            if replay_assignment is None or not await provider_is_eligible(
+            replay_capability = await current_provider_capability_decision(self.db, replay_profile.id, replay_job.service_key)
+            if replay_assignment is None or not _offer_authorization_matches(replay_assignment, replay_capability, replay_job) or not await provider_is_eligible(
                 self.db, replay_profile.id, replay_job.service_key, replay_job.service_area,
                 required_through=replay_job.confirmed_window_end,
             ):
@@ -632,6 +714,9 @@ class FulfillmentService:
             required_through=job.confirmed_window_end,
         ):
             raise FulfillmentNotFound("Job not found")
+        current_capability = await current_provider_capability_decision(self.db, profile.id, job.service_key)
+        if not _offer_authorization_matches(confirmed_offer, current_capability, job):
+            raise FulfillmentNotFound("Job not found")
         if job.version != expected_version:
             raise FulfillmentConflict("Job was changed; refresh before retrying")
         if job.status != previous_required:
@@ -642,6 +727,11 @@ class FulfillmentService:
         job.version += 1
         self.db.add(AssignmentOfferEvent(
             offer_id=confirmed_offer.id, job_id=job.id, event_type=f"provider_{command}",
+            capability_decision_id=confirmed_offer.capability_decision_id,
+            capability_task_definition_hash=confirmed_offer.capability_task_definition_hash,
+            capability_evidence_hash=confirmed_offer.capability_evidence_hash,
+            service_key_snapshot=confirmed_offer.service_key, service_area_snapshot=confirmed_offer.service_area,
+            window_start_snapshot=confirmed_offer.window_start, window_end_snapshot=confirmed_offer.window_end,
             actor_id=actor_id, actor_role="managed_provider", previous_status=previous,
             new_status=new_status, source="provider_job_command", idempotency_key=idempotency_key,
             command_hash=command_hash,

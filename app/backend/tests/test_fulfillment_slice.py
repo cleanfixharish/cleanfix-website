@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+import json
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -13,19 +14,20 @@ from core.private_data_crypto import PrivateDataCryptoError, decrypt_private_pay
 from models.auth import User  # registers the relationship FK target
 from models.bookings import Booking, BookingEvent
 from models.business_relationship import BusinessRelationship
-from models.fulfillment import AssignmentOffer, AssignmentOfferEvent, ManagedProviderProfile, ProviderCapability, ProviderVettingItem, ServiceLocation, ServiceLocationEvent
+from models.fulfillment import AssignmentOffer, AssignmentOfferEvent, ManagedProviderProfile, ProviderCapability, ProviderCapabilityDecision, ProviderVettingItem, ServiceLocation, ServiceLocationEvent
 from models.jobs import Jobs
 from models.leads import Leads
 from models.pricing import ServiceQuote  # registers the booking/job FK target
 from models.pilot import PilotApprovalGate, PilotConfiguration, PilotTaskClassification
 from routers.fulfillment import (
     _private, list_assignment_offers, list_provider_profiles,
-    require_fulfillment_enabled, require_fulfillment_setup_enabled,
+    require_fulfillment_controls_enabled, require_fulfillment_enabled, require_fulfillment_setup_enabled,
 )
 from routers.jobs import JobData, create_job
 from schemas.auth import UserResponse
-from services.fulfillment import REQUIRED_PILOT_VETTING, FulfillmentConflict, FulfillmentNotFound, FulfillmentService, provider_is_eligible
+from services.fulfillment import REQUIRED_PILOT_VETTING, FulfillmentConflict, FulfillmentNotFound, FulfillmentService, _offer_authorization_matches, provider_is_eligible
 from services.pilot_readiness import PILOT_SCOPE_HASH, PILOT_SCOPE_VERSION, REQUIRED_GATES
+from services.pilot_tasks import CAPABILITY_ACKNOWLEDGEMENTS, CAPABILITY_CONFIRMATION_SET_VERSION, TASK_DEFINITION_VERSION, confirmation_set_hash, task_definition_hash
 
 
 def test_fulfillment_constraints_enforce_one_job_and_one_open_offer():
@@ -63,6 +65,8 @@ def test_fulfillment_dispatch_defaults_disabled(monkeypatch):
     with pytest.raises(HTTPException) as setup_exc:
         require_fulfillment_setup_enabled()
     assert setup_exc.value.status_code == 503
+    monkeypatch.setattr("routers.fulfillment.settings.fulfillment_enabled", True)
+    require_fulfillment_controls_enabled()
 
 
 @pytest.mark.parametrize(("raw", "enabled"), [(None, False), ("false", False), ("0", False), ("true", True)])
@@ -105,7 +109,8 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
     tables = [
         Leads.__table__, Booking.__table__, BookingEvent.__table__,
         BusinessRelationship.__table__, ManagedProviderProfile.__table__,
-        ProviderCapability.__table__, ProviderVettingItem.__table__, Jobs.__table__,
+            ProviderCapability.__table__, ProviderVettingItem.__table__, Jobs.__table__,
+            ProviderCapabilityDecision.__table__,
         AssignmentOffer.__table__, AssignmentOfferEvent.__table__, ServiceLocation.__table__,
             ServiceLocationEvent.__table__,
                 PilotConfiguration.__table__, PilotApprovalGate.__table__,
@@ -159,6 +164,19 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
             ) for key in REQUIRED_GATES
         ])
         db.add(ProviderCapability(provider_profile_id=profile.id, service_key="mounting_under_5kg", service_area="harish", is_verified=True))
+        db.add(ProviderCapabilityDecision(
+            provider_profile_id=profile.id, service_key="mounting_under_5kg", service_area="harish",
+            status="eligible_supervised", assessment_method="supervised_trial", assessment_result="passed",
+            evidence_reference="CAPABILITY-TEST", evidence_hash="c" * 64,
+            assessor_name="Owner Supervisor", assessor_role="owner_supervisor", assessed_at=now, effective_at=now,
+            expires_at=now + timedelta(days=30), review_trigger="Review on scope or incident change",
+            conditions_open=False, supervision_only=True, safety_acknowledgements=json.dumps(sorted(CAPABILITY_ACKNOWLEDGEMENTS)),
+            scope_version=PILOT_SCOPE_VERSION, scope_hash=PILOT_SCOPE_HASH,
+            task_definition_hash=task_definition_hash("mounting_under_5kg"), task_definition_version=TASK_DEFINITION_VERSION,
+            confirmation_set_version=CAPABILITY_CONFIRMATION_SET_VERSION, confirmation_set_hash=confirmation_set_hash(),
+            decision_reason="Observed supervised trial passed", recorded_by="owner",
+            idempotency_key="capability-test-key", command_hash="d" * 64,
+        ))
         db.add_all([
             ProviderVettingItem(
                 provider_profile_id=profile.id, requirement_key=key, status="approved",
@@ -256,12 +274,34 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
             response_deadline=now + timedelta(hours=1), instructions=None,
             expected_job_version=1, actor_id="owner", idempotency_key="offer-key-001",
         )
+        created_event = await db.scalar(select(AssignmentOfferEvent).where(
+            AssignmentOfferEvent.offer_id == offer.id,
+            AssignmentOfferEvent.event_type == "offer_created",
+        ))
+        assert created_event.capability_decision_id == offer.capability_decision_id
+        assert created_event.capability_task_definition_hash == offer.capability_task_definition_hash
+        assert created_event.capability_evidence_hash == offer.capability_evidence_hash
+        assert created_event.service_key_snapshot == offer.service_key
+        assert created_event.service_area_snapshot == offer.service_area
+        assert created_event.window_start_snapshot.replace(tzinfo=timezone.utc) == offer.window_start
+        assert created_event.window_end_snapshot.replace(tzinfo=timezone.utc) == offer.window_end
         replay_offer = await service.create_offer(
             job.id, provider_profile_id=profile.id, provider_payout=Decimal("300.00"),
             response_deadline=now + timedelta(hours=1), instructions=None,
             expected_job_version=1, actor_id="owner", idempotency_key="offer-key-001",
         )
         assert replay_offer.id == offer.id
+        original_evidence_hash = offer.capability_evidence_hash
+        offer.capability_evidence_hash = "f" * 64
+        await db.commit()
+        with pytest.raises(FulfillmentConflict, match="Idempotency key payload"):
+            await service.create_offer(
+                job.id, provider_profile_id=profile.id, provider_payout=Decimal("300.00"),
+                response_deadline=now + timedelta(hours=1), instructions=None,
+                expected_job_version=1, actor_id="owner", idempotency_key="offer-key-001",
+            )
+        offer.capability_evidence_hash = original_evidence_hash
+        await db.commit()
         with pytest.raises(FulfillmentConflict):
             await service.create_offer(
                 job.id, provider_profile_id=profile.id, provider_payout=Decimal("301"),
@@ -273,6 +313,31 @@ async def test_guarded_flow_reaches_in_progress_and_replay_is_idempotent(monkeyp
                 offer.id, relationship_id=9999, decision="accepted", expected_version=1,
                 actor_id="intruder", idempotency_key="intruder-key",
             )
+        capability_decision = await db.get(ProviderCapabilityDecision, offer.capability_decision_id)
+        assert _offer_authorization_matches(offer, capability_decision, job)
+        tamper_cases = {
+            "capability_decision_id": offer.capability_decision_id + 1,
+            "capability_task_definition_hash": "e" * 64,
+            "capability_evidence_hash": "f" * 64,
+            "service_key": "cabinet_hardware",
+            "service_area": "outside-pilot",
+            "window_start": offer.window_start + timedelta(minutes=1),
+            "window_end": offer.window_end + timedelta(minutes=1),
+        }
+        for field, tampered in tamper_cases.items():
+            original = getattr(offer, field)
+            setattr(offer, field, tampered)
+            assert not _offer_authorization_matches(offer, capability_decision, job)
+            setattr(offer, field, original)
+        offer.capability_evidence_hash = "f" * 64
+        await db.commit()
+        with pytest.raises(FulfillmentConflict, match="capability decision changed"):
+            await service.provider_decide_offer(
+                offer.id, relationship_id=relationship.id, decision="accepted", expected_version=1,
+                actor_id="provider-user", idempotency_key="accept-tampered-key",
+            )
+        offer.capability_evidence_hash = original_evidence_hash
+        await db.commit()
         offer = await service.provider_decide_offer(
             offer.id, relationship_id=relationship.id, decision="accepted", expected_version=1,
             actor_id="provider-user", idempotency_key="accept-key-01",
