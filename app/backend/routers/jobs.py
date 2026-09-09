@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from core.config import settings
 from dependencies.auth import get_admin_user, get_owner_user
 from schemas.auth import UserResponse
 from services.jobs import DuplicateJobCommand, InvalidJobTransition, JobsService
@@ -47,6 +48,13 @@ class JobUpdate(BaseModel):
 
 class JobResponse(JobData):
     id: int
+    booking_id: Optional[int] = None
+    quote_id: Optional[int] = None
+    managed_provider_profile_id: Optional[int] = None
+    service_key: Optional[str] = None
+    service_area: Optional[str] = None
+    confirmed_window_end: Optional[datetime] = None
+    version: int = 1
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -107,17 +115,20 @@ async def create_job(
     owner: UserResponse = Depends(get_owner_user),
     idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=8, max_length=100),
 ):
-    if data.status != "scheduled":
-        raise HTTPException(status_code=422, detail="New jobs must begin as scheduled")
-    try:
-        return await JobsService(db).create_with_event(
-            data.model_dump(),
-            actor_id=owner.id,
-            actor_role="owner",
-            idempotency_key=idempotency_key,
-        )
-    except DuplicateJobCommand as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if not settings.fulfillment_enabled:
+        if data.status != "scheduled":
+            raise HTTPException(status_code=422, detail="New jobs must begin as scheduled")
+        try:
+            return await JobsService(db).create_with_event(
+                data.model_dump(), actor_id=owner.id, actor_role="owner",
+                idempotency_key=idempotency_key,
+            )
+        except DuplicateJobCommand as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+    raise HTTPException(
+        status_code=405,
+        detail="Manual job creation is retired. Confirm an accepted booking schedule instead.",
+    )
 
 
 @router.put("/{job_id}", response_model=JobResponse)
@@ -127,6 +138,11 @@ async def update_job(
     db: AsyncSession = Depends(get_db),
     _owner: UserResponse = Depends(get_owner_user),
 ):
+    existing = await JobsService(db).get_by_id(job_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if existing.booking_id is not None:
+        raise HTTPException(status_code=405, detail="Booking-backed jobs may only change through fulfillment commands")
     updates = {key: value for key, value in data.model_dump().items() if value is not None}
     job = await JobsService(db).update(job_id, updates)
     if not job:
@@ -141,6 +157,11 @@ async def transition_job(
     db: AsyncSession = Depends(get_db),
     owner: UserResponse = Depends(get_owner_user),
 ):
+    existing = await JobsService(db).get_by_id(job_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if existing.booking_id is not None:
+        raise HTTPException(status_code=405, detail="Booking-backed jobs may only change through fulfillment commands")
     try:
         job = await JobsService(db).transition(
             job_id,

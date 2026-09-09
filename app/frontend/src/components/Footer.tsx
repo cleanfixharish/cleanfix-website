@@ -36,16 +36,10 @@ export default function Footer() {
                 {t.nav.getQuote}
               </Link>
               <Link to="/gardening" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
-                {lang === 'en' ? 'Gardening & landscape design' : 'גינון ועיצוב נוף'}
+                {lang === 'en' ? 'Gardening requests · one local gardener' : 'בקשות גינון · גנן מקומי אחד'}
               </Link>
               <Link to="/how-it-works" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
                 {lang === 'en' ? 'How CleanFix works' : 'איך CleanFix עובדת'}
-              </Link>
-              <Link to="/partners" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
-                {t.nav.partners}
-              </Link>
-              <Link to="/local-partners" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
-                {lang === 'en' ? 'Complementary local businesses' : 'עסקים מקומיים משלימים'}
               </Link>
               <Link to="/about" className="text-sm text-[#e8d8be]/70 transition-colors hover:text-white">
                 {t.nav.about}
@@ -122,13 +116,18 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 border-t border-white/10 pt-6 text-center">
+          <p className="mx-auto mb-3 max-w-3xl text-xs leading-5 text-[#e8d8be]/70">
+            {lang === 'en'
+              ? 'Draft documents for review — not legal advice or final terms; awaiting Israeli counsel approval.'
+              : 'מסמכי טיוטה לעיון — אינם ייעוץ משפטי או תנאים סופיים; ממתינים לאישור עורך דין ישראלי.'}
+          </p>
           <div className="mb-5 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs">
-            <a href="/legal/customer-service-terms-en.pdf" download className="text-[#e8d8be]/70">Customer terms EN</a>
-            <a href="/legal/customer-service-terms-he.pdf" download className="text-[#e8d8be]/70">תנאי שירות</a>
-            <a href="/legal/privacy-notice-en.pdf" download className="text-[#e8d8be]/70">Privacy EN</a>
-            <a href="/legal/privacy-notice-he.pdf" download className="text-[#e8d8be]/70">פרטיות</a>
-            <a href="/legal/provider-principles-en.pdf" download className="text-[#e8d8be]/70">Provider principles EN</a>
-            <a href="/legal/provider-principles-he.pdf" download className="text-[#e8d8be]/70">עקרונות ספקים</a>
+            <a href="/legal/customer-service-terms-en.pdf" download className="text-[#e8d8be]/70">Draft customer terms EN</a>
+            <a href="/legal/customer-service-terms-he.pdf" download className="text-[#e8d8be]/70">טיוטת תנאי שירות</a>
+            <a href="/legal/privacy-notice-en.pdf" download className="text-[#e8d8be]/70">Draft privacy notice EN</a>
+            <a href="/legal/privacy-notice-he.pdf" download className="text-[#e8d8be]/70">טיוטת הודעת פרטיות</a>
+            <a href="/legal/provider-principles-en.pdf" download className="text-[#e8d8be]/70">Draft provider principles EN</a>
+            <a href="/legal/provider-principles-he.pdf" download className="text-[#e8d8be]/70">טיוטת עקרונות ספקים</a>
           </div>
           <p className="text-xs text-[#e8d8be]/60">
             © {new Date().getFullYear()} CleanFixHarish. {t.footer.rights}.

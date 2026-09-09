@@ -87,6 +87,7 @@ import BusinessRulesCenter from "@/components/admin/BusinessRulesCenter";
 import GrowthCenter from "@/components/admin/GrowthCenter";
 import ThemeStudio from "@/components/admin/ThemeStudio";
 import DashboardTour from "@/components/DashboardTour";
+import FulfillmentCenter from "@/components/admin/FulfillmentCenter";
 
 type Section =
   | "overview"
@@ -94,6 +95,7 @@ type Section =
   | "leads"
   | "whatsapp"
   | "jobs"
+  | "fulfillment"
   | "providers"
   | "services"
   | "rules"
@@ -233,6 +235,7 @@ const navigationGroups: { label: string; items: NavigationItem[] }[] = [
     label: "Operations",
     items: [
       { id: "jobs", label: "Jobs", icon: BriefcaseBusiness },
+      { id: "fulfillment", label: "Fulfillment", icon: ClipboardCheck },
       { id: "followups", label: "Follow-ups", icon: HeartHandshake },
     ],
   },
@@ -299,6 +302,7 @@ const statusStyle: Record<LeadStatus, string> = {
 
 const viewerLockedSections: Section[] = [
   "assistant",
+  "fulfillment",
   "whatsapp",
   "pricing",
   "content",
@@ -915,6 +919,7 @@ export default function AdminPage() {
           <WhatsAppOps leads={leads} openWhatsApp={openWhatsApp} />
         )}
         {section === "jobs" && <Jobs jobs={jobs} setJobs={setJobs} readOnly={isViewer} />}
+        {!isViewer && section === "fulfillment" && <FulfillmentCenter />}
         {section === "learning" && (
           <LearningCenter
             he={lang === "he"}
@@ -2744,10 +2749,6 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
     estimate_id: "",
     quoted_total: "",
     deposit_required: "",
-    scope: "",
-    exclusions: "",
-    terms:
-      "Price includes only the written scope. Materials and additional work require written approval.",
     expires_at: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16),
   });
   const [publishedLinks, setPublishedLinks] = useState<Record<number, string>>(
@@ -2818,17 +2819,15 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
         : estimate?.customer_min
           ? String(estimate.customer_min)
           : "",
-      scope: estimate?.service_description || "",
     }));
   };
   const createQuote = async () => {
     if (
       !quoteDraft.estimate_id ||
-      !quoteDraft.quoted_total ||
-      quoteDraft.scope.trim().length < 10
+      !quoteDraft.quoted_total
     ) {
       toast.error(
-        "Choose an approved estimate, enter the total, and confirm the exact scope.",
+        "Choose an approved estimate and enter the total.",
       );
       return;
     }
@@ -2848,8 +2847,6 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
         estimate_id: "",
         quoted_total: "",
         deposit_required: "",
-        scope: "",
-        exclusions: "",
       }));
       await load();
     } catch (error: any) {
@@ -3110,22 +3107,9 @@ function PricingWorkspace({ leads }: { leads: DashboardLead[] }) {
             />
           </div>
           <div className="mt-3">
-            <FieldArea
-              label="Exact included scope"
-              value={quoteDraft.scope}
-              onChange={(v) => setQuoteDraft({ ...quoteDraft, scope: v })}
-              large
-            />
-            <FieldArea
-              label="Exclusions"
-              value={quoteDraft.exclusions}
-              onChange={(v) => setQuoteDraft({ ...quoteDraft, exclusions: v })}
-            />
-            <FieldArea
-              label="Terms"
-              value={quoteDraft.terms}
-              onChange={(v) => setQuoteDraft({ ...quoteDraft, terms: v })}
-            />
+            <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              The included scope, exclusions, and pilot terms are generated from the immutable task classification. They cannot be expanded in this form.
+            </p>
             <FieldInput
               label="Valid until"
               value={quoteDraft.expires_at}

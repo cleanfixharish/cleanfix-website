@@ -5,16 +5,18 @@ from decimal import Decimal
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Response
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from services.pilot_readiness import PILOT_SCOPE_HASH, PILOT_SCOPE_VERSION, pilot_readiness_blockers
 
 from core.database import get_db
 from dependencies.auth import get_admin_user, get_owner_user
 from models.bookings import Booking, QuoteEvent
 from models.leads import Leads
 from models.pricing import PriceEstimate, ServiceQuote
+from models.pilot import PilotTaskClassification
 from schemas.auth import UserResponse
 
 
@@ -52,12 +54,10 @@ def booking_status_for_deposit(deposit_required: Optional[Decimal]) -> str:
 
 
 class QuoteCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     estimate_id: int
     quoted_total: Decimal = Field(gt=0)
     deposit_required: Optional[Decimal] = Field(default=None, ge=0)
-    scope: str = Field(min_length=10, max_length=5000)
-    exclusions: Optional[str] = Field(default=None, max_length=5000)
-    terms: Optional[str] = Field(default=None, max_length=5000)
     expires_at: datetime
 
     @model_validator(mode="after")
@@ -99,6 +99,34 @@ def set_private_quote_headers(response: Response) -> None:
     response.headers["Referrer-Policy"] = "no-referrer"
 
 
+def canonical_pilot_quote_contract(classification: PilotTaskClassification) -> tuple[str, str, str]:
+    task_labels = {
+        "mounting_under_5kg": "Mount one customer-supplied interior item weighing no more than 5 kg, using an existing verified fixing only; owner onsite.",
+        "flat_pack_under_25kg": "Assemble one customer-supplied flat-pack component weighing no more than 25 kg from its manufacturer instructions; owner onsite.",
+        "cabinet_hardware": "Replace or adjust one specified customer-supplied cabinet or drawer hardware item; owner onsite.",
+    }
+    scope = task_labels[classification.task_key]
+    exclusions = "No electrical, plumbing, gas, HVAC, structural, glazing, lock/security, wall-penetration, powered-drilling, new-anchor, hazardous, licensed-trade, or two-person-lift work. No additional task is included."
+    terms = "PILOT-HOME-VISIT-v1 · Harish only · Monday–Thursday 09:00–17:00 Asia/Jerusalem · final schedule requires owner confirmation."
+    return scope, exclusions, terms
+
+
+async def _require_quote_classification_binding(db: AsyncSession, quote: ServiceQuote) -> PilotTaskClassification:
+    if quote.lead_id is None or quote.pilot_task_classification_id is None:
+        raise HTTPException(409, "The quote is not bound to an immutable pilot task classification")
+    classification = await db.get(PilotTaskClassification, quote.pilot_task_classification_id)
+    if (
+        classification is None or classification.lead_id != quote.lead_id
+        or classification.task_key != quote.pilot_task_key
+        or classification.scope_version != PILOT_SCOPE_VERSION
+        or classification.scope_hash != PILOT_SCOPE_HASH
+        or quote.pilot_scope_hash != PILOT_SCOPE_HASH
+        or (quote.scope, quote.exclusions, quote.terms) != canonical_pilot_quote_contract(classification)
+    ):
+        raise HTTPException(409, "The quote contract no longer matches its approved pilot task classification")
+    return classification
+
+
 @admin_router.post("", status_code=201)
 async def create_quote(
     data: QuoteCreate,
@@ -115,10 +143,20 @@ async def create_quote(
     ).scalar_one_or_none()
     if existing is not None:
         raise HTTPException(409, "A quote already exists for this estimate")
+    if estimate.lead_id is None:
+        raise HTTPException(409, "A classified customer request is required before creating a paid pilot quote")
+    classification = await db.scalar(select(PilotTaskClassification).where(PilotTaskClassification.lead_id == estimate.lead_id))
+    if classification is None or classification.scope_version != PILOT_SCOPE_VERSION or classification.scope_hash != PILOT_SCOPE_HASH:
+        raise HTTPException(409, "A current immutable pilot task classification is required before creating a paid pilot quote")
+    canonical_scope, canonical_exclusions, canonical_terms = canonical_pilot_quote_contract(classification)
 
     quote = ServiceQuote(
         **data.model_dump(),
         lead_id=estimate.lead_id,
+        pilot_task_classification_id=classification.id,
+        pilot_task_key=classification.task_key,
+        pilot_scope_hash=classification.scope_hash,
+        scope=canonical_scope, exclusions=canonical_exclusions, terms=canonical_terms,
         status="draft",
         created_by=admin.email,
     )
@@ -190,6 +228,8 @@ async def publish_quote(
     owner: UserResponse = Depends(get_owner_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if await pilot_readiness_blockers(db, lock=True):
+        raise HTTPException(409, "Acceptance-capable quotes are blocked until the paid pilot is fully activated")
     quote = (
         await db.execute(
             select(ServiceQuote).where(ServiceQuote.id == quote_id).with_for_update()
@@ -201,6 +241,7 @@ async def publish_quote(
         raise HTTPException(409, "Only an owner-approved quote can be published")
     if quote_is_expired(quote.expires_at):
         raise HTTPException(409, "This quote has already expired")
+    await _require_quote_classification_binding(db, quote)
 
     raw_token = secrets.token_urlsafe(32)
     quote.public_token_hash = hash_quote_token(raw_token)
@@ -267,6 +308,9 @@ async def decide_public_quote(
 ):
     set_private_quote_headers(response)
     token_hash = hash_quote_token(token)
+    preview = await _quote_from_token(token, db)
+    if data.decision == "accept" and await pilot_readiness_blockers(db, lock=True):
+        raise HTTPException(409, "Quote acceptance is not available before paid pilot activation")
     quote = (
         await db.execute(
             select(ServiceQuote)
@@ -276,6 +320,10 @@ async def decide_public_quote(
     ).scalar_one_or_none()
     if quote is None:
         raise HTTPException(404, "Quote not found")
+    if quote.id != preview.id:
+        raise HTTPException(409, "Quote changed during decision processing")
+    if data.decision == "accept":
+        await _require_quote_classification_binding(db, quote)
     previous_event = (
         await db.execute(
             select(QuoteEvent).where(

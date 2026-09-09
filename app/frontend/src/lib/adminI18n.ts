@@ -52,6 +52,7 @@ export const adminHebrew: Record<string, string> = {
   'New leads': 'לידים חדשים',
   'Needs triage': 'דורש מיון',
   'Active jobs': 'עבודות פעילות',
+  'Fulfillment': 'ביצוע ושיבוץ',
   'Scheduled + active': 'מתוזמנות ופעילות',
   Completed: 'הושלמו',
   'This workspace': 'סביבת עבודה זו',

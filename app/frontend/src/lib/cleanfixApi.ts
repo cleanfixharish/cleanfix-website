@@ -319,6 +319,125 @@ export const cleanfixApi = {
     return response.data;
   },
 
+  async listBusinessRelationships() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/business-access/admin/relationships`);
+    return response.data;
+  },
+
+  async confirmBookingSchedule(id: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/bookings/${id}/confirm-schedule`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async createManagedProvider(data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers`, data);
+    return response.data;
+  },
+
+  async listManagedProviders() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/managed-providers`);
+    return response.data;
+  },
+
+  async getPilotReadiness() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/pilot-readiness`);
+    return response.data;
+  },
+
+  async updatePilotConfiguration(data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/admin/pilot-readiness/configuration`, data);
+    return response.data;
+  },
+
+  async updatePilotGate(gateKey: string, data: Record<string, unknown>) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/admin/pilot-readiness/gates/${encodeURIComponent(gateKey)}`, data);
+    return response.data;
+  },
+
+  async createPilotTaskClassification(data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/pilot-readiness/task-classifications`, data);
+    return response.data;
+  },
+
+  async addProviderCapability(profileId: number, data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/capabilities`, data);
+    return response.data;
+  },
+
+  async addProviderVetting(profileId: number, data: Record<string, unknown>) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/vetting`, data);
+    return response.data;
+  },
+
+  async activateManagedProvider(profileId: number, expectedVersion: number) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/managed-providers/${profileId}/activate`, {
+      expected_version: expectedVersion,
+    });
+    return response.data;
+  },
+
+  async createAssignmentOffer(jobId: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/jobs/${jobId}/assignment-offers`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async listAssignmentOffers() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/assignment-offers`);
+    return response.data;
+  },
+
+  async setServiceLocation(bookingId: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.put(`${getAPIBaseURL()}/api/v1/admin/bookings/${bookingId}/service-location`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async getOwnerServiceLocation(bookingId: number) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/admin/bookings/${bookingId}/service-location`);
+    return response.data;
+  },
+
+  async confirmAssignment(offerId: number, data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/admin/assignment-offers/${offerId}/confirm`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async listProviderOffers() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/provider/offers`);
+    return response.data;
+  },
+
+  async decideProviderOffer(offerId: number, decision: 'accept' | 'decline', data: Record<string, unknown>, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/provider/offers/${offerId}/${decision}`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return response.data;
+  },
+
+  async listProviderJobs() {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/provider/jobs`);
+    return response.data;
+  },
+
+  async getProviderServiceLocation(jobId: number) {
+    const response = await http.get(`${getAPIBaseURL()}/api/v1/provider/jobs/${jobId}/service-location`);
+    return response.data;
+  },
+
+  async advanceProviderJob(jobId: number, command: 'on-the-way'|'arrive'|'start', expectedVersion: number, idempotencyKey: string) {
+    const response = await http.post(`${getAPIBaseURL()}/api/v1/provider/jobs/${jobId}/${command}`, {
+      expected_version: expectedVersion,
+    }, { headers: { 'Idempotency-Key': idempotencyKey } });
+    return response.data;
+  },
+
   async approveServiceQuote(id: number | string) {
     const response = await http.post(`${getAPIBaseURL()}/api/v1/quotes/${id}/approve`);
     return response.data;

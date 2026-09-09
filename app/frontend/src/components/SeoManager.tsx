@@ -4,13 +4,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 const BASE = 'https://cleanfixharish.co.il';
 const pages: Record<string, { en: [string, string]; he: [string, string] }> = {
-  '/': { en: ['CleanFixHarish | Managed Home Services in Harish', 'One responsible local contact for carefully scoped handyman, cleaning and home services in Harish.'], he: ['CleanFixHarish | שירותי בית מנוהלים בחריש', 'איש קשר מקומי ואחראי לעבודות הנדימן, ניקיון ושירותי בית עם היקף ברור בחריש.'] },
-  '/services': { en: ['Home Services in Harish | CleanFixHarish', 'Explore managed handyman, cleaning, window, AC, move-in and gardening services.'], he: ['שירותי בית בחריש | CleanFixHarish', 'שירותי הנדימן, ניקיון, חלונות, מזגנים, מעבר דירה וגינון בניהול אחראי.'] },
-  '/gardening': { en: ['Gardening & Landscape Design in Harish | CleanFixHarish', 'Gardeners and high-level garden designers for balconies, family gardens, water features and complete landscapes.'], he: ['גינון ועיצוב גינות בחריש | CleanFixHarish', 'גננים ומעצבי גינות ברמה גבוהה למרפסות, גינות משפחתיות, אלמנטי מים ונוף שלם.'] },
-  '/how-it-works': { en: ['How CleanFixHarish Works | Scope, Quality & Resolution', 'Understand how CleanFix manages scope, providers, payment, evidence, quality and issue resolution.'], he: ['איך CleanFixHarish עובדת | היקף, איכות ופתרון', 'כך CleanFix מנהלת היקף, בעלי מקצוע, תשלום, תיעוד, איכות ופתרון בעיות.'] },
-  '/about': { en: ['About CleanFixHarish | One Accountable Service Path', 'Meet the managed local service model and listen to clear English or Hebrew explanations of the customer journey, technology and business concept.'], he: ['אודות CleanFixHarish | כתובת אחת אחראית', 'הכירו את מודל השירות המקומי המנוהל והאזינו להסברים ברורים בעברית ובאנגלית.'] },
-  '/partners': { en: ['CleanFixHarish Provider Network | Managed Local Professionals', 'Learn how reviewed local providers work through one managed process with clear scope, payment and quality controls.'], he: ['רשת בעלי המקצוע של CleanFixHarish', 'הכירו את תהליך העבודה המנוהל עם היקף, תשלום ובקרת איכות ברורים.'] },
-  '/local-partners': { en: ['Complementary Local Businesses in Harish | CleanFixHarish', 'A clearly disclosed collection of independent local businesses in services CleanFixHarish does not manage.'], he: ['עסקים מקומיים משלימים בחריש | CleanFixHarish', 'אוסף גלוי וברור של עסקים עצמאיים בשירותים ש-CleanFixHarish אינה מנהלת.'] },
+  '/': { en: ['CleanFixHarish | Handyman, Cleaning, Painting & AC Cleaning', 'Request four focused home-service categories in Harish. Scope, availability, price and booking are confirmed separately.'], he: ['CleanFixHarish | הנדימן, ניקיון, צביעה וניקוי מזגנים', 'בקשת ארבע קטגוריות שירות ממוקדות בחריש. היקף, זמינות, מחיר והזמנה מאושרים בנפרד.'] },
+  '/services': { en: ['Focused Home-Service Requests in Harish | CleanFixHarish', 'Handyman, cleaning, painting and AC-cleaning requests, plus gardening separately through one local gardener.'], he: ['בקשות שירות ממוקדות בחריש | CleanFixHarish', 'בקשות הנדימן, ניקיון, צביעה וניקוי מזגנים, וגינון בנפרד דרך גנן מקומי אחד.'] },
+  '/gardening': { en: ['Gardening Requests in Harish | One Local Gardener', 'Gardening requests are reviewed through one local gardener, subject to written scope and availability.'], he: ['בקשות גינון בחריש | גנן מקומי אחד', 'בקשות גינון נבדקות מול גנן מקומי אחד, בכפוף להיקף כתוב ולזמינות.'] },
+  '/how-it-works': { en: ['How Service Requests Work | CleanFixHarish', 'See how requests are reviewed before scope, availability, price, assignment or booking is confirmed.'], he: ['איך עובדות בקשות שירות | CleanFixHarish', 'כך בקשות נבדקות לפני אישור היקף, זמינות, מחיר, שיבוץ או הזמנה.'] },
+  '/about': { en: ['About CleanFixHarish | Focused Launch in Harish', 'How the staged launch handles handyman, cleaning, painting and AC-cleaning requests, with gardening kept separate.'], he: ['אודות CleanFixHarish | השקה ממוקדת בחריש', 'כך ההשקה המדורגת מטפלת בבקשות הנדימן, ניקיון, צביעה וניקוי מזגנים, כאשר גינון נשאר נפרד.'] },
+  '/partners': { en: ['Harish Business Network | Not Launched', 'The wider independent Harish business network is a future phase and is not currently operating.'], he: ['רשת העסקים בחריש | טרם הושקה', 'רשת העסקים העצמאיים הרחבה בחריש היא שלב עתידי ואינה פועלת כעת.'] },
+  '/local-partners': { en: ['Harish Business Network | Not Launched', 'The wider independent Harish business network is a future phase and is not currently operating.'], he: ['רשת העסקים בחריש | טרם הושקה', 'רשת העסקים העצמאיים הרחבה בחריש היא שלב עתידי ואינה פועלת כעת.'] },
 };
 
 export default function SeoManager() {
@@ -21,7 +21,7 @@ export default function SeoManager() {
     const [title, description] = page[lang];
     document.title = title;
     const setMeta = (selector: string, attribute: string, value: string) => document.querySelector(selector)?.setAttribute(attribute, value);
-    const privateRoute = ['/admin', '/account', '/auth', '/provider', '/partner'].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) || /^\/quote\/.+/.test(pathname);
+    const privateRoute = ['/admin', '/account', '/auth', '/provider', '/partner'].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) || ['/partners', '/local-partners'].includes(pathname) || /^\/quote\/.+/.test(pathname);
     let robots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
     if (!robots) { robots = document.createElement('meta'); robots.name = 'robots'; document.head.appendChild(robots); }
     robots.content = privateRoute ? 'noindex,nofollow,noarchive' : 'index,follow,max-image-preview:large';

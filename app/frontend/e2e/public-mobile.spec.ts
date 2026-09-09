@@ -60,6 +60,28 @@ async function mockUnauthenticatedApi(page: Page) {
       contentType: 'application/json',
       body: JSON.stringify({ configured: true, provider: 'supabase', email_configured: true, email_signup_configured: false }),
   }));
+  await page.route('**/api/v1/site-settings', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      primary_color: '#102E38',
+      surface_color: '#F7F2EA',
+      hero_layout: 'text-left',
+      effects_mode: 'reduced',
+      primary_cta_en: 'Book now',
+      primary_cta_he: 'הזמינו עכשיו',
+      secondary_cta_en: 'Guaranteed instant reply',
+      secondary_cta_he: 'תגובה מיידית מובטחת',
+    }),
+  }));
+  await page.route('**/api/v1/entities/services**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ items: [
+      { id: 91, name_en: 'Electrical Work', name_he: 'חשמל', is_active: true },
+      { id: 92, name_en: 'Plumbing', name_he: 'אינסטלציה', is_active: true },
+    ], total: 2, skip: 0, limit: 200 }),
+  }));
 }
 
 test.describe('public mobile coverage', () => {
@@ -106,7 +128,7 @@ test.describe('public mobile coverage', () => {
 
     await page.goto('/services');
     const serviceWebp = page.locator('main source[type="image/webp"]').first();
-    await expect(serviceWebp).toHaveAttribute('srcset', /\/assets\/images\/transformations\/.+-960\.webp 960w/);
+    await expect(serviceWebp).toHaveAttribute('srcset', /\/assets\/images\/cleanfix-(documentary|mobile-v3)\/web\/.+\.webp 480w/);
     await expect(page.locator('main picture img').first()).toHaveAttribute('loading', 'lazy');
   });
 
@@ -115,6 +137,62 @@ test.describe('public mobile coverage', () => {
     await page.getByRole('button', { name: /Switch site to Hebrew|החלפת האתר לאנגלית/ }).click();
     await expect(page.locator('html')).toHaveAttribute('dir', /rtl|ltr/);
     await assertNoHorizontalOverflow(page);
+  });
+
+  test('focused launch boundary is bilingual and cannot be broadened by live services', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'phone-390', 'content contract runs once');
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'CleanFixHarish currently accepts requests in four focused categories.' })).toBeVisible();
+    for (const category of ['Handyman', 'Cleaning', 'Painting', 'AC cleaning']) {
+      await expect(page.getByRole('heading', { name: category, exact: true })).toHaveCount(1);
+    }
+    await expect(page.getByText('Electrical Work')).toHaveCount(0);
+    await expect(page.getByText('Plumbing')).toHaveCount(0);
+    await expect(page.getByText('Book now')).toHaveCount(0);
+    await expect(page.getByText('Guaranteed instant reply')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Request a Quote/ }).first()).toBeVisible();
+    await expect(page.getByText(/One local gardener, subject to scope and availability/)).toBeVisible();
+    await expect(page.getByText(/does not confirm availability, price, assignment or booking/).first()).toBeVisible();
+
+    await page.getByRole('button', { name: /Switch site to Hebrew/ }).click();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.getByRole('heading', { name: 'CleanFixHarish מקבלת כעת בקשות בארבע קטגוריות ממוקדות.' })).toBeVisible();
+    for (const category of ['הנדימן', 'ניקיון', 'צביעה', 'ניקוי מזגנים']) {
+      await expect(page.getByRole('heading', { name: category, exact: true })).toHaveCount(1);
+    }
+
+    await page.goto('/about');
+    await expect(page.getByRole('heading', { name: 'CleanFixHarish מקבלת כעת בקשות בארבע קטגוריות ממוקדות.' })).toBeVisible();
+    await expect(page.getByText(/רשת עסקים עצמאיים רחבה יותר בחריש עדיין לא הושקה/)).toBeVisible();
+  });
+
+  test('quote form matches the four launch categories and keeps gardening separate', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'phone-390', 'content contract runs once');
+    await page.goto('/quote');
+    const serviceSelect = page.getByRole('combobox').first();
+    await serviceSelect.click();
+    for (const option of ['Handyman', 'Cleaning', 'Painting', 'AC cleaning', 'Gardening — separate local gardener']) {
+      await expect(page.getByRole('option', { name: option, exact: true })).toBeVisible();
+    }
+    for (const removed of ['Post-renovation cleaning', 'Move-in / move-out cleaning', 'Window cleaning', 'Other']) {
+      await expect(page.getByRole('option', { name: removed, exact: true })).toHaveCount(0);
+    }
+    await page.keyboard.press('Escape');
+
+    await page.goto('/quote?service=gardening');
+    await expect(page.getByRole('combobox').first()).toContainText('Gardening — separate local gardener');
+    await page.getByRole('button', { name: /Switch site to Hebrew/ }).click();
+    await expect(page.getByRole('combobox').first()).toContainText('גינון — גנן מקומי נפרד');
+  });
+
+  test('future network routes remain accessible, visibly unlaunched and noindex', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'phone-390', 'content contract runs once');
+    await page.goto('/partners');
+    await expect(page.getByRole('heading', { name: 'The wider Harish business network has not launched.' })).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow,noarchive');
+    await page.goto('/local-partners');
+    await expect(page.getByRole('heading', { name: 'The wider Harish business network has not launched.' })).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow,noarchive');
   });
 
   test('/how-we-work redirects to /how-it-works in the SPA', async ({ page }) => {
