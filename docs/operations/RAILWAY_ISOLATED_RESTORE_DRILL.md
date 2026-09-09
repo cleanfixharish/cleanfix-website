@@ -44,6 +44,12 @@ Stop if the environment IDs match, backup audit fails, target identity is ambigu
 
 Because Railway CLI capabilities can change, do not invent a restore command. Use the current Railway UI/API operation documented for the selected backup, inspect the resolved source and destination immediately before confirmation, and retain its operation/deployment ID.
 
+Before any restore, place source writes under an owner-recorded hold with no in-flight writers, then use `scripts/verify_restore_parity.py capture-baseline` to create a non-overwriting, HMAC-authenticated, non-PII manifest. Record the write-hold evidence reference in the command. Its database snapshot timestamp becomes the exact Railway PITR target. Keep the manifest private: it contains infrastructure IDs and an opaque operator reference, and must never be committed to the public repository. Generate `CLEANFIX_RECOVERY_DIGEST_KEY` from at least 32 random bytes and keep it in the approved secret store. The manifest must bind the Railway-confirmed history selector, backup reference, approved source and disposable-target IDs, expected migration, approval reference, operator, and numeric RPO/RTO limits.
+
+Restore only to the manifest's exact target UTC and approved isolated IDs. Retain Railway evidence for the authoritative recovered-through time and restore operation start/ready times; `verify-restore` derives RPO/RTO from those timestamps and rejects future or inconsistent values. Supply database URLs only through `CLEANFIX_BASELINE_DATABASE_URL` and `CLEANFIX_RESTORE_DATABASE_URL`; never place them in arguments or logs. Release the source write hold only under the recorded drill plan; if writes resume before verification, the saved target-time manifest remains authoritative and the verifier must not resample production.
+
+This tool is a read-only parity precheck. It fails on migration, required-schema/table, catalog, aggregate, foreign-key, timestamp, job-event-chain, RPO, or RTO drift, but it does not by itself close the recovery gate. Completion/financial/evidence hashes, encrypted-object recovery, and real application-role append-only enforcement must also pass in the isolated target before an application is attached or the gate is approved.
+
 ## Phase C: verification
 
 Use an ephemeral credential passed through process environment without echoing it. Prefer aggregate/checksum queries whose output contains no customer data.
